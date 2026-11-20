@@ -4,6 +4,17 @@
  */
 
 const StoryPad = {
+  supabaseConfig: {
+    url: 'https://pwhrfuxwhydjiqfgjnts.supabase.co',
+    anonKey: 'sb_publishable_EW9WAakXeLHajK_gaTEOBA_oIH2sat-',
+    projectId: 'pwhrfuxwhydjiqfgjnts'
+  },
+  supabase: null,
+  _realtimeChannel: null,
+  _syncDebounceTimer: null,
+  _noteSyncTimer: null,
+  _supabaseLoadListenerAdded: false,
+
   state: {
     currentScreen: 'login', // 'login' | 'dashboard' | 'projects' | 'script-reader' | 'profile'
     previousScreen: 'dashboard',
@@ -13,6 +24,9 @@ const StoryPad = {
     theme: 'daylight',       // 'daylight' | 'slate'
     activeProjectCategory: 'all',
     projectSearchQuery: '',
+    activePersonaKey: 'scriptSupervisor',
+    supabaseConnected: false,
+    supabaseUser: null,
 
     // Active User Profile
     currentUser: {
@@ -413,6 +427,212 @@ const StoryPad = {
     this.startLiveClocks();
     this.renderProfileRoles();
     this.updateNotificationIndicators();
+    this.initSupabase();
+  },
+
+  initSupabase() {
+    if (typeof window === 'undefined') return;
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+      if (!this._supabaseLoadListenerAdded && typeof window.addEventListener === 'function') {
+        this._supabaseLoadListenerAdded = true;
+        window.addEventListener('load', () => this.initSupabase(), { once: true });
+      }
+      return;
+    }
+
+    if (this.supabase) return;
+    try {
+      this.supabase = window.supabase.createClient(this.supabaseConfig.url, this.supabaseConfig.anonKey);
+      this.updateSupabaseStatusBadge('Menghubungkan...', 'neutral');
+
+      this.supabase.auth.getSession().then(({ data }) => {
+        if (data && data.session && data.session.user) {
+          this.applyAuthenticatedSupabaseUser(data.session.user);
+        }
+      }).catch(() => {});
+
+      this.supabase.auth.onAuthStateChange((_event, session) => {
+        if (session && session.user) {
+          this.applyAuthenticatedSupabaseUser(session.user);
+        } else {
+          this.state.supabaseUser = null;
+        }
+      });
+
+      this.syncFromSupabase();
+      this.subscribeRealtime();
+    } catch (e) {
+      this.updateSupabaseStatusBadge('Mode Lokal', 'neutral');
+    }
+  },
+
+  updateSupabaseStatusBadge(text, variant = 'neutral') {
+    const badge = document.getElementById('supabase-status-badge');
+    if (!badge) return;
+    badge.textContent = text;
+    badge.className = `sp-badge font-mono ${variant === 'good' ? 'sp-badge-good' : (variant === 'amber' ? 'sp-badge-amber' : 'sp-badge-neutral')}`;
+  },
+
+  applyAuthenticatedSupabaseUser(user) {
+    this.state.supabaseUser = user;
+    const email = user.email || '';
+    const displayName = (user.user_metadata && user.user_metadata.full_name) ? user.user_metadata.full_name : (email.split('@')[0] || 'Kru Produksi');
+    const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'SP';
+    this.state.currentUser = {
+      ...this.state.currentUser,
+      name: displayName,
+      initials,
+      email
+    };
+    this.renderProfileRoles();
+  },
+
+  async syncFromSupabase() {
+    if (!this.supabase) return;
+    try {
+      const [projRes, linesRes, takesRes, crewRes, notifRes] = await Promise.all([
+        this.supabase.from('projects').select('*').order('sort_order', { ascending: true }),
+        this.supabase.from('script_lines').select('*').order('sort_order', { ascending: true }),
+        this.supabase.from('takes').select('*').order('take_number', { ascending: true }),
+        this.supabase.from('crew_profiles').select('*'),
+        this.supabase.from('notifications').select('*').order('id', { ascending: true })
+      ]);
+
+      if (projRes.error || linesRes.error || takesRes.error) {
+        this.updateSupabaseStatusBadge('Sinkronisasi Tertunda', 'amber');
+        return;
+      }
+
+      const projRows = projRes.data || [];
+      const lineRows = linesRes.data || [];
+      const takeRows = takesRes.data || [];
+
+      if (projRows.length > 0) {
+        this.db.projects = projRows.map(p => ({
+          id: p.id,
+          code: p.code,
+          title: p.title,
+          category: p.category,
+          subtitle: p.subtitle,
+          tag: p.tag,
+          day: p.day,
+          takesLogged: p.takes_logged,
+          fps: p.fps,
+          goodTakePercentage: p.good_take_percentage,
+          reviewPercentage: p.review_percentage,
+          syncStatus: p.sync_status
+        }));
+
+        const takesByDialogue = {};
+        takeRows.forEach(t => {
+          if (!takesByDialogue[t.dialogue_id]) takesByDialogue[t.dialogue_id] = [];
+          takesByDialogue[t.dialogue_id].push({
+            number: t.take_number,
+            label: t.label,
+            tc: t.tc,
+            statusLabel: t.status_label,
+            isGood: !!t.is_good,
+            isNg: !!t.is_ng,
+            directorPick: !!t.director_pick
+          });
+        });
+
+        const rebuiltProjects = {};
+        projRows.forEach(p => {
+          const pLines = lineRows.filter(l => l.project_id === p.id).map(l => {
+            if (l.line_type === 'action') {
+              return {
+                id: l.id,
+                type: 'action',
+                content: l.content || ''
+              };
+            }
+            if (l.continuity_note !== undefined && l.continuity_note !== null && l.continuity_note !== '') {
+              this.state.scriptNotes[l.id] = l.continuity_note;
+            }
+            return {
+              id: l.id,
+              type: 'dialogue',
+              character: l.character_name || '',
+              timecode: l.timecode || '',
+              text: l.dialogue_text || '',
+              keyword: l.keyword || '',
+              shot: l.shot || '01',
+              status: l.status || 'pending',
+              statusLabel: l.status_label || 'Pending Shoot',
+              takes: takesByDialogue[l.id] || []
+            };
+          });
+
+          rebuiltProjects[p.id] = {
+            projectId: p.id,
+            projectTitle: p.subtitle || p.title,
+            draft: p.draft,
+            scene: {
+              number: p.scene_number,
+              shotNumber: p.shot_number,
+              slugNumber: p.slug_number,
+              title: p.scene_title,
+              timecode: p.scene_timecode,
+              takeInfo: p.take_info
+            },
+            lines: pLines
+          };
+        });
+
+        this.db.scriptDataProjects = rebuiltProjects;
+        this.db.scriptData = this.db.scriptDataProjects[this.state.activeProjectId] || this.db.scriptDataProjects['proj-1'];
+      }
+
+      if (crewRes && !crewRes.error && Array.isArray(crewRes.data)) {
+        const activeCrew = crewRes.data.find(c => c.persona_key === this.state.activePersonaKey);
+        if (activeCrew && activeCrew.roles && !this.state.supabaseUser) {
+          this.state.roles = { ...this.state.roles, ...activeCrew.roles };
+        }
+      }
+
+      if (notifRes && !notifRes.error && Array.isArray(notifRes.data) && notifRes.data.length > 0) {
+        this.state.notifications = notifRes.data.map(n => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          time: n.time_label,
+          type: n.notif_type,
+          priority: n.priority,
+          unread: !!n.unread,
+          dismissed: !!n.dismissed
+        }));
+      }
+
+      this.state.supabaseConnected = true;
+      this.updateSupabaseStatusBadge('Supabase Terhubung', 'good');
+      this.updateDashboardData();
+      this.updateProgressGauge();
+      this.renderScriptContent();
+      this.renderPanelContent();
+      this.renderProfileRoles();
+      this.renderNotificationsList();
+    } catch (e) {
+      this.updateSupabaseStatusBadge('Mode Lokal', 'neutral');
+    }
+  },
+
+  subscribeRealtime() {
+    if (!this.supabase || this._realtimeChannel) return;
+    const scheduleSync = () => {
+      clearTimeout(this._syncDebounceTimer);
+      this._syncDebounceTimer = setTimeout(() => {
+        this.syncFromSupabase();
+      }, 180);
+    };
+
+    this._realtimeChannel = this.supabase
+      .channel('storypad-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, scheduleSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'script_lines' }, scheduleSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'takes' }, scheduleSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, scheduleSync)
+      .subscribe();
   },
 
   loadPersistedSettings() {
@@ -1296,14 +1516,15 @@ const StoryPad = {
     if (!dialogue) return;
     if (!dialogue.takes) dialogue.takes = [];
     const nextNum = dialogue.takes.length + 1;
-    dialogue.takes.push({
+    const newTake = {
       number: nextNum,
       label: `Take ${String(nextNum).padStart(2, '0')} | CAM-A / BOOM`,
       tc: '01:00 SMPTE',
       statusLabel: 'Hold',
       isGood: false,
       isNg: false
-    });
+    };
+    dialogue.takes.push(newTake);
     if (dialogue.status === 'pending') {
       dialogue.status = 'warning';
       dialogue.statusLabel = 'Review';
@@ -1314,6 +1535,24 @@ const StoryPad = {
     this.updatePanelAutoNaming();
     this.updateProgressGauge();
     this.showToast(`Take ${String(nextNum).padStart(2, '0')} dicatat pada Shot ${dialogue.shot}`);
+
+    if (this.supabase) {
+      this.supabase.from('takes').upsert({
+        dialogue_id: dialogue.id,
+        project_id: this.state.activeProjectId,
+        take_number: newTake.number,
+        label: newTake.label,
+        tc: newTake.tc,
+        status_label: newTake.statusLabel,
+        is_good: false,
+        is_ng: false,
+        director_pick: false
+      }, { onConflict: 'dialogue_id,take_number' }).then(() => {});
+      this.supabase.from('script_lines').update({
+        status: dialogue.status,
+        status_label: dialogue.statusLabel
+      }).eq('id', dialogue.id).then(() => {});
+    }
   },
 
   toggleCircleTake(takeNumber) {
@@ -1342,6 +1581,18 @@ const StoryPad = {
     this.renderScriptContent();
     this.updateProgressGauge();
     this.updateDashboardData();
+
+    if (this.supabase) {
+      this.supabase.from('takes').update({
+        is_good: take.isGood,
+        is_ng: take.isNg,
+        status_label: take.statusLabel
+      }).eq('dialogue_id', dialogue.id).eq('take_number', takeNumber).then(() => {});
+      this.supabase.from('script_lines').update({
+        status: dialogue.status,
+        status_label: dialogue.statusLabel
+      }).eq('id', dialogue.id).then(() => {});
+    }
   },
 
   selectTake(takeNumber) {
@@ -1406,20 +1657,37 @@ const StoryPad = {
   },
 
   updateActiveNote(value) {
-    this.state.scriptNotes[this.state.activeDialogueId] = value;
+    const dialogueId = this.state.activeDialogueId;
+    this.state.scriptNotes[dialogueId] = value;
     const statusEl = document.getElementById('panel-autosave-status');
     if (statusEl) {
-      statusEl.textContent = 'Tersimpan lokal';
+      statusEl.textContent = this.supabase ? 'Menyimpan ke Supabase...' : 'Tersimpan lokal';
+    }
+    if (this.supabase) {
+      clearTimeout(this._noteSyncTimer);
+      this._noteSyncTimer = setTimeout(() => {
+        this.supabase.from('script_lines').update({
+          continuity_note: value
+        }).eq('id', dialogueId).then(({ error }) => {
+          if (statusEl && !error) statusEl.textContent = 'Tersimpan ke Supabase';
+        });
+      }, 500);
     }
   },
 
   saveNotes() {
     const notesEl = document.getElementById('panel-script-notes');
     if (notesEl) {
-      this.state.scriptNotes[this.state.activeDialogueId] = notesEl.value;
+      const dialogueId = this.state.activeDialogueId;
+      this.state.scriptNotes[dialogueId] = notesEl.value;
       const statusEl = document.getElementById('panel-autosave-status');
-      if (statusEl) statusEl.textContent = 'Draft disimpan';
+      if (statusEl) statusEl.textContent = this.supabase ? 'Disimpan ke Supabase' : 'Draft disimpan';
       this.showToast('Catatan berhasil disimpan ke Draft');
+      if (this.supabase) {
+        this.supabase.from('script_lines').update({
+          continuity_note: notesEl.value
+        }).eq('id', dialogueId).then(() => {});
+      }
     }
   },
 
@@ -1442,7 +1710,7 @@ const StoryPad = {
     btn.disabled = true;
     if (statusEl) statusEl.textContent = 'Memproses ekspor metadata take aktif...';
 
-    setTimeout(() => {
+    const finishSync = () => {
       const naming = this.generateFileNames(this.state.activeDialogueId, this.state.activeTakeNumber);
       btn.innerHTML = `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">done_all</span><span>Paket NLE Siap</span>`;
       if (statusEl) {
@@ -1450,11 +1718,26 @@ const StoryPad = {
       }
       this.showToast('Metadata timeline NLE disinkronkan');
 
+      if (this.supabase) {
+        this.supabase.from('projects').update({ sync_status: 'In Sync' }).eq('id', this.state.activeProjectId).then(() => {});
+        this.supabase.from('notifications').insert({
+          title: 'NLE Bridge: Ekspor Metadata',
+          message: `Paket ${naming.videoName} dan catatan kontinuitas disinkronkan oleh ${this.state.currentUser.name}.`,
+          time_label: 'Baru saja',
+          notif_type: 'sync',
+          priority: 'routine',
+          unread: true,
+          dismissed: false
+        }).then(() => {});
+      }
+
       setTimeout(() => {
         btn.innerHTML = originalContent;
         btn.disabled = false;
       }, 2000);
-    }, 900);
+    };
+
+    setTimeout(finishSync, 900);
   },
 
   togglePanelAudioPlayback() {
@@ -1692,6 +1975,12 @@ const StoryPad = {
     if (statCircled) statCircled.textContent = String(circledTakes);
 
     this.updateRolePermissionIndicators();
+
+    if (this.supabase && this.state.activePersonaKey) {
+      this.supabase.from('crew_profiles').update({
+        roles: this.state.roles
+      }).eq('persona_key', this.state.activePersonaKey).then(() => {});
+    }
   },
 
   updateRolePermissionIndicators() {
@@ -1744,6 +2033,12 @@ const StoryPad = {
       this.showToast(`Mode ${roleKey} dinonaktifkan`);
     }
     this.updateRolePermissionIndicators();
+
+    if (this.supabase && this.state.activePersonaKey) {
+      this.supabase.from('crew_profiles').update({
+        roles: this.state.roles
+      }).eq('persona_key', this.state.activePersonaKey).then(() => {});
+    }
   },
 
   // Project Search & Category Filters
@@ -1929,6 +2224,9 @@ const StoryPad = {
     if (item) {
       item.unread = false;
       this.renderNotificationsList();
+      if (this.supabase) {
+        this.supabase.from('notifications').update({ unread: false }).eq('id', id).then(() => {});
+      }
     }
   },
 
@@ -1938,6 +2236,9 @@ const StoryPad = {
       item.dismissed = true;
       item.unread = false;
       this.renderNotificationsList();
+      if (this.supabase) {
+        this.supabase.from('notifications').update({ dismissed: true, unread: false }).eq('id', id).then(() => {});
+      }
     }
   },
 
@@ -1945,6 +2246,9 @@ const StoryPad = {
     this.state.notifications.forEach(n => { n.dismissed = false; });
     this.renderNotificationsList();
     this.showToast('Riwayat notifikasi dipulihkan');
+    if (this.supabase) {
+      this.supabase.from('notifications').update({ dismissed: false }).neq('id', 0).then(() => {});
+    }
   },
 
   markAllNotificationsRead() {
@@ -1952,6 +2256,9 @@ const StoryPad = {
     this.state.notifications.forEach(n => { n.unread = false; });
     this.renderNotificationsList();
     this.showToast('Semua notifikasi ditandai dibaca');
+    if (this.supabase) {
+      this.supabase.from('notifications').update({ unread: false }).neq('id', 0).then(() => {});
+    }
   },
 
   // Login Persona Switcher Modal
@@ -1994,6 +2301,7 @@ const StoryPad = {
 
   loginAs(personaKey) {
     this.triggerHaptic();
+    this.state.activePersonaKey = personaKey;
     const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
     const prodName = activeProj ? activeProj.title : 'Senjakala Merah';
 
@@ -2039,6 +2347,58 @@ const StoryPad = {
     this.showToast(`Masuk sebagai ${this.state.currentUser.name}`);
   },
 
+  async signInWithSupabaseEmail(mode = 'signin') {
+    this.triggerHaptic();
+    const emailEl = document.getElementById('supa-email-input');
+    const passEl = document.getElementById('supa-password-input');
+    const fbEl = document.getElementById('supa-auth-feedback');
+    const email = emailEl ? emailEl.value.trim() : '';
+    const password = passEl ? passEl.value : '';
+
+    const setFeedback = (msg, isError = false) => {
+      if (!fbEl) return;
+      fbEl.textContent = msg;
+      fbEl.classList.remove('hidden');
+      fbEl.style.color = isError ? 'var(--red-text)' : 'var(--good-text)';
+    };
+
+    if (!email || !password || password.length < 6) {
+      setFeedback('Masukkan email valid dan kata sandi minimal 6 karakter.', true);
+      return;
+    }
+
+    if (!this.supabase) {
+      setFeedback('Klien Supabase belum siap. Coba beberapa detik lagi.', true);
+      return;
+    }
+
+    setFeedback(mode === 'signup' ? 'Mendaftarkan akun kru...' : 'Memeriksa kredensial...', false);
+
+    try {
+      const result = mode === 'signup'
+        ? await this.supabase.auth.signUp({ email, password })
+        : await this.supabase.auth.signInWithPassword({ email, password });
+
+      if (result.error) {
+        setFeedback(result.error.message, true);
+        return;
+      }
+
+      if (result.data && result.data.user) {
+        this.applyAuthenticatedSupabaseUser(result.data.user);
+        if (result.data.session) {
+          this.closeLoginAccounts();
+          this.navigate('dashboard', 'home');
+          this.showToast(`Masuk via Supabase: ${email}`);
+        } else {
+          setFeedback('Pendaftaran berhasil. Periksa email konfirmasi jika diminta.', false);
+        }
+      }
+    } catch (err) {
+      setFeedback('Gagal menghubungi layanan autentikasi Supabase.', true);
+    }
+  },
+
   loginWithGoogle() {
     this.triggerHaptic();
     this.showToast('Masuk dengan akun studio...');
@@ -2055,6 +2415,10 @@ const StoryPad = {
     const originalContent = btn.innerHTML;
     btn.innerHTML = `<span class="material-symbols-outlined text-[18px]" aria-hidden="true">progress_activity</span><span>Menyimpan Sesi Lokal...</span>`;
     btn.disabled = true;
+
+    if (this.supabase) {
+      this.supabase.auth.signOut().catch(() => {});
+    }
 
     setTimeout(() => {
       btn.innerHTML = originalContent;
