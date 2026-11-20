@@ -1,17 +1,19 @@
 /**
  * StoryPad (Smart Script-to-Timeline Bridge)
- * Core Application Engine & Mobile Interaction Controller
+ * Core Application Engine & Responsive Production Controller
  */
 
-// Application Data & State Store
 const StoryPad = {
   state: {
     currentScreen: 'login', // 'login' | 'dashboard' | 'projects' | 'script-reader' | 'profile'
     previousScreen: 'dashboard',
-    activeTab: 'home',      // 'home' | 'project-list' | 'profile'
+    activeTab: 'home',      // 'home' | 'project-list' | 'script-reader' | 'profile'
     activeProjectId: 'proj-1',
     activeMediaTab: 'audio', // 'audio' | 'video'
-    
+    theme: 'daylight',       // 'daylight' | 'slate'
+    activeProjectCategory: 'all',
+    projectSearchQuery: '',
+
     // Active User Profile
     currentUser: {
       name: 'Aulia Larasati, S.Sn.',
@@ -19,22 +21,22 @@ const StoryPad = {
       roleTitle: 'Lead Script Supervisor & Continuity',
       idBadge: 'SP-8842',
       studio: 'Lifelike Pictures',
-      prodName: 'BADAI KELANA',
+      prodName: 'Senjakala Merah',
       email: 'aulia@lifelikepictures.com'
     },
 
     // View Filters (4 Live Filter Toggles)
     viewSettings: {
-      showFileCode: true,        // "Tampilkan Kode File"
-      filterGoodTakeOnly: false, // "Filter Good Take Only"
-      highlightStatus: true,     // "Highlight Status Syuting"
-      focusDialogueMode: false   // "Mode Fokus Dialog"
+      showFileCode: true,
+      filterGoodTakeOnly: false,
+      highlightStatus: true,
+      focusDialogueMode: false
     },
-    
+
     // Active selected dialogue and take in Script Reader
     activeDialogueId: 'd-2',
     activeTakeNumber: 2,
-    
+
     // Role Switcher configuration (5 roles)
     roles: {
       scriptSupervisor: true,
@@ -43,7 +45,7 @@ const StoryPad = {
       directorProducer: false,
       autoExportMeta: true
     },
-    
+
     // Audio Player State
     audio: {
       isPlaying: false,
@@ -54,10 +56,10 @@ const StoryPad = {
       animInterval: null,
       timerInterval: null,
       levelInterval: null,
-      elapsedSeconds: 84 // 01:24
+      elapsedSeconds: 84
     },
 
-    // Video Footage Simulation State
+    // Video Footage Playback State
     footage: {
       isPlaying: false,
       interval: null,
@@ -65,42 +67,50 @@ const StoryPad = {
       seconds: 19
     },
 
-    // Notifications Store
+    // Notifications Store (priority separates production notes from routine sync)
     notifications: [
       {
         id: 1,
         title: 'NLE Bridge: DaVinci Resolve Sync',
-        message: 'Scene 01 Take 02 ditandai Good Take & disinkronkan ke Timeline NLE.',
+        message: 'Scene 01 Take 02 ditandai Good Take dan siap disinkronkan ke Timeline NLE.',
         time: 'Baru saja',
         type: 'sync',
-        unread: true
+        priority: 'routine',
+        unread: true,
+        dismissed: false
       },
       {
         id: 2,
         title: 'Sound Recordist PolyWAV 48kHz',
         message: 'Audio Boom & Lav-01 channel track disinkronkan ke CAM-A timecode.',
-        time: '5 menit yang lalu',
+        time: '5 menit lalu',
         type: 'audio',
-        unread: true
+        priority: 'important',
+        unread: true,
+        dismissed: false
       },
       {
         id: 3,
         title: 'Continuity Supervisor Note',
         message: 'Catatan kontinuitas adegan Shot 02 berhasil diarsipkan ke draft.',
-        time: '18 menit yang lalu',
+        time: '18 menit lalu',
         type: 'notes',
-        unread: false
+        priority: 'important',
+        unread: false,
+        dismissed: false
       },
       {
         id: 4,
-        title: 'ARRI Alexa 35 Bridge',
-        message: 'Roll A04 terhubung via Genlock SMPTE 24.00 FPS.',
-        time: '1 jam yang lalu',
+        title: 'ARRI Alexa 35 Profile',
+        message: 'Roll A04 terkonfigurasi pada SMPTE 24.00 FPS.',
+        time: '1 jam lalu',
         type: 'camera',
-        unread: false
+        priority: 'routine',
+        unread: false,
+        dismissed: false
       }
     ],
-    
+
     // Script Notes local store
     scriptNotes: {
       'd-1': 'Dian intonasi menekan. Mic boom perlu dijaga dari hembusan kipas set.',
@@ -113,18 +123,24 @@ const StoryPad = {
       'd-203': 'Pistol prop diletakkan di saku kiri jaket hitam.',
       'd-301': 'Pencahayaan senja golden hour pas. Lensa 35mm T1.5.',
       'd-302': 'Voice over jernih tanpa echo.'
+    },
+
+    _clocks: {
+      clockTimer: null,
+      tcTimer: null
     }
   },
 
-  // Mock Database for Projects & Script Lines
+  // Single source of truth database for projects & screenplays
   db: {
     projects: [
       {
         id: 'proj-1',
-        title: 'Projek 1',
+        code: 'PROJ-01',
+        title: 'Senjakala Merah',
+        category: 'Film Panjang',
         subtitle: 'Film Panjang: Senjakala Merah',
         tag: 'A-Cam',
-        tagColor: '#3B82F6',
         day: 'Day 14',
         takesLogged: 42,
         fps: '24 fps',
@@ -134,23 +150,25 @@ const StoryPad = {
       },
       {
         id: 'proj-2',
-        title: 'Projek 2',
+        code: 'PROJ-02',
+        title: 'Episode 4: Pelarian',
+        category: 'Serial Web',
         subtitle: "Serial Web: Episode 4 'Pelarian'",
         tag: 'Sync OK',
-        tagColor: '#10B981',
         day: 'Day 06',
         takesLogged: 18,
         fps: '23.98 fps',
         goodTakePercentage: 45,
         reviewPercentage: 35,
-        syncStatus: 'Sync OK'
+        syncStatus: 'Review'
       },
       {
         id: 'proj-3',
-        title: 'Projek 3',
+        code: 'PROJ-03',
+        title: 'Studio Promo',
+        category: 'Iklan TVC',
         subtitle: 'Iklan TVC: Studio Promo',
         tag: 'New',
-        tagColor: '#E2E8F0',
         day: 'Day 01',
         takesLogged: 9,
         fps: '25 fps',
@@ -160,7 +178,6 @@ const StoryPad = {
       }
     ],
 
-    // Multi-project screenplay databases
     scriptDataProjects: {
       'proj-1': {
         projectId: 'proj-1',
@@ -188,12 +205,12 @@ const StoryPad = {
             text: 'Kita tidak punya waktu lagi untuk berdebat.',
             keyword: 'TidakPunyaWaktu',
             shot: '01',
-            status: 'warning', // yellow
+            status: 'warning',
             statusLabel: 'Review',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '01:05 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
-              { number: 2, label: 'Take 02 • CAM-A / BOOM', tc: '01:40 SMPTE', statusLabel: 'Director Pick', isGood: false, isNg: false, directorPick: true },
-              { number: 3, label: 'Take 03 • CAM-A / BOOM', tc: '01:35 SMPTE', statusLabel: 'NG (Mic Shadow)', isGood: false, isNg: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '01:05 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
+              { number: 2, label: 'Take 02 | CAM-A / BOOM', tc: '01:40 SMPTE', statusLabel: 'Director Pick', isGood: false, isNg: false, directorPick: true },
+              { number: 3, label: 'Take 03 | CAM-A / BOOM', tc: '01:35 SMPTE', statusLabel: 'NG (Mic Shadow)', isGood: false, isNg: true }
             ]
           },
           {
@@ -204,12 +221,12 @@ const StoryPad = {
             text: 'Jangan pergi, tunggu dulu!',
             keyword: 'JanganPergi',
             shot: '02',
-            status: 'good', // green (Good Take)
+            status: 'good',
             statusLabel: 'Good Take',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '01:14 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
-              { number: 2, label: 'Take 02 • CAM-A / BOOM', tc: '02:45 SMPTE • MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true },
-              { number: 3, label: 'Take 03 • CAM-A / BOOM', tc: '02:10 SMPTE', statusLabel: 'NG (Mic Shadow)', isGood: false, isNg: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '01:14 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
+              { number: 2, label: 'Take 02 | CAM-A / BOOM', tc: '02:45 SMPTE | MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true },
+              { number: 3, label: 'Take 03 | CAM-A / BOOM', tc: '02:10 SMPTE', statusLabel: 'NG (Mic Shadow)', isGood: false, isNg: true }
             ]
           },
           {
@@ -220,11 +237,11 @@ const StoryPad = {
             text: 'Semua bukti sudah ada di atas meja. Keputusan ada di tanganmu sekarang.',
             keyword: 'SemuaBukti',
             shot: '02',
-            status: 'pending', // gray
+            status: 'pending',
             statusLabel: 'Pending Shoot',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '00:58 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
-              { number: 2, label: 'Take 02 • CAM-A / BOOM', tc: '01:12 SMPTE', statusLabel: 'NG (Focus Pull)', isGood: false, isNg: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '00:58 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
+              { number: 2, label: 'Take 02 | CAM-A / BOOM', tc: '01:12 SMPTE', statusLabel: 'NG (Focus Pull)', isGood: false, isNg: true }
             ]
           },
           {
@@ -243,7 +260,7 @@ const StoryPad = {
             status: 'pending',
             statusLabel: 'Pending Shoot',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '01:02 SMPTE', statusLabel: 'Hold', isGood: false, isNg: false }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '01:02 SMPTE', statusLabel: 'Hold', isGood: false, isNg: false }
             ]
           },
           {
@@ -289,9 +306,9 @@ const StoryPad = {
             status: 'good',
             statusLabel: 'Good Take',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '01:08 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
-              { number: 2, label: 'Take 02 • CAM-A / BOOM', tc: '01:52 SMPTE', statusLabel: 'NG (Sound Glitch)', isGood: false, isNg: true },
-              { number: 3, label: 'Take 03 • CAM-A / BOOM', tc: '02:15 SMPTE • MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '01:08 SMPTE', statusLabel: 'False Start', isGood: false, isNg: false },
+              { number: 2, label: 'Take 02 | CAM-A / BOOM', tc: '01:52 SMPTE', statusLabel: 'NG (Sound Glitch)', isGood: false, isNg: true },
+              { number: 3, label: 'Take 03 | CAM-A / BOOM', tc: '02:15 SMPTE | MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true }
             ]
           },
           {
@@ -305,8 +322,8 @@ const StoryPad = {
             status: 'warning',
             statusLabel: 'Review',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '01:20 SMPTE', statusLabel: 'Director Pick', isGood: true, isNg: false },
-              { number: 2, label: 'Take 02 • CAM-A / BOOM', tc: '01:10 SMPTE', statusLabel: 'NG (Boom Shadow)', isGood: false, isNg: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '01:20 SMPTE', statusLabel: 'Director Pick', isGood: true, isNg: false },
+              { number: 2, label: 'Take 02 | CAM-A / BOOM', tc: '01:10 SMPTE', statusLabel: 'NG (Boom Shadow)', isGood: false, isNg: true }
             ]
           },
           {
@@ -325,7 +342,7 @@ const StoryPad = {
             status: 'pending',
             statusLabel: 'Pending Shoot',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '00:45 SMPTE', statusLabel: 'Hold', isGood: false, isNg: false }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '00:45 SMPTE', statusLabel: 'Hold', isGood: false, isNg: false }
             ]
           }
         ]
@@ -359,7 +376,7 @@ const StoryPad = {
             status: 'good',
             statusLabel: 'Good Take',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '00:30 SMPTE • MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '00:30 SMPTE | MASTER SYNC', statusLabel: 'GOOD TAKE', isGood: true, isNg: false, directorPick: true }
             ]
           },
           {
@@ -373,50 +390,49 @@ const StoryPad = {
             status: 'pending',
             statusLabel: 'Pending Shoot',
             takes: [
-              { number: 1, label: 'Take 01 • CAM-A / BOOM', tc: '00:25 SMPTE', statusLabel: 'Pending', isGood: false, isNg: false }
+              { number: 1, label: 'Take 01 | CAM-A / BOOM', tc: '00:25 SMPTE', statusLabel: 'Pending', isGood: false, isNg: false }
             ]
           }
         ]
       }
     },
 
-    // Default scriptData is proj-1 (for 100% test compatibility)
     scriptData: null
   },
 
-  // Initialization
   init() {
-    // Initialize scriptData from proj-1
-    this.db.scriptData = this.db.scriptDataProjects['proj-1'];
-
+    this.db.scriptData = this.db.scriptDataProjects[this.state.activeProjectId] || this.db.scriptDataProjects['proj-1'];
     this.loadPersistedSettings();
+    this.applyTheme(this.state.theme);
     this.bindEvents();
     this.renderScreen('login');
+    this.updateDashboardData();
     this.updateProgressGauge();
     this.initAudioContext();
     this.updateStatusBarClock();
     this.startLiveClocks();
     this.renderProfileRoles();
+    this.updateNotificationIndicators();
   },
 
-  // Load preferences from localStorage if available
   loadPersistedSettings() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const savedView = localStorage.getItem('storypad_view_settings');
         if (savedView) {
-          const parsed = JSON.parse(savedView);
-          this.state.viewSettings = { ...this.state.viewSettings, ...parsed };
+          this.state.viewSettings = { ...this.state.viewSettings, ...JSON.parse(savedView) };
         }
         const savedRoles = localStorage.getItem('storypad_roles');
         if (savedRoles) {
-          const parsed = JSON.parse(savedRoles);
-          this.state.roles = { ...this.state.roles, ...parsed };
+          this.state.roles = { ...this.state.roles, ...JSON.parse(savedRoles) };
         }
         const savedUser = localStorage.getItem('storypad_user');
         if (savedUser) {
-          const parsed = JSON.parse(savedUser);
-          this.state.currentUser = { ...this.state.currentUser, ...parsed };
+          this.state.currentUser = { ...this.state.currentUser, ...JSON.parse(savedUser) };
+        }
+        const savedTheme = localStorage.getItem('storypad_theme');
+        if (savedTheme === 'daylight' || savedTheme === 'slate') {
+          this.state.theme = savedTheme;
         }
       }
     } catch (e) {
@@ -430,23 +446,67 @@ const StoryPad = {
         localStorage.setItem('storypad_view_settings', JSON.stringify(this.state.viewSettings));
         localStorage.setItem('storypad_roles', JSON.stringify(this.state.roles));
         localStorage.setItem('storypad_user', JSON.stringify(this.state.currentUser));
+        localStorage.setItem('storypad_theme', this.state.theme);
       }
     } catch (e) {}
   },
 
-  // Setup Web Audio Context for realistic on-set sound monitoring
+  applyTheme(themeName) {
+    const nextTheme = themeName === 'slate' ? 'slate' : 'daylight';
+    this.state.theme = nextTheme;
+    if (typeof document === 'undefined') return;
+    if (document.documentElement && typeof document.documentElement.setAttribute === 'function') {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+    }
+    const labelText = nextTheme === 'daylight' ? 'Mode Slate Gelap' : 'Mode Kertas Editorial';
+    document.querySelectorAll('.theme-label-text').forEach(el => {
+      el.textContent = labelText;
+    });
+
+    const dayBtns = [document.getElementById('profile-theme-daylight'), document.getElementById('view-theme-daylight')];
+    const slateBtns = [document.getElementById('profile-theme-slate'), document.getElementById('view-theme-slate')];
+    dayBtns.forEach(btn => {
+      if (!btn || !btn.classList) return;
+      if (nextTheme === 'daylight') {
+        btn.classList.add('sp-btn-primary');
+        btn.classList.remove('sp-btn-secondary');
+      } else {
+        btn.classList.remove('sp-btn-primary');
+        btn.classList.add('sp-btn-secondary');
+      }
+    });
+    slateBtns.forEach(btn => {
+      if (!btn || !btn.classList) return;
+      if (nextTheme === 'slate') {
+        btn.classList.add('sp-btn-primary');
+        btn.classList.remove('sp-btn-secondary');
+      } else {
+        btn.classList.remove('sp-btn-primary');
+        btn.classList.add('sp-btn-secondary');
+      }
+    });
+  },
+
+  setTheme(themeName) {
+    this.triggerHaptic();
+    this.applyTheme(themeName);
+    this.savePersistedSettings();
+    this.showToast(themeName === 'slate' ? 'Tema Slate Gelap diaktifkan' : 'Tema Kertas Editorial diaktifkan');
+  },
+
+  toggleTheme() {
+    this.setTheme(this.state.theme === 'daylight' ? 'slate' : 'daylight');
+  },
+
   initAudioContext() {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
         this.state.audio.context = new AudioContext();
       }
-    } catch (e) {
-      console.warn('Web Audio not supported');
-    }
+    } catch (e) {}
   },
 
-  // Play synthetic tone when previewing audio tracks
   playAudioBeep(freq = 440) {
     if (!this.state.audio.context) return;
     try {
@@ -466,7 +526,6 @@ const StoryPad = {
     } catch (err) {}
   },
 
-  // Haptic feedback helper
   triggerHaptic() {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       try {
@@ -475,7 +534,6 @@ const StoryPad = {
     }
   },
 
-  // Show Toast Snackbar
   showToast(message = 'Nama file berhasil disalin!') {
     const toast = document.getElementById('toast-snackbar');
     const toastMsg = document.getElementById('toast-message');
@@ -488,7 +546,6 @@ const StoryPad = {
     }, 2400);
   },
 
-  // Reliable Clipboard Writer with Fallback
   writeClipboardText(text, successMessage = 'Nama file berhasil disalin!') {
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => {
@@ -520,7 +577,6 @@ const StoryPad = {
     document.body.removeChild(textArea);
   },
 
-  // Navigation Controller
   navigate(screenId, tabId = null) {
     this.triggerHaptic();
     if (this.state.currentScreen !== screenId) {
@@ -533,16 +589,18 @@ const StoryPad = {
       this.state.activeTab = 'home';
     } else if (screenId === 'projects') {
       this.state.activeTab = 'project-list';
+    } else if (screenId === 'script-reader') {
+      this.state.activeTab = 'script-reader';
     } else if (screenId === 'profile') {
       this.state.activeTab = 'profile';
     }
 
+    this.closeAllModals(true);
     this.renderScreen(screenId);
     this.updateNavbarVisibility();
     this.updateActiveTabStyles();
   },
 
-  // Smart Go Back Navigation
   goBack() {
     this.triggerHaptic();
     const target = (this.state.previousScreen && this.state.previousScreen !== 'script-reader' && this.state.previousScreen !== 'login')
@@ -552,51 +610,73 @@ const StoryPad = {
     this.navigate(target, tab);
   },
 
-  // Open Specific Project into Script Reader
   openProject(projectId) {
     this.triggerHaptic();
     this.state.activeProjectId = projectId;
     if (this.db.scriptDataProjects[projectId]) {
       this.db.scriptData = this.db.scriptDataProjects[projectId];
-      // Select first dialogue in new project
       const firstDialogue = this.db.scriptData.lines.find(l => l.type === 'dialogue');
       if (firstDialogue) {
         this.state.activeDialogueId = firstDialogue.id;
         this.state.activeTakeNumber = (firstDialogue.takes && firstDialogue.takes.length > 0) ? firstDialogue.takes[0].number : 1;
       }
+      const proj = this.db.projects.find(p => p.id === projectId);
+      if (proj) {
+        this.state.currentUser.prodName = proj.title;
+      }
     }
-    this.navigate('script-reader');
+    this.updateProgressGauge();
+    this.updateDashboardData();
+    this.navigate('script-reader', 'script-reader');
+  },
+
+  openProjectPanel(projectId, dialogueId, focusTarget = 'audio') {
+    this.state.activeProjectId = projectId;
+    if (this.db.scriptDataProjects[projectId]) {
+      this.db.scriptData = this.db.scriptDataProjects[projectId];
+    }
+    this.openAudioPanel(dialogueId, focusTarget);
   },
 
   renderScreen(screenId) {
-    // Hide all screen views
+    if (typeof document !== 'undefined' && document.body && typeof document.body.setAttribute === 'function') {
+      document.body.setAttribute('data-active-screen', screenId);
+    }
+
     document.querySelectorAll('.screen-view').forEach(view => {
       view.classList.add('hidden');
+      if (typeof view.setAttribute === 'function') {
+        view.setAttribute('aria-hidden', 'true');
+      }
     });
 
     const activeView = document.getElementById(`screen-${screenId}`);
     if (activeView) {
       activeView.classList.remove('hidden');
-      const scrollParent = activeView.closest('.screen-viewport') || activeView;
+      if (typeof activeView.setAttribute === 'function') {
+        activeView.setAttribute('aria-hidden', 'false');
+      }
+      const scrollParent = (typeof activeView.closest === 'function') ? (activeView.closest('.screen-viewport') || activeView) : activeView;
       if (scrollParent) scrollParent.scrollTop = 0;
     }
 
-    // Specific screen render hooks
     if (screenId === 'dashboard') {
+      this.updateDashboardData();
       this.updateProgressGauge();
+    } else if (screenId === 'projects') {
+      this.syncProjectFilterState();
     } else if (screenId === 'script-reader') {
       this.renderScriptContent();
+      this.renderPanelContent();
     } else if (screenId === 'profile') {
       this.renderProfileRoles();
     }
   },
 
-  // Control floating navbar visibility based on current screen
   updateNavbarVisibility() {
     const navbar = document.getElementById('floating-navbar');
     if (!navbar) return;
-    
-    // Login screen hides the bottom floating capsule
+
     if (this.state.currentScreen === 'login') {
       navbar.classList.add('hidden');
     } else {
@@ -610,23 +690,101 @@ const StoryPad = {
       const tabName = tab.getAttribute('data-tab');
       if (tabName === this.state.activeTab) {
         tab.className = 'nav-capsule-tab active';
+        if (typeof tab.setAttribute === 'function') tab.setAttribute('aria-current', 'page');
       } else {
         tab.className = 'nav-capsule-tab';
+        if (typeof tab.removeAttribute === 'function') tab.removeAttribute('aria-current');
       }
     });
   },
 
-  // Dynamic Progress Gauge Calculation (Progress & Continuity Tracker)
+  // Populate Dashboard active project, real audio filenames, and project summary list
+  updateDashboardData() {
+    const proj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
+    const script = this.db.scriptData || this.db.scriptDataProjects['proj-1'];
+    if (!proj || !script) return;
+
+    const titleEl = document.getElementById('dash-active-proj-title');
+    const metaEl = document.getElementById('dash-active-proj-meta');
+    const sceneLineEl = document.getElementById('dash-active-scene-line');
+    const sceneBadgeEl = document.getElementById('dash-scene-badge');
+    const nextActionEl = document.getElementById('dash-next-action');
+    const navProdEl = document.getElementById('nav-prod-name');
+
+    if (titleEl) titleEl.textContent = proj.title;
+    if (metaEl) metaEl.textContent = `${proj.category} | ${proj.day} | ${proj.fps}`;
+    if (sceneLineEl && script.scene) sceneLineEl.textContent = script.scene.title;
+    if (sceneBadgeEl && script.scene) sceneBadgeEl.textContent = `Scene ${script.scene.number}`;
+    if (navProdEl) navProdEl.textContent = proj.title;
+
+    const dialogues = script.lines.filter(l => l.type === 'dialogue');
+    const goodCount = dialogues.filter(d => d.status === 'good').length;
+    const pendingDialogue = dialogues.find(d => d.status !== 'good');
+    if (nextActionEl) {
+      if (pendingDialogue) {
+        nextActionEl.textContent = `${goodCount} dari ${dialogues.length} dialog pada Scene ${script.scene.number} sudah ditandai Good Take. Tinjau ${pendingDialogue.character} (Shot ${pendingDialogue.shot}) untuk langkah selanjutnya.`;
+      } else {
+        nextActionEl.textContent = `Semua ${dialogues.length} dialog pada Scene ${script.scene.number} sudah berstatus Good Take dan siap diekspor ke editor NLE.`;
+      }
+    }
+
+    // Update Dashboard audio master tracks with real generated names from active project
+    const track1El = document.getElementById('dash-track-1-name');
+    const track2El = document.getElementById('dash-track-2-name');
+    if (dialogues.length > 0) {
+      const firstGood = dialogues.find(d => d.status === 'good') || dialogues[0];
+      const secondDlg = dialogues.find(d => d.id !== firstGood.id) || firstGood;
+      const n1 = this.generateFileNames(firstGood.id, (firstGood.takes && firstGood.takes[0]) ? firstGood.takes[0].number : 1);
+      const n2 = this.generateFileNames(secondDlg.id, (secondDlg.takes && secondDlg.takes[0]) ? secondDlg.takes[0].number : 1);
+      if (track1El) track1El.textContent = n1.audioName;
+      if (track2El) track2El.textContent = n2.audioName;
+    }
+
+    // Render consistent project rows on Dashboard
+    const listEl = document.getElementById('dash-projects-list');
+    if (listEl) {
+      listEl.innerHTML = this.db.projects.map(p => {
+        const sc = this.db.scriptDataProjects[p.id];
+        const firstDlg = sc && sc.lines ? sc.lines.find(l => l.type === 'dialogue') : null;
+        const firstDlgId = firstDlg ? firstDlg.id : 'd-2';
+        const statusCls = p.syncStatus === 'In Sync' ? 'sp-badge-good' : (p.syncStatus === 'Review' ? 'sp-badge-amber' : 'sp-badge-blue');
+        return `
+          <div class="p-3 rounded border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5" style="background-color: var(--panel-lowest); border-color: var(--border-flat);">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="font-sans text-sm font-bold text-left hover:underline bg-transparent border-0 p-0" style="color: var(--text-primary);" onclick="StoryPad.openProject('${p.id}')">
+                  ${p.title}
+                </button>
+                <span class="sp-badge ${statusCls}">${p.syncStatus}</span>
+              </div>
+              <p class="font-mono text-[11px] mt-0.5 tabular-nums" style="color: var(--text-secondary);">
+                ${p.category} | ${p.day} | ${p.takesLogged} Takes | ${p.fps}
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.openProject('${p.id}')">Naskah</button>
+              <button type="button" class="sp-icon-btn" aria-label="Putar audio ${p.title}" onclick="StoryPad.openProjectPanel('${p.id}', '${firstDlgId}', 'audio')">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">play_arrow</span>
+              </button>
+              <button type="button" class="sp-icon-btn" aria-label="Buka footage ${p.title}" onclick="StoryPad.openProjectPanel('${p.id}', '${firstDlgId}', 'video')">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">videocam</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  },
+
+  // Dynamic Progress Gauge Calculation
   updateProgressGauge() {
     if (!this.db.scriptData || !this.db.scriptData.lines) return;
 
     const dialogues = this.db.scriptData.lines.filter(l => l.type === 'dialogue');
     const goodTakeCount = dialogues.filter(d => d.status === 'good').length;
-
     const totalCount = dialogues.length || 1;
     const percentage = Math.round((goodTakeCount / totalCount) * 100);
 
-    // Circumference of half circle r=80 is PI * 80 = 251.32
     const circumference = 251.32;
     const offset = circumference - (percentage / 100) * circumference;
 
@@ -642,15 +800,14 @@ const StoryPad = {
       progressText.textContent = `${percentage}%`;
     }
     if (takesBadge) {
-      takesBadge.textContent = `${goodTakeCount * 8} / 40 Takes`;
+      takesBadge.textContent = `${goodTakeCount} / ${totalCount} Dialog`;
     }
     if (circleBadge) {
-      circleBadge.textContent = `${goodTakeCount * 5} Confirmed`;
+      circleBadge.textContent = `${goodTakeCount} Confirmed`;
     }
   },
 
-  // Auto-Naming Engine
-  // Format: [KodeScene]_[KodeShot]_[NomorTake]_[KataKunciDialog]_[CAM-A.mp4 / AUD.wav]
+  // Auto-Naming Engine: [KodeScene]_[KodeShot]_[NomorTake]_[KataKunciDialog]_[CAM-A.mp4 / AUD.wav]
   generateFileNames(dialogueId = this.state.activeDialogueId, takeNum = this.state.activeTakeNumber) {
     const dialogue = (this.db.scriptData && this.db.scriptData.lines)
       ? (this.db.scriptData.lines.find(l => l.id === dialogueId) || this.db.scriptData.lines[2] || this.db.scriptData.lines[1])
@@ -680,7 +837,6 @@ const StoryPad = {
     const container = document.getElementById('script-lines-container');
     if (!container || !this.db.scriptData) return;
 
-    // Update screen header metadata dynamically
     const titleEl = document.getElementById('script-project-title');
     const draftEl = document.getElementById('script-project-draft');
     const slugEl = document.getElementById('script-slug-badge');
@@ -697,20 +853,43 @@ const StoryPad = {
     if (sceneTitleEl) sceneTitleEl.textContent = this.db.scriptData.scene.title;
     if (boxSceneTitleEl) boxSceneTitleEl.textContent = this.db.scriptData.scene.title;
 
+    // Highlight active project switcher button
+    document.querySelectorAll('.script-proj-switch').forEach(btn => {
+      const pid = btn.getAttribute('data-project-id');
+      if (pid === this.state.activeProjectId) {
+        btn.classList.add('is-active');
+      } else {
+        btn.classList.remove('is-active');
+      }
+    });
+
+    // Update active filter summary
+    const filterSummaryEl = document.getElementById('script-filter-summary');
+    if (filterSummaryEl) {
+      const activeFilters = [];
+      if (this.state.viewSettings.showFileCode) activeFilters.push('Kode File');
+      if (this.state.viewSettings.filterGoodTakeOnly) activeFilters.push('Good Take Only');
+      if (this.state.viewSettings.highlightStatus) activeFilters.push('Highlight Status');
+      if (this.state.viewSettings.focusDialogueMode) activeFilters.push('Fokus Dialog');
+      filterSummaryEl.textContent = activeFilters.length > 0
+        ? `Filter aktif: ${activeFilters.join(', ')}`
+        : 'Semua filter tampilan nonaktif';
+    }
+
     const { lines } = this.db.scriptData;
     const { showFileCode, highlightStatus, focusDialogueMode, filterGoodTakeOnly } = this.state.viewSettings;
 
     let html = '';
+    let renderedDialogues = 0;
 
     lines.forEach(line => {
-      // If Mode Fokus Dialog is ON, skip action descriptions
       if (focusDialogueMode && line.type === 'action') {
         return;
       }
 
       if (line.type === 'action') {
         html += `
-          <div class="leading-relaxed text-[#9CA3AF] text-xs font-mono py-1 px-2 border-l-2 border-transparent transition-opacity duration-200">
+          <div class="font-mono text-xs leading-relaxed px-3 py-2 rounded border-l-2" style="color: var(--text-secondary); background-color: var(--panel-lowest); border-left-color: var(--border-control);">
             ${line.content}
           </div>
         `;
@@ -720,85 +899,107 @@ const StoryPad = {
         const naming = this.generateFileNames(line.id, this.state.activeTakeNumber);
         const hasGoodTake = line.status === 'good' || (line.takes && line.takes.some(t => t.isGood));
 
-        // If filterGoodTakeOnly is active, dim non-good takes in script
-        const dimClass = (filterGoodTakeOnly && !hasGoodTake) ? 'opacity-40' : '';
+        if (filterGoodTakeOnly && !hasGoodTake) {
+          return;
+        }
+        renderedDialogues++;
+
+        const badgeHtml = hasGoodTake
+          ? `<span class="sp-badge sp-badge-good">GOOD TAKE</span>`
+          : (line.status === 'warning'
+            ? `<span class="sp-badge sp-badge-amber">REVIEW</span>`
+            : `<span class="sp-badge sp-badge-neutral">PENDING</span>`);
+
+        const takeCount = line.takes ? line.takes.length : 0;
 
         html += `
-          <div class="script-line-card relative flex flex-col items-center w-full my-1.5 p-3 rounded-xl bg-[#14171E] border border-[#2A2E39] cursor-pointer ${statusClass} ${isSelected ? 'selected' : ''} ${dimClass}"
-               onclick="StoryPad.selectDialogueLine('${line.id}')"
-               id="script-cue-${line.id}">
-            
-            ${isSelected ? `
-              <!-- Floating Quick Action Bar (Play Audio, Video Footage, Notes) -->
-              <div class="absolute -top-5 z-20 flex items-center gap-1.5 p-1 bg-[#111317] border border-[#3B82F6] rounded-full shadow-lg animate-in fade-in duration-200">
-                <button aria-label="Putar Audio" 
-                        onclick="event.stopPropagation(); StoryPad.openAudioPanel('${line.id}', 'audio')" 
-                        class="flex items-center justify-center w-8 h-8 rounded-full bg-[#3B82F6] text-white hover:opacity-90 active:scale-95 transition-all shadow" 
-                        title="Putar Audio Take">
-                  <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+          <article class="script-line-card p-3.5 md:p-4 ${statusClass} ${isSelected ? 'selected' : ''}" id="script-cue-${line.id}">
+            <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
+              <div class="flex flex-col gap-1.5 min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button"
+                          class="font-sans text-xs font-bold uppercase tracking-wide bg-transparent border-0 p-0 text-left hover:underline"
+                          style="color: ${isSelected ? 'var(--primary-text)' : 'var(--text-primary)'};"
+                          aria-pressed="${isSelected ? 'true' : 'false'}"
+                          onclick="StoryPad.selectDialogueLine('${line.id}')">
+                    ${line.character}
+                  </button>
+                  <span class="font-mono text-xs tabular-nums" style="color: var(--text-secondary);">SH ${line.shot}</span>
+                  <span class="font-mono text-xs tabular-nums" style="color: var(--text-muted);">${line.timecode}</span>
+                  ${badgeHtml}
+                  ${isSelected ? `<span class="sp-badge sp-badge-blue">Aktif di Deck</span>` : ''}
+                </div>
+
+                <button type="button"
+                        class="text-left bg-transparent border-0 p-0 font-mono text-sm leading-relaxed select-text"
+                        style="color: var(--text-script);"
+                        onclick="StoryPad.selectDialogueLine('${line.id}')">
+                  ${line.text}
                 </button>
-                <button aria-label="Footage Media" 
-                        onclick="event.stopPropagation(); StoryPad.openAudioPanel('${line.id}', 'video')" 
-                        class="flex items-center justify-center w-8 h-8 rounded-full bg-[#21252E] text-[#3B82F6] border border-[#2A2E39] hover:bg-[#2A2E39] active:scale-95 transition-all" 
-                        title="Buka Footage Media (CAM-A)">
-                  <span class="material-symbols-outlined text-[18px]">movie</span>
+
+                ${showFileCode ? `
+                  <div class="pt-1 flex flex-wrap items-center gap-2">
+                    <code class="font-mono text-[11px] px-2 py-0.5 rounded border truncate max-w-full" style="background-color: var(--panel-bg); border-color: var(--border-flat); color: var(--primary-text);">
+                      ${naming.videoName}
+                    </code>
+                    <span class="font-mono text-[11px] tabular-nums" style="color: var(--text-muted);">${takeCount} take</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Operational Cue Actions -->
+              <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" aria-label="Putar Audio ${line.character}" onclick="StoryPad.openAudioPanel('${line.id}', 'audio')">
+                  <span class="material-symbols-outlined text-[16px]" aria-hidden="true">play_arrow</span>
+                  <span>Audio</span>
                 </button>
-                <button aria-label="Catatan Kontinuitas" 
-                        onclick="event.stopPropagation(); StoryPad.openAudioPanel('${line.id}', 'notes')" 
-                        class="flex items-center justify-center w-8 h-8 rounded-full bg-[#21252E] text-[#10B981] border border-[#2A2E39] hover:bg-[#2A2E39] active:scale-95 transition-all" 
-                        title="Catatan Kontinuitas">
-                  <span class="material-symbols-outlined text-[18px]">edit_note</span>
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" aria-label="Buka Footage ${line.character}" onclick="StoryPad.openAudioPanel('${line.id}', 'video')">
+                  <span class="material-symbols-outlined text-[16px]" aria-hidden="true">videocam</span>
+                  <span>Footage</span>
+                </button>
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" aria-label="Catatan Kontinuitas ${line.character}" onclick="StoryPad.openAudioPanel('${line.id}', 'notes')">
+                  <span class="material-symbols-outlined text-[16px]" aria-hidden="true">edit_note</span>
+                  <span>Catatan</span>
                 </button>
               </div>
-            ` : ''}
-
-            <!-- Character Header -->
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-bold font-sans uppercase tracking-wider text-xs ${isSelected ? 'text-[#3B82F6]' : 'text-[#E2E8F0]'}">
-                ${line.character}
-              </span>
-              ${isSelected ? `
-                <span class="px-1.5 py-0.2 rounded-full bg-[#3B82F6] text-white text-[9px] font-bold font-sans uppercase tracking-wider">
-                  TERPILIH
-                </span>
-              ` : ''}
-              ${hasGoodTake ? `
-                <span class="px-1.5 py-0.2 rounded-full bg-[#10B981]/20 border border-[#10B981]/50 text-[#10B981] text-[9px] font-bold font-sans uppercase tracking-wider flex items-center gap-0.5">
-                  <span class="material-symbols-outlined text-[10px]">star</span> GOOD
-                </span>
-              ` : ''}
-              <span class="text-[11px] font-timecode text-[#9CA3AF]">[${line.timecode}]</span>
             </div>
-
-            <!-- Dialogue Text -->
-            <p class="max-w-xs text-center text-[#E2E8F0] text-sm font-mono leading-relaxed px-2">
-              "${line.text}"
-            </p>
-
-            ${showFileCode ? `
-              <!-- Auto-Naming Code Tag Display -->
-              <div class="mt-2 flex flex-col items-center gap-0.5 w-full pt-1.5 border-t border-[#2A2E39]/60">
-                <span class="font-mono text-[10px] text-[#3B82F6] bg-[#0F1115] px-2 py-0.5 rounded border border-[#2A2E39] truncate max-w-[280px]">
-                  ${naming.videoName}
-                </span>
-              </div>
-            ` : ''}
-          </div>
+          </article>
         `;
       }
     });
 
+    if (renderedDialogues === 0) {
+      html += `
+        <div class="p-6 rounded border text-center" style="background-color: var(--panel-lowest); border-color: var(--border-flat);">
+          <p class="font-sans text-sm font-semibold mb-1" style="color: var(--text-primary);">Tidak ada dialog berstatus Good Take pada adegan ini</p>
+          <p class="font-sans text-xs mb-4" style="color: var(--text-secondary);">Filter Good Take Only sedang menyembunyikan dialog berstatus Review dan Pending Shoot.</p>
+          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.handleViewToggle('filterGoodTakeOnly', false); StoryPad.syncViewTogglesUI();">
+            Tampilkan Semua Dialog
+          </button>
+        </div>
+      `;
+    }
+
     container.innerHTML = html;
   },
 
-  // Select a dialogue line
   selectDialogueLine(dialogueId) {
     this.triggerHaptic();
     this.state.activeDialogueId = dialogueId;
+    const dialogue = this.db.scriptData && this.db.scriptData.lines
+      ? this.db.scriptData.lines.find(l => l.id === dialogueId)
+      : null;
+    if (dialogue && dialogue.takes && dialogue.takes.length > 0) {
+      const preferred = dialogue.takes.find(t => t.isGood) || dialogue.takes[0];
+      this.state.activeTakeNumber = preferred.number;
+    } else {
+      this.state.activeTakeNumber = 1;
+    }
     this.renderScriptContent();
+    this.renderPanelContent();
   },
 
-  // Open Bottom Sheet 1 – View (Pengaturan Tampilan)
+  // View Settings Modal Controls
   openViewSettings() {
     this.triggerHaptic();
     const sheet = document.getElementById('sheet-view-settings');
@@ -806,6 +1007,7 @@ const StoryPad = {
     if (sheet && overlay) {
       overlay.classList.add('active');
       sheet.classList.add('open');
+      sheet.style.transform = '';
       this.syncViewTogglesUI();
     }
   },
@@ -814,11 +1016,13 @@ const StoryPad = {
     this.triggerHaptic();
     const sheet = document.getElementById('sheet-view-settings');
     const overlay = document.getElementById('sheet-overlay');
-    if (sheet) sheet.classList.remove('open');
+    if (sheet) {
+      sheet.classList.remove('open');
+      sheet.style.transform = '';
+    }
     if (overlay) overlay.classList.remove('active');
   },
 
-  // Sync checkboxes with viewSettings state
   syncViewTogglesUI() {
     const tFileCode = document.getElementById('filter-toggle-filecode');
     const tGoodTake = document.getElementById('filter-toggle-goodtake');
@@ -831,7 +1035,6 @@ const StoryPad = {
     if (tFocusDialog) tFocusDialog.checked = this.state.viewSettings.focusDialogueMode;
   },
 
-  // Handle View filter toggle change
   handleViewToggle(settingKey, isChecked) {
     this.triggerHaptic();
     this.state.viewSettings[settingKey] = isChecked;
@@ -842,7 +1045,6 @@ const StoryPad = {
     }
   },
 
-  // Reset View settings
   resetViewFilters() {
     this.triggerHaptic();
     this.state.viewSettings = {
@@ -855,10 +1057,10 @@ const StoryPad = {
     this.syncViewTogglesUI();
     this.renderScriptContent();
     this.renderPanelTakes();
-    this.showToast('Pengaturan tampilan di-reset ke default');
+    this.showToast('Pengaturan tampilan dikembalikan ke default');
   },
 
-  // Switch Media Tab inside Panel (Audio Monitor vs Footage Preview)
+  // Switch Media Tab inside Inspector Panel (Audio Monitor vs Footage Preview)
   switchPanelMediaTab(tab = 'audio') {
     this.triggerHaptic();
     this.state.activeMediaTab = tab;
@@ -870,58 +1072,75 @@ const StoryPad = {
 
     if (tab === 'video') {
       if (videoBtn) {
-        videoBtn.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-[#3B82F6] text-white shadow';
+        videoBtn.className = 'min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors bg-[#2563EB] text-white';
+        if (typeof videoBtn.setAttribute === 'function') videoBtn.setAttribute('aria-selected', 'true');
       }
       if (audioBtn) {
-        audioBtn.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all text-[#9CA3AF] hover:text-white';
+        audioBtn.className = 'min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors text-[#A1A9B8] hover:text-white';
+        if (typeof audioBtn.setAttribute === 'function') audioBtn.setAttribute('aria-selected', 'false');
       }
       if (footageContainer) footageContainer.classList.remove('hidden');
       if (audioContainer) audioContainer.classList.add('hidden');
     } else {
       if (audioBtn) {
-        audioBtn.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all bg-[#3B82F6] text-white shadow';
+        audioBtn.className = 'min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors bg-[#2563EB] text-white';
+        if (typeof audioBtn.setAttribute === 'function') audioBtn.setAttribute('aria-selected', 'true');
       }
       if (videoBtn) {
-        videoBtn.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all text-[#9CA3AF] hover:text-white';
+        videoBtn.className = 'min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors text-[#A1A9B8] hover:text-white';
+        if (typeof videoBtn.setAttribute === 'function') videoBtn.setAttribute('aria-selected', 'false');
       }
       if (audioContainer) audioContainer.classList.remove('hidden');
       if (footageContainer) footageContainer.classList.add('hidden');
     }
   },
 
-  // Open Bottom Sheet 2 – Panel Audio & Skrip
+  // Open Inspector Panel
   openAudioPanel(dialogueId = this.state.activeDialogueId, focusTarget = 'audio') {
     this.triggerHaptic();
     this.state.activeDialogueId = dialogueId;
-    
-    // Default to Take 2
-    this.state.activeTakeNumber = 2;
+
+    const dialogue = this.db.scriptData && this.db.scriptData.lines
+      ? this.db.scriptData.lines.find(l => l.id === dialogueId)
+      : null;
+    if (dialogue && dialogue.takes && dialogue.takes.length > 0) {
+      const targetTake = dialogue.takes.find(t => t.number === 2) || dialogue.takes[0];
+      this.state.activeTakeNumber = targetTake.number;
+    } else {
+      this.state.activeTakeNumber = 2;
+    }
 
     const sheet = document.getElementById('sheet-audio-panel');
     const overlay = document.getElementById('sheet-overlay');
-    
+
+    this.renderScriptContent();
     this.renderPanelContent();
-    
-    // Switch to targeted media tab
+
     if (focusTarget === 'video') {
       this.switchPanelMediaTab('video');
     } else {
       this.switchPanelMediaTab('audio');
     }
 
+    const isDesktopDocked = typeof window !== 'undefined' && window.innerWidth >= 1024 && this.state.currentScreen === 'script-reader';
+
     if (sheet && overlay) {
-      overlay.classList.add('active');
-      sheet.classList.add('open');
-      
-      // Auto-scroll to notes if focused
+      if (!isDesktopDocked) {
+        overlay.classList.add('active');
+        sheet.classList.add('open');
+        sheet.style.transform = '';
+      }
+
       if (focusTarget === 'notes') {
         setTimeout(() => {
           const notesArea = document.getElementById('panel-script-notes');
-          if (notesArea) {
+          if (notesArea && typeof notesArea.focus === 'function') {
             notesArea.focus();
-            notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (typeof notesArea.scrollIntoView === 'function') {
+              notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
           }
-        }, 300);
+        }, 250);
       }
     }
   },
@@ -932,39 +1151,35 @@ const StoryPad = {
     this.stopFootagePlayback();
     const sheet = document.getElementById('sheet-audio-panel');
     const overlay = document.getElementById('sheet-overlay');
-    if (sheet) sheet.classList.remove('open');
+    if (sheet) {
+      sheet.classList.remove('open');
+      sheet.style.transform = '';
+    }
     if (overlay) overlay.classList.remove('active');
   },
 
-  // Render Panel Audio & Skrip components
   renderPanelContent() {
     const dialogue = (this.db.scriptData && this.db.scriptData.lines)
       ? (this.db.scriptData.lines.find(l => l.id === this.state.activeDialogueId) || this.db.scriptData.lines[2])
       : { shot: '02' };
-    
+
     const sceneNum = (this.db.scriptData && this.db.scriptData.scene) ? this.db.scriptData.scene.number : '01';
 
-    // Update Header
     const titleEl = document.getElementById('panel-scene-title');
     if (titleEl) {
-      titleEl.innerHTML = `Panel Audio &amp; Skrip <span class="font-body-sm text-xs text-[#94A3B8] font-normal font-mono">(Scene ${sceneNum} / Shot ${dialogue.shot || '02'})</span>`;
+      titleEl.innerHTML = `Panel Audio &amp; Skrip <span class="text-xs text-[#A1A9B8] font-normal font-mono">(Scene ${sceneNum} / Shot ${dialogue.shot || '02'})</span>`;
     }
 
-    // Update video slate badges
     const slateSc = document.getElementById('footage-scene-badge');
     const slateSh = document.getElementById('footage-shot-badge');
     const slateTk = document.getElementById('footage-take-badge');
     if (slateSc) slateSc.textContent = `SC ${sceneNum}`;
     if (slateSh) slateSh.textContent = `SH ${dialogue.shot || '02'}`;
-    if (slateTk) slateTk.textContent = `TK 0${this.state.activeTakeNumber}`;
+    if (slateTk) slateTk.textContent = `TK ${String(this.state.activeTakeNumber).padStart(2, '0')}`;
 
-    // Render Takes list
     this.renderPanelTakes();
-
-    // Render Auto-Naming codes
     this.updatePanelAutoNaming();
 
-    // Render Notes
     const notesEl = document.getElementById('panel-script-notes');
     if (notesEl) {
       notesEl.value = this.state.scriptNotes[this.state.activeDialogueId] || 'Catatan: Kontinuitas adegan aman. Audio boom jernih.';
@@ -976,17 +1191,44 @@ const StoryPad = {
     if (!listEl || !this.db.scriptData) return;
 
     const dialogue = this.db.scriptData.lines.find(l => l.id === this.state.activeDialogueId) || this.db.scriptData.lines[2];
-    let takes = dialogue.takes || [];
+    const sceneNum = this.db.scriptData.scene ? this.db.scriptData.scene.number : '01';
+    const allTakes = dialogue.takes || [];
 
-    // If "Filter Good Take Only" is checked in View settings, filter out non-good takes
+    const headerLabel = document.getElementById('panel-takes-header-label');
+    const countBadge = document.getElementById('panel-takes-count-badge');
+    if (headerLabel) {
+      headerLabel.textContent = `Daftar Rekaman Take (Scene ${sceneNum} / Shot ${dialogue.shot || '02'})`;
+    }
+    if (countBadge) {
+      countBadge.textContent = `${allTakes.length} Take`;
+    }
+
+    let takes = allTakes;
     if (this.state.viewSettings.filterGoodTakeOnly) {
       takes = takes.filter(t => t.isGood);
     }
 
+    if (allTakes.length === 0) {
+      listEl.innerHTML = `
+        <div class="p-3 bg-[#12151B] border border-[#2A2E39] rounded text-center flex flex-col items-center gap-2">
+          <p class="font-sans text-xs text-[#F3F4F6] font-semibold">Belum ada take terekam pada dialog ini</p>
+          <p class="font-sans text-[11px] text-[#A1A9B8]">Catat take pertama untuk menghasilkan kode penamaan file.</p>
+          <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact" onclick="StoryPad.logNewTake()">
+            Catat Take 01
+          </button>
+        </div>
+      `;
+      return;
+    }
+
     if (takes.length === 0) {
       listEl.innerHTML = `
-        <div class="p-3 bg-[#14171E] border border-[#2A2E39] rounded-xl text-center text-xs text-[#9CA3AF]">
-          Tidak ada take Good Take pada dialog ini.
+        <div class="p-3 bg-[#12151B] border border-[#2A2E39] rounded text-center flex flex-col items-center gap-2">
+          <p class="font-sans text-xs text-[#F3F4F6] font-semibold">Tidak ada Good Take pada dialog ini</p>
+          <p class="font-sans text-[11px] text-[#A1A9B8]">Filter Good Take Only aktif menyembunyikan ${allTakes.length} take lainnya.</p>
+          <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact" onclick="StoryPad.handleViewToggle('filterGoodTakeOnly', false); StoryPad.syncViewTogglesUI();">
+            Tampilkan Semua Take
+          </button>
         </div>
       `;
       return;
@@ -997,59 +1239,47 @@ const StoryPad = {
       const isSelected = t.number === this.state.activeTakeNumber;
       const isGood = t.isGood;
       const isNg = t.isNg;
+      const takePad = String(t.number).padStart(2, '0');
 
-      let cardBg = isSelected 
-        ? (isGood ? 'bg-[#064E3B] border-[#10B981]' : 'bg-[#1E293B] border-[#3B82F6]') 
-        : 'bg-[#21252E] border-[#2A2E39]';
+      const rowBorder = isSelected
+        ? (isGood ? 'border-[#10B981] bg-[#064E3B]' : 'border-[#3B82F6] bg-[#1E293B]')
+        : 'border-[#2A2E39] bg-[#12151B]';
+
+      const statusBadge = isGood
+        ? `<span class="px-2 py-0.5 rounded bg-[#047857] text-white font-sans text-[10px] font-bold uppercase">GOOD TAKE</span>`
+        : (isNg
+          ? `<span class="px-2 py-0.5 rounded bg-[#450A0A] border border-[#EF4444] text-[#F87171] font-sans text-[10px] font-semibold">${t.statusLabel}</span>`
+          : `<span class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#6A748B] text-[#F3F4F6] font-sans text-[10px]">${t.statusLabel}</span>`);
 
       html += `
-        <div class="border p-2.5 flex items-center justify-between rounded-xl cursor-pointer transition-colors ${cardBg}"
-             onclick="StoryPad.selectTake(${t.number})">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <button aria-label="Audisi Take" 
-                    onclick="event.stopPropagation(); StoryPad.previewTakeAudio(${t.number})" 
-                    class="w-7 h-7 rounded-lg ${isGood ? 'bg-[#10B981] text-[#064E3B]' : 'bg-[#14171E] text-[#9CA3AF] border border-[#2A2E39]'} flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-sm">
-              <span class="material-symbols-outlined text-[16px]">${isSelected && StoryPad.state.audio.isPlaying ? 'volume_up' : 'play_arrow'}</span>
+        <div class="border ${rowBorder} p-2.5 rounded flex items-center justify-between gap-2 transition-colors">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <button aria-label="Audisi Take ${takePad}"
+                    type="button"
+                    onclick="StoryPad.previewTakeAudio(${t.number})"
+                    class="w-10 h-10 rounded ${isGood ? 'bg-[#047857] text-white' : 'bg-[#1E222B] text-[#F3F4F6] border border-[#6A748B]'} flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${isSelected && StoryPad.state.audio.isPlaying ? 'volume_up' : 'play_arrow'}</span>
             </button>
-            <div class="w-7 h-7 rounded ${isGood ? 'bg-[#10B981] text-[#064E3B]' : 'bg-[#14171E] text-[#94A3B8] border border-[#2A2E39]'} flex items-center justify-center font-mono text-xs font-bold shrink-0">
-              0${t.number}
-            </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <p class="font-sans text-xs ${isGood ? 'text-white font-bold' : 'text-[#E2E8F0] font-medium'} truncate">
-                  ${t.label}
-                </p>
-                ${isGood ? `<span class="material-symbols-outlined text-[14px] text-[#F59E0B]">star</span>` : ''}
-              </div>
-              <p class="font-mono text-[10px] ${isGood ? 'text-[#6EE7B7] font-semibold' : 'text-[#94A3B8]'}">
+            <button type="button"
+                    onclick="StoryPad.selectTake(${t.number})"
+                    class="min-w-0 flex-1 text-left bg-transparent border-0 p-1 rounded">
+              <span class="block font-sans text-xs font-bold text-[#F3F4F6] truncate">
+                T${takePad} | ${t.label}
+              </span>
+              <span class="block font-mono text-[11px] ${isGood ? 'text-[#A7F3D0]' : 'text-[#A1A9B8]'} tabular-nums truncate">
                 ${t.tc}
-              </p>
-            </div>
+              </span>
+            </button>
           </div>
-          
-          <div class="flex flex-col items-end gap-1 shrink-0">
-            <div class="flex items-center gap-1">
-              <button aria-label="Toggle Circle Take" 
-                      onclick="event.stopPropagation(); StoryPad.toggleCircleTake(${t.number})" 
-                      class="btn-press flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-sans font-bold transition-all ${isGood ? 'bg-[#10B981]/20 border-[#10B981] text-[#10B981]' : 'bg-[#14171E] border-[#2A2E39] text-[#9CA3AF] hover:text-white'}"
-                      title="${isGood ? 'Batal tandai Circle Take' : 'Tandai sebagai Circle Take ⭐'}">
-                <span class="material-symbols-outlined text-[12px] ${isGood ? 'text-[#F59E0B]' : ''}">star</span>
-                <span>${isGood ? 'Circle' : 'Hold'}</span>
-              </button>
-            </div>
-            ${isGood ? `
-              <span class="px-2 py-0.5 rounded-full bg-[#10B981] text-[#064E3B] font-sans text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#064E3B]"></span>GOOD TAKE
-              </span>
-            ` : isNg ? `
-              <span class="px-1.5 py-0.5 rounded bg-[#14171E] border border-[#EF4444]/40 text-[#EF4444] font-sans text-[9px] uppercase tracking-wide flex items-center gap-1">
-                <span class="material-symbols-outlined text-[11px]">cancel</span>${t.statusLabel}
-              </span>
-            ` : `
-              <span class="px-1.5 py-0.5 rounded bg-[#14171E] border border-[#2A2E39] text-[#94A3B8] font-sans text-[9px] uppercase tracking-wide">
-                ${t.statusLabel}
-              </span>
-            `}
+
+          <div class="flex flex-col items-end gap-1.5 shrink-0">
+            <button aria-label="${isGood ? 'Batalkan Circle Take' : 'Tandai Circle Take'} Take ${takePad}"
+                    type="button"
+                    onclick="StoryPad.toggleCircleTake(${t.number})"
+                    class="min-h-[36px] px-2.5 py-1 rounded border text-[11px] font-sans font-semibold transition-colors ${isGood ? 'bg-[#047857] border-[#34D399] text-white' : 'bg-[#1E222B] border-[#6A748B] text-[#F3F4F6] hover:bg-[#2A303C]'}">
+              ${isGood ? 'Circle' : 'Tandai Good'}
+            </button>
+            ${statusBadge}
           </div>
         </div>
       `;
@@ -1058,7 +1288,34 @@ const StoryPad = {
     listEl.innerHTML = html;
   },
 
-  // Toggle Circle / Good Take for an individual take
+  logNewTake() {
+    this.triggerHaptic();
+    const dialogue = this.db.scriptData && this.db.scriptData.lines
+      ? this.db.scriptData.lines.find(l => l.id === this.state.activeDialogueId)
+      : null;
+    if (!dialogue) return;
+    if (!dialogue.takes) dialogue.takes = [];
+    const nextNum = dialogue.takes.length + 1;
+    dialogue.takes.push({
+      number: nextNum,
+      label: `Take ${String(nextNum).padStart(2, '0')} | CAM-A / BOOM`,
+      tc: '01:00 SMPTE',
+      statusLabel: 'Hold',
+      isGood: false,
+      isNg: false
+    });
+    if (dialogue.status === 'pending') {
+      dialogue.status = 'warning';
+      dialogue.statusLabel = 'Review';
+    }
+    this.state.activeTakeNumber = nextNum;
+    this.renderPanelTakes();
+    this.renderScriptContent();
+    this.updatePanelAutoNaming();
+    this.updateProgressGauge();
+    this.showToast(`Take ${String(nextNum).padStart(2, '0')} dicatat pada Shot ${dialogue.shot}`);
+  },
+
   toggleCircleTake(takeNumber) {
     this.triggerHaptic();
     const dialogue = this.db.scriptData.lines.find(l => l.id === this.state.activeDialogueId);
@@ -1069,17 +1326,22 @@ const StoryPad = {
     take.isGood = !take.isGood;
     if (take.isGood) {
       take.isNg = false;
+      take.statusLabel = 'GOOD TAKE';
       dialogue.status = 'good';
-      this.showToast(`Take 0${takeNumber} ditandai sebagai Circle Take! ⭐`);
+      dialogue.statusLabel = 'Good Take';
+      this.showToast(`Take 0${takeNumber} ditandai sebagai Circle Take`);
     } else {
+      take.statusLabel = take.directorPick ? 'Director Pick' : 'Hold';
       const hasOtherGood = dialogue.takes.some(t => t.isGood);
       dialogue.status = hasOtherGood ? 'good' : 'warning';
-      this.showToast(`Tanda Circle Take 0${takeNumber} dihapus.`);
+      dialogue.statusLabel = hasOtherGood ? 'Good Take' : 'Review';
+      this.showToast(`Tanda Circle Take 0${takeNumber} dihapus`);
     }
 
     this.renderPanelTakes();
     this.renderScriptContent();
     this.updateProgressGauge();
+    this.updateDashboardData();
   },
 
   selectTake(takeNumber) {
@@ -1089,7 +1351,7 @@ const StoryPad = {
     this.updatePanelAutoNaming();
 
     const slateTk = document.getElementById('footage-take-badge');
-    if (slateTk) slateTk.textContent = `TK 0${takeNumber}`;
+    if (slateTk) slateTk.textContent = `TK ${String(takeNumber).padStart(2, '0')}`;
   },
 
   previewTakeAudio(takeNumber) {
@@ -1112,74 +1374,92 @@ const StoryPad = {
     if (scEl) scEl.textContent = `SC: ${naming.sceneCode.replace('SC', '')}`;
     if (shEl) shEl.textContent = `SH: ${naming.shotCode.replace('SH', '')}`;
     if (tkEl) tkEl.textContent = `TK: 0${this.state.activeTakeNumber}`;
-    if (camEl) camEl.textContent = `CAM: A`;
+    if (camEl) camEl.textContent = 'CAM: A';
     if (videoEl) videoEl.textContent = naming.videoName;
     if (audioEl) audioEl.textContent = naming.audioName;
   },
 
-  // Copy auto-naming codes to clipboard
   copyFileNames() {
     this.triggerHaptic();
     const naming = this.generateFileNames(this.state.activeDialogueId, this.state.activeTakeNumber);
     const textToCopy = `${naming.videoName}\n${naming.audioName}`;
 
-    this.writeClipboardText(textToCopy, 'Nama file video & audio disalin!');
+    this.writeClipboardText(textToCopy, 'Nama file video dan audio disalin');
 
     const copyBtnText = document.getElementById('copy-text');
     const copyBtnIcon = document.getElementById('copy-icon');
-    if (copyBtnText) copyBtnText.textContent = 'Disalin!';
+    if (copyBtnText) copyBtnText.textContent = 'Disalin';
     if (copyBtnIcon) copyBtnIcon.textContent = 'check';
 
     setTimeout(() => {
-      if (copyBtnText) copyBtnText.textContent = 'Copy';
+      if (copyBtnText) copyBtnText.textContent = 'Salin Semua';
       if (copyBtnIcon) copyBtnIcon.textContent = 'content_copy';
     }, 2000);
   },
 
-  // Copy individual video or audio filename
   copySpecificFilename(type) {
     this.triggerHaptic();
     const naming = this.generateFileNames(this.state.activeDialogueId, this.state.activeTakeNumber);
     const text = type === 'video' ? naming.videoName : naming.audioName;
     const label = type === 'video' ? 'video' : 'audio';
-    this.writeClipboardText(text, `Nama file ${label} berhasil disalin!`);
+    this.writeClipboardText(text, `Nama file ${label} berhasil disalin`);
   },
 
-  // Save Continuity Notes
+  updateActiveNote(value) {
+    this.state.scriptNotes[this.state.activeDialogueId] = value;
+    const statusEl = document.getElementById('panel-autosave-status');
+    if (statusEl) {
+      statusEl.textContent = 'Tersimpan lokal';
+    }
+  },
+
   saveNotes() {
     const notesEl = document.getElementById('panel-script-notes');
     if (notesEl) {
       this.state.scriptNotes[this.state.activeDialogueId] = notesEl.value;
+      const statusEl = document.getElementById('panel-autosave-status');
+      if (statusEl) statusEl.textContent = 'Draft disimpan';
       this.showToast('Catatan berhasil disimpan ke Draft');
     }
   },
 
-  // Push to NLE simulation
   syncToNle() {
     this.triggerHaptic();
     const btn = document.getElementById('send-nle-btn');
+    const statusEl = document.getElementById('nle-sync-status');
     if (!btn) return;
 
+    if (!this.state.roles.videoEditor && !this.state.roles.autoExportMeta) {
+      if (statusEl) {
+        statusEl.textContent = 'Gagal ekspor: aktifkan peran Video Editor atau Auto-Export Meta pada menu Profil.';
+      }
+      this.showToast('Izin ekspor NLE dinonaktifkan pada peran aktif');
+      return;
+    }
+
     const originalContent = btn.innerHTML;
-    btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span><span>Meneruskan ke Premiere / Resolve...</span>`;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">sync</span><span>Menyiapkan paket XML/EDL...</span>`;
     btn.disabled = true;
+    if (statusEl) statusEl.textContent = 'Memproses ekspor metadata take aktif...';
 
     setTimeout(() => {
-      btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">done_all</span><span>Tersinkronisasi ke Timeline NLE!</span>`;
-      this.showToast('Timeline NLE tersinkronisasi');
+      const naming = this.generateFileNames(this.state.activeDialogueId, this.state.activeTakeNumber);
+      btn.innerHTML = `<span class="material-symbols-outlined text-[16px]" aria-hidden="true">done_all</span><span>Paket NLE Siap</span>`;
+      if (statusEl) {
+        statusEl.textContent = `Paket metadata siap untuk ${naming.videoName}`;
+      }
+      this.showToast('Metadata timeline NLE disinkronkan');
 
       setTimeout(() => {
         btn.innerHTML = originalContent;
         btn.disabled = false;
       }, 2000);
-    }, 1200);
+    }, 900);
   },
 
-  // Audio Playback Simulation for Panel & Dashboard
   togglePanelAudioPlayback() {
     this.triggerHaptic();
     const isPlaying = this.state.audio.isPlaying;
-
     if (isPlaying) {
       this.stopAudioPlayback();
     } else {
@@ -1208,7 +1488,6 @@ const StoryPad = {
       }
     }, 110);
 
-    // Dynamic PolyWAV VU meters
     const ch1Meter = document.getElementById('vu-meter-ch1');
     const ch2Meter = document.getElementById('vu-meter-ch2');
     const ch1Db = document.getElementById('vu-val-ch1');
@@ -1224,7 +1503,6 @@ const StoryPad = {
       if (ch2Meter) ch2Meter.style.width = `${Math.min(100, Math.max(10, 100 + db2 * 4))}%`;
     }, 120);
 
-    // Increment timecode display
     const tcEl = document.getElementById('panel-elapsed-tc');
     clearInterval(this.state.audio.timerInterval);
     this.state.audio.timerInterval = setInterval(() => {
@@ -1233,8 +1511,9 @@ const StoryPad = {
         this.state.audio.elapsedSeconds = 0;
       }
       if (tcEl) {
+        const mins = String(Math.floor(this.state.audio.elapsedSeconds / 60)).padStart(2, '0');
         const secs = String(this.state.audio.elapsedSeconds % 60).padStart(2, '0');
-        tcEl.textContent = `00:01:${secs}:12`;
+        tcEl.textContent = `00:${mins}:${secs}:12`;
       }
     }, 1000);
   },
@@ -1248,7 +1527,6 @@ const StoryPad = {
     const playIcon = document.getElementById('panel-play-icon');
     if (playIcon) playIcon.textContent = 'play_arrow';
 
-    // Reset panel waveform bars to static baseline
     const container = document.getElementById('panel-waveform');
     if (container) {
       const bars = container.querySelectorAll('.waveform-bar');
@@ -1258,7 +1536,6 @@ const StoryPad = {
       });
     }
 
-    // Reset dashboard play buttons and clear all dashboard anim intervals
     document.querySelectorAll('.dashboard-play-btn').forEach(btn => {
       if (btn._animInterval) {
         clearInterval(btn._animInterval);
@@ -1268,7 +1545,6 @@ const StoryPad = {
       if (icon) icon.textContent = 'play_arrow';
     });
 
-    // Reset dashboard waveform bars to scaleY(1)
     ['dash-waveform-1', 'dash-waveform-2'].forEach(id => {
       const wf = document.getElementById(id);
       if (wf) {
@@ -1279,13 +1555,11 @@ const StoryPad = {
     });
   },
 
-  // Dashboard Audio Player
   toggleDashboardTrack(btn, waveformId) {
     this.triggerHaptic();
     const icon = btn.querySelector('.material-symbols-outlined');
     const isPlaying = icon && icon.textContent === 'pause';
 
-    // Stop all others first
     this.stopAudioPlayback();
 
     if (!isPlaying) {
@@ -1305,7 +1579,6 @@ const StoryPad = {
     }
   },
 
-  // Video Footage Playback & Frame Jogging
   toggleFootagePlayback() {
     this.triggerHaptic();
     this.state.footage.isPlaying = !this.state.footage.isPlaying;
@@ -1348,44 +1621,96 @@ const StoryPad = {
     if (tcElapsed) tcElapsed.textContent = tc;
   },
 
-  // Role Switcher in Profile (5 Rows)
+  // Role Switcher & Real Profile Totals
   renderProfileRoles() {
-    // Reflect active roles onto toggles
     Object.keys(this.state.roles).forEach(key => {
       const row = document.querySelector(`[data-role-key="${key}"]`);
       if (row) {
         const toggleBtn = row.querySelector('.toggle-box');
         const isChecked = this.state.roles[key];
+        if (typeof row.setAttribute === 'function') {
+          row.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
+        }
         if (toggleBtn) {
+          if (typeof toggleBtn.setAttribute === 'function') {
+            toggleBtn.setAttribute('data-checked', isChecked ? 'true' : 'false');
+          }
           if (isChecked) {
-            toggleBtn.setAttribute('data-checked', 'true');
-            toggleBtn.className = 'toggle-box w-6 h-6 rounded bg-[#3B82F6] flex items-center justify-center shrink-0 text-white transition-colors';
+            toggleBtn.className = 'toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white transition-colors';
             row.classList.remove('opacity-70');
           } else {
-            toggleBtn.setAttribute('data-checked', 'false');
-            toggleBtn.className = 'toggle-box w-6 h-6 rounded bg-[#14171E] border border-[#2A2E39] flex items-center justify-center shrink-0 text-transparent transition-colors';
+            toggleBtn.className = 'toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent transition-colors';
+            if (toggleBtn.style) {
+              toggleBtn.style.backgroundColor = 'var(--panel-lowest)';
+              toggleBtn.style.borderColor = 'var(--border-control)';
+            }
             row.classList.add('opacity-70');
           }
         }
       }
     });
 
-    // Update user profile card in UI
     const nameEl = document.getElementById('profile-user-name');
     const roleEl = document.getElementById('profile-user-role');
     const badgeEl = document.getElementById('profile-user-badge');
+    const prodEl = document.getElementById('profile-active-prod');
     const avatarEl = document.getElementById('profile-avatar-initials');
     const dashAvatarEl = document.getElementById('header-avatar-dash');
     const projAvatarEl = document.getElementById('header-avatar-proj');
     const profileAvatarEl = document.getElementById('header-avatar-profile');
+    const navUserEl = document.getElementById('nav-user-name');
+    const navProdEl = document.getElementById('nav-prod-name');
 
     if (nameEl) nameEl.textContent = this.state.currentUser.name;
     if (roleEl) roleEl.textContent = this.state.currentUser.roleTitle;
-    if (badgeEl) badgeEl.textContent = `${this.state.currentUser.idBadge} • ${this.state.currentUser.studio}`;
+    if (badgeEl) badgeEl.textContent = `${this.state.currentUser.idBadge} | ${this.state.currentUser.studio}`;
+    if (prodEl) prodEl.textContent = this.state.currentUser.prodName;
     if (avatarEl) avatarEl.textContent = this.state.currentUser.initials;
     if (dashAvatarEl) dashAvatarEl.textContent = this.state.currentUser.initials;
     if (projAvatarEl) projAvatarEl.textContent = this.state.currentUser.initials;
     if (profileAvatarEl) profileAvatarEl.textContent = this.state.currentUser.initials;
+    if (navUserEl) navUserEl.textContent = this.state.currentUser.name;
+    if (navProdEl) navProdEl.textContent = this.state.currentUser.prodName;
+
+    // Real calculated stats from StoryPad.db
+    let totalTakes = 0;
+    let circledTakes = 0;
+    Object.values(this.db.scriptDataProjects).forEach(proj => {
+      proj.lines.forEach(line => {
+        if (line.type === 'dialogue' && line.takes) {
+          totalTakes += line.takes.length;
+          circledTakes += line.takes.filter(t => t.isGood).length;
+        }
+      });
+    });
+
+    const statProj = document.getElementById('profile-stat-projects');
+    const statTakes = document.getElementById('profile-stat-takes');
+    const statCircled = document.getElementById('profile-stat-circled');
+    if (statProj) statProj.textContent = String(this.db.projects.length);
+    if (statTakes) statTakes.textContent = String(totalTakes);
+    if (statCircled) statCircled.textContent = String(circledTakes);
+
+    this.updateRolePermissionIndicators();
+  },
+
+  updateRolePermissionIndicators() {
+    const roleBadge = document.getElementById('script-role-indicator');
+    if (roleBadge) {
+      const activeRoles = [];
+      if (this.state.roles.scriptSupervisor) activeRoles.push('Script Supv');
+      if (this.state.roles.videoEditor) activeRoles.push('Editor NLE');
+      if (this.state.roles.soundRecordist) activeRoles.push('Sound');
+      if (this.state.roles.directorProducer) activeRoles.push('Director Review');
+      roleBadge.textContent = activeRoles.length > 0 ? `Peran: ${activeRoles.join(' + ')}` : 'Peran: Tinjauan';
+    }
+
+    const nleBtn = document.getElementById('send-nle-btn');
+    if (nleBtn) {
+      const canExportNle = this.state.roles.videoEditor || this.state.roles.autoExportMeta;
+      nleBtn.disabled = !canExportNle;
+      nleBtn.title = canExportNle ? 'Kirim paket metadata ke Editor NLE' : 'Aktifkan peran Video Editor atau Auto-Export Meta di Profil untuk ekspor NLE';
+    }
   },
 
   toggleRole(roleKey, btnElement) {
@@ -1394,25 +1719,34 @@ const StoryPad = {
     this.savePersistedSettings();
     const isChecked = this.state.roles[roleKey];
 
-    const row = btnElement ? btnElement.closest('.role-item') : null;
+    const row = btnElement && typeof btnElement.closest === 'function' ? btnElement.closest('.role-item') : null;
+    if (row && typeof row.setAttribute === 'function') {
+      row.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
+    }
+    if (btnElement && typeof btnElement.setAttribute === 'function') {
+      btnElement.setAttribute('data-checked', isChecked ? 'true' : 'false');
+    }
     if (isChecked) {
       if (btnElement) {
-        btnElement.setAttribute('data-checked', 'true');
-        btnElement.className = 'toggle-box w-6 h-6 rounded bg-[#3B82F6] flex items-center justify-center shrink-0 text-white transition-colors';
+        btnElement.className = 'toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white transition-colors';
       }
       if (row) row.classList.remove('opacity-70');
       this.showToast(`Mode ${roleKey} diaktifkan`);
     } else {
       if (btnElement) {
-        btnElement.setAttribute('data-checked', 'false');
-        btnElement.className = 'toggle-box w-6 h-6 rounded bg-[#14171E] border border-[#2A2E39] flex items-center justify-center shrink-0 text-transparent transition-colors';
+        btnElement.className = 'toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent transition-colors';
+        if (btnElement.style) {
+          btnElement.style.backgroundColor = 'var(--panel-lowest)';
+          btnElement.style.borderColor = 'var(--border-control)';
+        }
       }
       if (row) row.classList.add('opacity-70');
       this.showToast(`Mode ${roleKey} dinonaktifkan`);
     }
+    this.updateRolePermissionIndicators();
   },
 
-  // Interactive Project Search / Filter
+  // Project Search & Category Filters
   toggleProjectSearch() {
     this.triggerHaptic();
     const bar = document.getElementById('project-search-bar');
@@ -1421,59 +1755,58 @@ const StoryPad = {
     if (isHidden) {
       bar.classList.remove('hidden');
       const input = document.getElementById('project-search-input');
-      if (input) input.focus();
+      if (input && typeof input.focus === 'function') input.focus();
     } else {
-      bar.classList.add('hidden');
-      this.clearProjectSearch();
+      const input = document.getElementById('project-search-input');
+      if (input && input.value) {
+        this.clearProjectSearch();
+      } else if (input && typeof input.focus === 'function') {
+        input.focus();
+      }
     }
   },
 
   filterProjects(query) {
-    const q = (query || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('.project-card-item');
-    let matchCount = 0;
-    cards.forEach(card => {
-      const text = card.textContent.toLowerCase();
-      if (!q || text.includes(q)) {
-        card.style.display = '';
-        matchCount++;
-      } else {
-        card.style.display = 'none';
-      }
-    });
-
-    const empty = document.getElementById('project-search-empty');
-    if (empty) {
-      if (matchCount === 0) {
-        empty.classList.remove('hidden');
-        empty.style.display = 'block';
-      } else {
-        empty.classList.add('hidden');
-        empty.style.display = 'none';
-      }
-    }
+    this.state.projectSearchQuery = (query || '').toLowerCase().trim();
+    this.syncProjectFilterState();
   },
 
-  // Category Filter Chips
   filterProjectsByCategory(category, btnElement) {
     this.triggerHaptic();
+    this.state.activeProjectCategory = category || 'all';
     document.querySelectorAll('.project-category-btn').forEach(btn => {
-      btn.className = 'project-category-btn px-2.5 py-1 rounded-full text-[10px] font-sans font-semibold border border-[#2A2E39] bg-[#14171E] text-[#9CA3AF] hover:text-white transition-all';
+      if (!btn.classList.contains('script-proj-switch')) {
+        btn.className = 'project-category-btn';
+      }
     });
     if (btnElement) {
-      btnElement.className = 'project-category-btn px-2.5 py-1 rounded-full text-[10px] font-sans font-semibold border border-[#3B82F6] bg-[#3B82F6] text-white shadow-sm transition-all';
+      btnElement.className = 'project-category-btn is-active';
     }
+    this.syncProjectFilterState();
+  },
+
+  syncProjectFilterState() {
+    const q = this.state.projectSearchQuery;
+    const category = this.state.activeProjectCategory;
     const cards = document.querySelectorAll('.project-card-item');
     let matchCount = 0;
+
     cards.forEach(card => {
       const text = card.textContent.toLowerCase();
-      if (category === 'all' || text.includes(category.toLowerCase())) {
+      const matchesCategory = category === 'all' || text.includes(category.toLowerCase());
+      const matchesQuery = !q || text.includes(q);
+      if (matchesCategory && matchesQuery) {
         card.style.display = '';
         matchCount++;
       } else {
         card.style.display = 'none';
       }
     });
+
+    const countLabel = document.getElementById('projects-count-label');
+    if (countLabel) {
+      countLabel.textContent = `${matchCount} Ditampilkan`;
+    }
 
     const empty = document.getElementById('project-search-empty');
     if (empty) {
@@ -1493,7 +1826,16 @@ const StoryPad = {
     this.filterProjects('');
   },
 
-  // Notification Sheet Controls
+  resetProjectFilters() {
+    this.state.activeProjectCategory = 'all';
+    const input = document.getElementById('project-search-input');
+    if (input) input.value = '';
+    this.state.projectSearchQuery = '';
+    const allBtn = document.querySelector('#project-category-chips .project-category-btn');
+    this.filterProjectsByCategory('all', allBtn);
+  },
+
+  // Notification Controls
   openNotifications() {
     this.triggerHaptic();
     const sheet = document.getElementById('sheet-notifications');
@@ -1501,6 +1843,7 @@ const StoryPad = {
     if (sheet && overlay) {
       overlay.classList.add('active');
       sheet.classList.add('open');
+      sheet.style.transform = '';
       this.renderNotificationsList();
     }
   },
@@ -1509,32 +1852,99 @@ const StoryPad = {
     this.triggerHaptic();
     const sheet = document.getElementById('sheet-notifications');
     const overlay = document.getElementById('sheet-overlay');
-    if (sheet) sheet.classList.remove('open');
+    if (sheet) {
+      sheet.classList.remove('open');
+      sheet.style.transform = '';
+    }
     if (overlay) overlay.classList.remove('active');
+  },
+
+  updateNotificationIndicators() {
+    const hasUnread = this.state.notifications.some(n => !n.dismissed && n.unread);
+    document.querySelectorAll('.notif-unread-dot').forEach(dot => {
+      if (hasUnread) {
+        dot.classList.remove('hidden');
+      } else {
+        dot.classList.add('hidden');
+      }
+    });
   },
 
   renderNotificationsList() {
     const list = document.getElementById('notifications-list');
     if (!list) return;
 
+    const visible = this.state.notifications.filter(n => !n.dismissed);
+    if (visible.length === 0) {
+      list.innerHTML = `
+        <div class="p-4 rounded border text-center" style="background-color: var(--panel-lowest); border-color: var(--border-flat);">
+          <p class="font-sans text-xs font-semibold mb-1" style="color: var(--text-primary);">Tidak ada notifikasi aktif</p>
+          <p class="font-sans text-[11px]" style="color: var(--text-secondary);">Semua pembaruan produksi telah dibaca atau disingkirkan.</p>
+        </div>
+      `;
+      this.updateNotificationIndicators();
+      return;
+    }
+
+    const sorted = [...visible].sort((a, b) => {
+      if (a.unread !== b.unread) return a.unread ? -1 : 1;
+      return a.priority === 'important' ? -1 : 1;
+    });
+
     let html = '';
-    this.state.notifications.forEach(n => {
+    sorted.forEach(n => {
+      const priorityBadge = n.priority === 'important'
+        ? `<span class="sp-badge sp-badge-amber">Penting</span>`
+        : `<span class="sp-badge sp-badge-neutral">Sinkronisasi</span>`;
+      const stateBadge = n.unread
+        ? `<span class="sp-badge sp-badge-blue">Belum Dibaca</span>`
+        : `<span class="font-mono text-[10px]" style="color: var(--text-muted);">Dibaca</span>`;
+
       html += `
-        <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#14171E] border border-[#2A2E39] ${n.unread ? 'border-l-2 border-l-[#3B82F6]' : 'opacity-80'}">
-          <div class="w-7 h-7 rounded-lg bg-[#21252E] flex items-center justify-center text-[#3B82F6] shrink-0 mt-0.5">
-            <span class="material-symbols-outlined text-[16px]">${n.type === 'sync' ? 'sync' : n.type === 'audio' ? 'graphic_eq' : 'edit_note'}</span>
-          </div>
-          <div class="flex flex-col min-w-0 flex-1">
-            <div class="flex items-center justify-between gap-1">
-              <span class="font-sans text-xs font-semibold text-white truncate">${n.title}</span>
-              <span class="font-mono text-[9px] text-[#9CA3AF] shrink-0">${n.time}</span>
+        <div class="p-3 rounded border flex flex-col gap-2 ${n.unread ? 'border-l-4' : 'opacity-85'}" style="background-color: var(--panel-lowest); border-color: var(--border-flat); ${n.unread ? 'border-left-color: var(--primary-accent);' : ''}">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              ${priorityBadge}
+              ${stateBadge}
             </div>
-            <p class="font-sans text-[11px] text-[#9CA3AF] mt-0.5 leading-snug">${n.message}</p>
+            <span class="font-mono text-[11px] shrink-0" style="color: var(--text-muted);">${n.time}</span>
+          </div>
+          <div>
+            <p class="font-sans text-xs font-bold" style="color: var(--text-primary);">${n.title}</p>
+            <p class="font-sans text-xs mt-0.5 leading-snug" style="color: var(--text-secondary);">${n.message}</p>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            ${n.unread ? `<button type="button" class="font-sans text-[11px] font-semibold hover:underline bg-transparent border-0 p-0" style="color: var(--primary-text);" onclick="StoryPad.markNotificationRead(${n.id})">Tandai Dibaca</button>` : ''}
+            <button type="button" class="font-sans text-[11px] font-semibold hover:underline bg-transparent border-0 p-0" style="color: var(--text-secondary);" onclick="StoryPad.dismissNotification(${n.id})">Singkirkan</button>
           </div>
         </div>
       `;
     });
     list.innerHTML = html;
+    this.updateNotificationIndicators();
+  },
+
+  markNotificationRead(id) {
+    const item = this.state.notifications.find(n => n.id === id);
+    if (item) {
+      item.unread = false;
+      this.renderNotificationsList();
+    }
+  },
+
+  dismissNotification(id) {
+    const item = this.state.notifications.find(n => n.id === id);
+    if (item) {
+      item.dismissed = true;
+      item.unread = false;
+      this.renderNotificationsList();
+    }
+  },
+
+  restoreDismissedNotifications() {
+    this.state.notifications.forEach(n => { n.dismissed = false; });
+    this.renderNotificationsList();
+    this.showToast('Riwayat notifikasi dipulihkan');
   },
 
   markAllNotificationsRead() {
@@ -1552,6 +1962,7 @@ const StoryPad = {
     if (sheet && overlay) {
       overlay.classList.add('active');
       sheet.classList.add('open');
+      sheet.style.transform = '';
     }
   },
 
@@ -1559,12 +1970,33 @@ const StoryPad = {
     this.triggerHaptic();
     const sheet = document.getElementById('sheet-login-accounts');
     const overlay = document.getElementById('sheet-overlay');
-    if (sheet) sheet.classList.remove('open');
+    if (sheet) {
+      sheet.classList.remove('open');
+      sheet.style.transform = '';
+    }
     if (overlay) overlay.classList.remove('active');
+  },
+
+  closeAllModals(silent = false) {
+    if (!silent) this.triggerHaptic();
+    ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('open');
+        el.style.transform = '';
+      }
+    });
+    const overlay = document.getElementById('sheet-overlay');
+    if (overlay) overlay.classList.remove('active');
+    this.stopAudioPlayback();
+    this.stopFootagePlayback();
   },
 
   loginAs(personaKey) {
     this.triggerHaptic();
+    const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
+    const prodName = activeProj ? activeProj.title : 'Senjakala Merah';
+
     if (personaKey === 'scriptSupervisor') {
       this.state.currentUser = {
         name: 'Aulia Larasati, S.Sn.',
@@ -1572,7 +2004,7 @@ const StoryPad = {
         roleTitle: 'Lead Script Supervisor & Continuity',
         idBadge: 'SP-8842',
         studio: 'Lifelike Pictures',
-        prodName: 'BADAI KELANA',
+        prodName,
         email: 'aulia@lifelikepictures.com'
       };
       this.state.roles = { scriptSupervisor: true, videoEditor: true, soundRecordist: false, directorProducer: false, autoExportMeta: true };
@@ -1583,7 +2015,7 @@ const StoryPad = {
         roleTitle: 'Lead Offline Video Editor',
         idBadge: 'ED-3021',
         studio: 'Lifelike Post',
-        prodName: 'BADAI KELANA',
+        prodName,
         email: 'dimas.edit@lifelikepictures.com'
       };
       this.state.roles = { scriptSupervisor: false, videoEditor: true, soundRecordist: false, directorProducer: false, autoExportMeta: true };
@@ -1594,7 +2026,7 @@ const StoryPad = {
         roleTitle: 'Production Sound Mixer & Boom Logger',
         idBadge: 'AU-7104',
         studio: 'Lifelike Sound',
-        prodName: 'BADAI KELANA',
+        prodName,
         email: 'sound.rama@lifelikepictures.com'
       };
       this.state.roles = { scriptSupervisor: false, videoEditor: false, soundRecordist: true, directorProducer: false, autoExportMeta: true };
@@ -1604,34 +2036,34 @@ const StoryPad = {
     this.renderProfileRoles();
     this.closeLoginAccounts();
     this.navigate('dashboard', 'home');
-    this.showToast(`Selamat datang, ${this.state.currentUser.name}!`);
+    this.showToast(`Masuk sebagai ${this.state.currentUser.name}`);
   },
 
   loginWithGoogle() {
     this.triggerHaptic();
-    this.showToast('Autentikasi Google Studio...');
+    this.showToast('Masuk dengan akun studio...');
     setTimeout(() => {
       this.loginAs('scriptSupervisor');
-    }, 600);
+    }, 450);
   },
 
-  // Logout Flow
   handleLogout() {
     this.triggerHaptic();
     const btn = document.getElementById('logout-btn');
     if (!btn) return;
 
     const originalContent = btn.innerHTML;
-    btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Menyimpan Sesi Snapshot...</span>`;
+    btn.innerHTML = `<span class="material-symbols-outlined text-[18px]" aria-hidden="true">progress_activity</span><span>Menyimpan Sesi Lokal...</span>`;
+    btn.disabled = true;
 
     setTimeout(() => {
       btn.innerHTML = originalContent;
+      btn.disabled = false;
       this.navigate('login');
-      this.showToast('Berhasil keluar akun produksi');
-    }, 900);
+      this.showToast('Keluar dari sesi produksi');
+    }, 600);
   },
 
-  // Status Bar Clock Updater
   updateStatusBarClock() {
     const clockEl = document.getElementById('mobile-clock');
     if (!clockEl) return;
@@ -1641,36 +2073,19 @@ const StoryPad = {
     clockEl.textContent = `${hrs}:${mins}`;
   },
 
-  // Master Genlock / SMPTE Timecode Running Simulation
   startLiveClocks() {
-    setInterval(() => {
+    clearInterval(this.state._clocks.clockTimer);
+    this.state._clocks.clockTimer = setInterval(() => {
       this.updateStatusBarClock();
     }, 30000);
-
-    // Live frame ticker for on-set telemetry
-    let frame = 8;
-    let sec = 22;
-    setInterval(() => {
-      frame++;
-      if (frame > 24) {
-        frame = 0;
-        sec++;
-        if (sec > 59) sec = 0;
-      }
-      const ff = String(frame).padStart(2, '0');
-      const ss = String(sec).padStart(2, '0');
-      const masterTc = document.getElementById('master-tc-live');
-      if (masterTc) {
-        masterTc.textContent = `01:14:${ss}:${ff}`;
-      }
-    }, 100);
+    if (this.state._clocks.clockTimer && typeof this.state._clocks.clockTimer.unref === 'function') {
+      this.state._clocks.clockTimer.unref();
+    }
   },
 
-  // Event Listeners Registration
   bindEvents() {
     if (typeof document === 'undefined') return;
 
-    // Scroll Listeners for Auto-Hide Floating Capsule Navbar
     const scrollContainers = document.querySelectorAll('.screen-viewport');
     scrollContainers.forEach(container => {
       let lastScrollTop = 0;
@@ -1680,54 +2095,51 @@ const StoryPad = {
         const quickDock = document.getElementById('floating-quick-dock');
 
         if (navbar && this.state.currentScreen !== 'login') {
-          if (currentScrollTop > lastScrollTop && currentScrollTop > 30) {
+          if (currentScrollTop > lastScrollTop && currentScrollTop > 40) {
             navbar.classList.add('hidden-scroll');
-            if (quickDock) quickDock.classList.add('opacity-0', 'translate-y-4');
+            if (quickDock) quickDock.classList.add('opacity-90');
           } else if (currentScrollTop < lastScrollTop - 4 || currentScrollTop <= 20) {
             navbar.classList.remove('hidden-scroll');
-            if (quickDock) quickDock.classList.remove('opacity-0', 'translate-y-4');
+            if (quickDock) quickDock.classList.remove('opacity-90');
           }
         }
         lastScrollTop = Math.max(0, currentScrollTop);
       }, { passive: true });
     });
 
-    // Native Touch / Drag to dismiss on Bottom Sheets
     this.setupSwipeableSheet('sheet-view-settings');
     this.setupSwipeableSheet('sheet-audio-panel');
     this.setupSwipeableSheet('sheet-notifications');
     this.setupSwipeableSheet('sheet-login-accounts');
 
-    // Keyboard Avoidance for Textarea
-    const notesTextarea = document.getElementById('panel-script-notes');
-    if (notesTextarea) {
-      notesTextarea.addEventListener('focus', () => {
-        const sheet = document.getElementById('sheet-audio-panel');
-        if (sheet) {
-          sheet.style.transform = 'translateY(-15%)';
-        }
-      });
-      notesTextarea.addEventListener('blur', () => {
-        const sheet = document.getElementById('sheet-audio-panel');
-        if (sheet) {
-          sheet.style.transform = 'translateY(0)';
-        }
-      });
-    }
-
-    // Backdrop dismissal
     const overlay = document.getElementById('sheet-overlay');
     if (overlay) {
       overlay.addEventListener('click', () => {
-        this.closeViewSettings();
-        this.closeAudioPanel();
-        this.closeNotifications();
-        this.closeLoginAccounts();
+        this.closeAllModals();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeAllModals();
+      }
+    });
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 1024 && this.state.currentScreen === 'script-reader') {
+          const audioSheet = document.getElementById('sheet-audio-panel');
+          const overlayEl = document.getElementById('sheet-overlay');
+          if (audioSheet && audioSheet.classList.contains('open')) {
+            audioSheet.classList.remove('open');
+            audioSheet.style.transform = '';
+            if (overlayEl) overlayEl.classList.remove('active');
+          }
+        }
       });
     }
   },
 
-  // Swipeable gesture controller for modal bottom sheets
   setupSwipeableSheet(sheetId) {
     if (typeof document === 'undefined') return;
     const sheet = document.getElementById(sheetId);
@@ -1740,6 +2152,7 @@ const StoryPad = {
     const handle = sheet.querySelector('.bottom-sheet-handle') || sheet;
 
     handle.addEventListener('touchstart', (e) => {
+      if (typeof window !== 'undefined' && window.innerWidth >= 768) return;
       startY = e.touches[0].clientY;
       isDragging = true;
       sheet.style.transition = 'none';
@@ -1754,13 +2167,12 @@ const StoryPad = {
       }
     }, { passive: true });
 
-    handle.addEventListener('touchend', (e) => {
+    handle.addEventListener('touchend', () => {
       if (!isDragging) return;
       isDragging = false;
       sheet.style.transition = '';
       const deltaY = currentY - startY;
 
-      // If dragged down by more than 70px, close it
       if (deltaY > 70) {
         if (sheetId === 'sheet-view-settings') {
           StoryPad.closeViewSettings();
@@ -1772,7 +2184,7 @@ const StoryPad = {
           StoryPad.closeLoginAccounts();
         }
       } else {
-        sheet.style.transform = 'translateY(0)';
+        sheet.style.transform = '';
       }
       startY = 0;
       currentY = 0;
@@ -1780,10 +2192,8 @@ const StoryPad = {
   }
 };
 
-// Immediately initialize scriptData to default proj-1
 StoryPad.db.scriptData = StoryPad.db.scriptDataProjects['proj-1'];
 
-// Expose globally
 if (typeof window !== 'undefined') {
   window.StoryPad = StoryPad;
 }
@@ -1791,7 +2201,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = StoryPad;
 }
 
-// Start application when DOM is ready
 if (typeof document !== 'undefined' && document.addEventListener) {
   document.addEventListener('DOMContentLoaded', () => {
     StoryPad.init();
