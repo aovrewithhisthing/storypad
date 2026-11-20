@@ -1,0 +1,433 @@
+/* StoryPad Mobile - Production Slate Dark Design System */
+:root {
+  --app-bg: #0F1115;
+  --panel-bg: #1A1D24;
+  --panel-elevated: #21252E;
+  --panel-lowest: #14171E;
+  --border-flat: #2A2E39;
+  --border-elevated: #373C4A;
+  --primary-accent: #3B82F6;
+  --primary-accent-hover: #2563EB;
+  --secondary-good: #10B981;
+  --alert-amber: #F59E0B;
+  --critical-red: #EF4444;
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-muted: #64748B;
+  --text-script: #E2E8F0;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Base Resets */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #08090C;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Tabular figures for timecodes and numbers */
+.font-timecode, .tabular-nums {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+.font-script {
+  font-family: var(--font-mono);
+}
+
+/* Scrollbar hidden for native mobile feel */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Device Shell for Centered Mobile Viewport */
+.mobile-device-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 20%, #151821 0%, #08090C 100%);
+  padding: 12px;
+}
+
+@media (max-width: 480px) {
+  .mobile-device-wrapper {
+    padding: 0;
+  }
+}
+
+.mobile-phone-frame {
+  width: 100%;
+  max-width: 412px;
+  height: 840px;
+  max-height: 100vh;
+  background-color: var(--app-bg);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px #222632;
+  border-radius: 36px;
+}
+
+@media (max-width: 480px) {
+  .mobile-phone-frame {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+  }
+}
+
+/* Simulated Mobile Status Bar */
+.mobile-status-bar {
+  height: 38px;
+  min-height: 38px;
+  background-color: var(--app-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  z-index: 60;
+  border-bottom: 1px solid rgba(42, 46, 57, 0.3);
+}
+
+.mobile-notch-camera {
+  width: 80px;
+  height: 18px;
+  background-color: #000000;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.camera-lens {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #111827;
+  border: 1px solid #1f2937;
+}
+
+.sensor-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #064e3b;
+}
+
+/* Simulated iOS/Android Home Indicator Bar */
+.mobile-home-bar-area {
+  height: 20px;
+  min-height: 20px;
+  background-color: var(--app-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.mobile-home-indicator {
+  width: 120px;
+  height: 4px;
+  background-color: #373C4A;
+  border-radius: 9999px;
+}
+
+/* Screen Viewport & Container */
+.screen-viewport {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Floating Capsule Navbar */
+.floating-capsule-navbar {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.floating-capsule-navbar.hidden-scroll {
+  transform: translateY(140%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-capsule-nav-inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 330px;
+  height: 54px;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-flat);
+  border-radius: 9999px;
+  padding: 0 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.nav-capsule-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 86px;
+  height: 42px;
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.nav-capsule-tab.active {
+  background-color: var(--primary-accent);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.nav-capsule-tab:active {
+  transform: scale(0.95);
+}
+
+/* Modal Bottom Sheets */
+.bottom-sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 17, 21, 0.78);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.bottom-sheet-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottom-sheet-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 92%;
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--border-elevated);
+  border-left: 1px solid var(--border-flat);
+  border-right: 1px solid var(--border-flat);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(102%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.bottom-sheet-drawer.open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+  width: 42px;
+  height: 4.5px;
+  border-radius: 9999px;
+  background-color: var(--border-flat);
+  margin: 10px auto 6px auto;
+  cursor: grab;
+}
+
+.bottom-sheet-handle:active {
+  cursor: grabbing;
+}
+
+.bottom-sheet-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Toast Snackbar */
+.toast-snackbar {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: #21252E;
+  border: 1px solid #3B82F6;
+  color: #FFFFFF;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 70;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-snackbar.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Waveform Bars Animation */
+.waveform-bar {
+  transition: transform 0.12s ease-in-out;
+  transform-origin: bottom;
+}
+
+/* Dynamic Radial Progress SVG */
+.radial-progress-track {
+  stroke: #282D37;
+}
+
+.radial-progress-fill {
+  stroke: #3B82F6;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Script Line Selection Capsule */
+.script-line-card {
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.script-line-card.status-good {
+  border-left-color: var(--secondary-good);
+}
+
+.script-line-card.status-warning {
+  border-left-color: var(--alert-amber);
+}
+
+.script-line-card.status-pending {
+  border-left-color: #4B5563;
+}
+
+.script-line-card.selected {
+  background-color: #1E293B !important;
+  border-color: #3B82F6 !important;
+  border-left-color: #3B82F6 !important;
+}
+
+/* Micro-interaction scale on tap */
+.btn-press {
+  transition: transform 0.12s ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+
+/* Keyboard Avoidance Support */
+.keyboard-avoiding-container {
+  transition: padding-bottom 0.25s ease;
+}
+
+/* PolyWAV Realtime Dynamic VU Meter Bar */
+.vu-meter-bar {
+  transition: width 0.1s linear;
+  background: linear-gradient(90deg, #10B981 0%, #10B981 70%, #F59E0B 88%, #EF4444 100%);
+}
+
+/* Cinema Camera Video Slate Monitor */
+.camera-monitor-screen {
+  background: radial-gradient(circle at 50% 50%, #151821 0%, #050608 100%);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9);
+}
+
+.camera-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.camera-crosshair::before,
+.camera-crosshair::after {
+  content: '';
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+.camera-crosshair::before {
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+.camera-crosshair::after {
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+/* Safe Framing Overlay */
+.camera-safe-frame {
+  position: absolute;
+  top: 10%;
+  left: 8%;
+  right: 8%;
+  bottom: 10%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
