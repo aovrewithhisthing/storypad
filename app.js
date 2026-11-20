@@ -147,6 +147,42 @@ const StoryPad = {
 
   // Single source of truth database for projects & screenplays
   db: {
+    crewProfiles: [
+      {
+        personaKey: 'scriptSupervisor',
+        fullName: 'Aulia Larasati, S.Sn.',
+        initials: 'AL',
+        roleTitle: 'Lead Script Supervisor & Continuity',
+        idBadge: 'SP-8842',
+        studio: 'Lifelike Pictures',
+        prodName: 'Senjakala Merah',
+        email: 'aulia@lifelikepictures.com',
+        roles: { scriptSupervisor: true, videoEditor: true, soundRecordist: false, directorProducer: false, autoExportMeta: true }
+      },
+      {
+        personaKey: 'videoEditor',
+        fullName: 'Dimas Wicaksono',
+        initials: 'DW',
+        roleTitle: 'Lead Offline Video Editor',
+        idBadge: 'ED-3021',
+        studio: 'Lifelike Post',
+        prodName: 'Senjakala Merah',
+        email: 'dimas.edit@lifelikepictures.com',
+        roles: { scriptSupervisor: false, videoEditor: true, soundRecordist: false, directorProducer: false, autoExportMeta: true }
+      },
+      {
+        personaKey: 'soundRecordist',
+        fullName: 'Rama Satria',
+        initials: 'RS',
+        roleTitle: 'Production Sound Mixer & Boom Logger',
+        idBadge: 'AU-7104',
+        studio: 'Lifelike Sound',
+        prodName: 'Senjakala Merah',
+        email: 'sound.rama@lifelikepictures.com',
+        roles: { scriptSupervisor: false, videoEditor: false, soundRecordist: true, directorProducer: false, autoExportMeta: true }
+      }
+    ],
+
     projects: [
       {
         id: 'proj-1',
@@ -426,6 +462,7 @@ const StoryPad = {
     this.updateStatusBarClock();
     this.startLiveClocks();
     this.renderProfileRoles();
+    this.renderCrewAccountsList();
     this.updateNotificationIndicators();
     this.initSupabase();
   },
@@ -584,9 +621,21 @@ const StoryPad = {
         this.db.scriptData = this.db.scriptDataProjects[this.state.activeProjectId] || this.db.scriptDataProjects['proj-1'];
       }
 
-      if (crewRes && !crewRes.error && Array.isArray(crewRes.data)) {
-        const activeCrew = crewRes.data.find(c => c.persona_key === this.state.activePersonaKey);
-        if (activeCrew && activeCrew.roles && !this.state.supabaseUser) {
+      if (crewRes && !crewRes.error && Array.isArray(crewRes.data) && crewRes.data.length > 0) {
+        this.db.crewProfiles = crewRes.data.map(c => ({
+          personaKey: c.persona_key,
+          fullName: c.full_name,
+          initials: c.initials,
+          roleTitle: c.role_title,
+          idBadge: c.id_badge,
+          studio: c.studio,
+          prodName: c.prod_name,
+          email: c.email,
+          roles: c.roles || { scriptSupervisor: true, videoEditor: false, soundRecordist: false, directorProducer: false, autoExportMeta: true }
+        }));
+        this.renderCrewAccountsList();
+        const activeCrew = this.db.crewProfiles.find(c => c.personaKey === this.state.activePersonaKey);
+        if (activeCrew && activeCrew.roles) {
           this.state.roles = { ...this.state.roles, ...activeCrew.roles };
         }
       }
@@ -631,6 +680,7 @@ const StoryPad = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, scheduleSync)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'script_lines' }, scheduleSync)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'takes' }, scheduleSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crew_profiles' }, scheduleSync)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, scheduleSync)
       .subscribe();
   },
@@ -650,6 +700,10 @@ const StoryPad = {
         if (savedUser) {
           this.state.currentUser = { ...this.state.currentUser, ...JSON.parse(savedUser) };
         }
+        const savedPersona = localStorage.getItem('storypad_persona_key');
+        if (savedPersona) {
+          this.state.activePersonaKey = savedPersona;
+        }
         const savedTheme = localStorage.getItem('storypad_theme');
         if (savedTheme === 'daylight' || savedTheme === 'slate') {
           this.state.theme = savedTheme;
@@ -666,6 +720,7 @@ const StoryPad = {
         localStorage.setItem('storypad_view_settings', JSON.stringify(this.state.viewSettings));
         localStorage.setItem('storypad_roles', JSON.stringify(this.state.roles));
         localStorage.setItem('storypad_user', JSON.stringify(this.state.currentUser));
+        localStorage.setItem('storypad_persona_key', this.state.activePersonaKey);
         localStorage.setItem('storypad_theme', this.state.theme);
       }
     } catch (e) {}
@@ -2299,13 +2354,69 @@ const StoryPad = {
     this.stopFootagePlayback();
   },
 
+  renderCrewAccountsList() {
+    const listEl = document.getElementById('crew-accounts-list');
+    if (!listEl || !Array.isArray(this.db.crewProfiles)) return;
+
+    const escape = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    listEl.innerHTML = this.db.crewProfiles.map(c => {
+      const roles = c.roles || {};
+      let avatarClass = 'bg-[#2563EB] text-white';
+      let roleTextStyle = 'var(--primary-text)';
+      if (roles.videoEditor && !roles.scriptSupervisor) {
+        avatarClass = 'bg-[#047857] text-white';
+        roleTextStyle = 'var(--good-text)';
+      } else if (roles.soundRecordist && !roles.scriptSupervisor) {
+        avatarClass = 'bg-[#F59E0B] text-[#14171E]';
+        roleTextStyle = 'var(--amber-text)';
+      }
+
+      return `
+        <button type="button" class="sp-crew-btn w-full text-left flex items-center justify-between p-3 rounded border" onclick="StoryPad.loginAs('${escape(c.personaKey)}')">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="w-10 h-10 rounded ${avatarClass} flex items-center justify-center font-bold text-xs shrink-0">${escape(c.initials)}</span>
+            <span class="flex flex-col min-w-0">
+              <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">${escape(c.fullName)}</span>
+              <span class="font-sans text-[11px] truncate" style="color: ${roleTextStyle};">${escape(c.roleTitle)}</span>
+              <span class="font-mono text-[10px] truncate" style="color: var(--text-muted);">${escape(c.email)}</span>
+            </span>
+          </span>
+          <span class="material-symbols-outlined text-[18px] shrink-0" style="color: ${roleTextStyle};" aria-hidden="true">chevron_right</span>
+        </button>
+      `;
+    }).join('');
+  },
+
   loginAs(personaKey) {
     this.triggerHaptic();
     this.state.activePersonaKey = personaKey;
     const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
     const prodName = activeProj ? activeProj.title : 'Senjakala Merah';
 
-    if (personaKey === 'scriptSupervisor') {
+    const profile = Array.isArray(this.db.crewProfiles)
+      ? this.db.crewProfiles.find(c => c.personaKey === personaKey)
+      : null;
+
+    if (profile) {
+      this.state.currentUser = {
+        name: profile.fullName,
+        initials: profile.initials,
+        roleTitle: profile.roleTitle,
+        idBadge: profile.idBadge,
+        studio: profile.studio,
+        prodName,
+        email: profile.email
+      };
+      this.state.roles = {
+        scriptSupervisor: false,
+        videoEditor: false,
+        soundRecordist: false,
+        directorProducer: false,
+        autoExportMeta: true,
+        ...(profile.roles || {})
+      };
+    } else if (personaKey === 'scriptSupervisor') {
       this.state.currentUser = {
         name: 'Aulia Larasati, S.Sn.',
         initials: 'AL',
@@ -2349,6 +2460,8 @@ const StoryPad = {
 
   async signInWithSupabaseEmail(mode = 'signin') {
     this.triggerHaptic();
+    const nameEl = document.getElementById('supa-name-input');
+    const roleEl = document.getElementById('supa-role-select');
     const emailEl = document.getElementById('supa-email-input');
     const passEl = document.getElementById('supa-password-input');
     const fbEl = document.getElementById('supa-auth-feedback');
@@ -2362,7 +2475,7 @@ const StoryPad = {
       fbEl.style.color = isError ? 'var(--red-text)' : 'var(--good-text)';
     };
 
-    if (!email || !password || password.length < 6) {
+    if (!email || !email.includes('@') || !password || password.length < 6) {
       setFeedback('Masukkan email valid dan kata sandi minimal 6 karakter.', true);
       return;
     }
@@ -2372,26 +2485,123 @@ const StoryPad = {
       return;
     }
 
-    setFeedback(mode === 'signup' ? 'Mendaftarkan akun kru...' : 'Memeriksa kredensial...', false);
+    setFeedback(mode === 'signup' ? 'Menyimpan akun kru ke Supabase...' : 'Memeriksa kredensial...', false);
 
     try {
-      const result = mode === 'signup'
-        ? await this.supabase.auth.signUp({ email, password })
-        : await this.supabase.auth.signInWithPassword({ email, password });
+      if (mode === 'signup') {
+        const rawName = nameEl && nameEl.value.trim() ? nameEl.value.trim() : email.split('@')[0];
+        const roleKey = roleEl && roleEl.value ? roleEl.value : 'scriptSupervisor';
+        const roleMap = {
+          scriptSupervisor: 'Script Supervisor & Continuity',
+          videoEditor: 'Offline Video Editor',
+          soundRecordist: 'Production Sound Mixer',
+          directorProducer: 'Director & Producer'
+        };
+        const roleTitle = roleMap[roleKey] || 'Script Supervisor & Continuity';
+        const initials = rawName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'SP';
+        const personaKey = 'crew_' + email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const idBadge = 'SP-' + String(Math.floor(1000 + (Date.now() % 9000)));
+        const rolesObj = {
+          scriptSupervisor: roleKey === 'scriptSupervisor',
+          videoEditor: roleKey === 'videoEditor',
+          soundRecordist: roleKey === 'soundRecordist',
+          directorProducer: roleKey === 'directorProducer',
+          autoExportMeta: true
+        };
 
+        const authRes = await this.supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: rawName,
+              persona_key: personaKey,
+              role_key: roleKey
+            }
+          }
+        });
+
+        if (authRes.error) {
+          setFeedback(authRes.error.message, true);
+          return;
+        }
+
+        const profileRow = {
+          user_id: authRes.data && authRes.data.user ? authRes.data.user.id : null,
+          persona_key: personaKey,
+          full_name: rawName,
+          initials,
+          role_title: roleTitle,
+          id_badge: idBadge,
+          studio: 'Lifelike Pictures',
+          prod_name: this.state.currentUser.prodName || 'Senjakala Merah',
+          email,
+          roles: rolesObj
+        };
+
+        await this.supabase.from('crew_profiles').upsert(profileRow, { onConflict: 'persona_key' });
+
+        const localProfile = {
+          personaKey,
+          fullName: rawName,
+          initials,
+          roleTitle,
+          idBadge,
+          studio: 'Lifelike Pictures',
+          prodName: profileRow.prod_name,
+          email,
+          roles: rolesObj
+        };
+        const existingIdx = this.db.crewProfiles.findIndex(c => c.personaKey === personaKey || c.email.toLowerCase() === email.toLowerCase());
+        if (existingIdx >= 0) {
+          this.db.crewProfiles[existingIdx] = localProfile;
+        } else {
+          this.db.crewProfiles.push(localProfile);
+        }
+        this.renderCrewAccountsList();
+
+        if (authRes.data && authRes.data.session) {
+          this.state.supabaseUser = authRes.data.user;
+          this.loginAs(personaKey);
+          this.showToast(`Akun ${rawName} disimpan ke Supabase`);
+        } else {
+          setFeedback(`Profil ${rawName} tersimpan di database. Periksa email konfirmasi untuk aktivasi login.`, false);
+        }
+        return;
+      }
+
+      const result = await this.supabase.auth.signInWithPassword({ email, password });
       if (result.error) {
         setFeedback(result.error.message, true);
         return;
       }
 
       if (result.data && result.data.user) {
-        this.applyAuthenticatedSupabaseUser(result.data.user);
-        if (result.data.session) {
+        this.state.supabaseUser = result.data.user;
+        const { data: matchedRows } = await this.supabase.from('crew_profiles').select('*').ilike('email', email).limit(1);
+        if (matchedRows && matchedRows.length > 0) {
+          const m = matchedRows[0];
+          const mapped = {
+            personaKey: m.persona_key,
+            fullName: m.full_name,
+            initials: m.initials,
+            roleTitle: m.role_title,
+            idBadge: m.id_badge,
+            studio: m.studio,
+            prodName: m.prod_name,
+            email: m.email,
+            roles: m.roles || {}
+          };
+          const idx = this.db.crewProfiles.findIndex(c => c.personaKey === mapped.personaKey);
+          if (idx >= 0) this.db.crewProfiles[idx] = mapped;
+          else this.db.crewProfiles.push(mapped);
+          this.renderCrewAccountsList();
+          this.loginAs(mapped.personaKey);
+        } else {
+          this.applyAuthenticatedSupabaseUser(result.data.user);
           this.closeLoginAccounts();
           this.navigate('dashboard', 'home');
           this.showToast(`Masuk via Supabase: ${email}`);
-        } else {
-          setFeedback('Pendaftaran berhasil. Periksa email konfirmasi jika diminta.', false);
         }
       }
     } catch (err) {
