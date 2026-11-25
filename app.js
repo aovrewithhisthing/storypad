@@ -4244,7 +4244,10 @@ const StoryPad = {
             data: {
               full_name: rawName,
               persona_key: personaKey,
-              role_key: roleKey
+              role_key: roleKey,
+              studio: this.state.studioName,
+              prod_name: prodTitle,
+              id_badge: idBadge
             }
           }
         });
