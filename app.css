@@ -352,6 +352,7 @@ button {
 }
 
 @media (min-width: 768px) {
+
   .app-nav,
   .app-nav.hidden-scroll {
     position: sticky;
@@ -422,6 +423,7 @@ button {
 }
 
 @media (min-width: 1024px) {
+
   .app-nav,
   .app-nav.hidden-scroll {
     width: 224px;
@@ -1233,6 +1235,7 @@ textarea.sp-textarea-monitor,
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
