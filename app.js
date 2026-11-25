@@ -204,18 +204,25 @@ const StoryPad = {
     if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
       if (!this._configFallbackTried && typeof fetch === 'function') {
         this._configFallbackTried = true;
-        fetch('api/supabase.php?action=client_config')
-          .then(r => (r.ok ? r.json() : null))
+        const tryEndpoint = async (url) => {
+          try {
+            const r = await fetch(url);
+            if (!r.ok) return null;
+            const d = await r.json();
+            return (d && d.ok && d.supabase && d.supabase.url && d.supabase.anonKey) ? d : null;
+          } catch (_e) {
+            return null;
+          }
+        };
+        Promise.resolve()
+          .then(async () => (await tryEndpoint('/api/config')) || (await tryEndpoint('api/supabase.php?action=client_config')))
           .then(cfg => {
-            if (cfg && cfg.ok && cfg.supabase && cfg.supabase.url && cfg.supabase.anonKey) {
+            if (cfg) {
               this.supabaseConfig = { ...this.supabaseConfig, ...cfg.supabase };
               this.initSupabase();
             } else {
               this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
             }
-          })
-          .catch(() => {
-            this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
           });
       } else {
         this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
