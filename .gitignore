@@ -1,0 +1,20 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Planning, Design, and AI Agent Tooling
+stitch_storypad_mobile_ui/
+.agents/
+DESIGN.md
+
+# IDE & Editor Config
+.idea/
+.vscode/
+*.iml
+
+# Dependencies & OS Artifacts
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

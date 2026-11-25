@@ -1,13 +1,22 @@
 /**
- * Unit & Integration Test for StoryPad Engine
+ * Unit & Zero-Dummy Verification Test for StoryPad Engine
  */
 const fs = require('fs');
 const path = require('path');
+const assert = require('assert');
 
-console.log('--- RUNNING STORYPAD VERIFICATION TESTS ---');
+console.log('--- RUNNING STORYPAD ZERO-DUMMY & CORE VERIFICATION TESTS ---');
 
 // 1. Verify existence of core files
-const files = ['index.html', 'app.css', 'app.js', 'server.js'];
+const files = [
+  'index.php',
+  'index.html',
+  'app.css',
+  'app.js',
+  'lib/ScriptParser.php',
+  'api/script-import.php',
+  'api/media.php'
+];
 files.forEach(f => {
   const p = path.join(__dirname, f);
   if (!fs.existsSync(p)) {
@@ -17,9 +26,57 @@ files.forEach(f => {
   console.log(`[PASS] File exists: ${f} (${stat.size} bytes)`);
 });
 
-// 2. Read and verify HTML contains all required elements and screen IDs
-const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
+// 2. Verify zero dummy context strings across application source files
+const forbiddenDummyStrings = [
+  'Senjakala Merah',
+  'Episode 4: Pelarian',
+  'Studio Promo',
+  'Aulia Larasati',
+  'Dimas Wicaksono',
+  'Rama Satria',
+  'JanganPergi',
+  'TidakPunyaWaktu',
+  'MatikanSenter'
+];
 
+const sourceFilesToAudit = [
+  'index.php',
+  'index.html',
+  'app.js',
+  'config/supabase.php',
+  'lib/SupabaseClient.php',
+  'lib/ScriptParser.php',
+  'api/supabase.php',
+  'api/admin.php',
+  'api/script-import.php',
+  'api/media.php',
+  'views/layout/navbar.php',
+  'views/screens/login.php',
+  'views/screens/dashboard.php',
+  'views/screens/projects.php',
+  'views/screens/script-reader.php',
+  'views/screens/profile.php',
+  'views/partials/inspector-panel.php',
+  'views/partials/modals.php',
+  'views/admin/login.php',
+  'views/admin/dashboard.php'
+];
+
+sourceFilesToAudit.forEach(relPath => {
+  const content = fs.readFileSync(path.join(__dirname, relPath), 'utf-8');
+  forbiddenDummyStrings.forEach(dummy => {
+    if (content.includes(dummy)) {
+      throw new Error(`Forbidden dummy string "${dummy}" still found in ${relPath}`);
+    }
+  });
+  if (content.includes('\u2014')) {
+    throw new Error(`Forbidden em dash (R-02) found in ${relPath}`);
+  }
+});
+console.log(`[PASS] Zero dummy context & zero em dashes verified across ${sourceFilesToAudit.length} source files!`);
+
+// 3. Verify HTML contains all required elements including converter & real media controls
+const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
 const requiredElements = [
   'screen-login',
   'screen-dashboard',
@@ -28,6 +85,8 @@ const requiredElements = [
   'screen-profile',
   'sheet-view-settings',
   'sheet-audio-panel',
+  'sheet-import-script',
+  'sheet-add-line',
   'sheet-overlay',
   'floating-navbar',
   'toast-snackbar',
@@ -35,12 +94,12 @@ const requiredElements = [
   'hero-gauge-pct',
   'hero-gauge-takes',
   'hero-gauge-circle',
-  'btn-login-email',
-  'btn-login-google',
-  'filter-toggle-filecode',
-  'filter-toggle-goodtake',
-  'filter-toggle-highlight',
-  'filter-toggle-focusdialog',
+  'panel-real-audio',
+  'panel-real-video',
+  'input-upload-audio',
+  'input-upload-video',
+  'input-script-file',
+  'script-scene-switcher',
   'panel-script-notes',
   'filename-video',
   'filename-audio',
@@ -53,85 +112,31 @@ requiredElements.forEach(id => {
   if (!html.includes(`id="${id}"`)) {
     throw new Error(`Missing element ID in index.html: ${id}`);
   }
-  console.log(`[PASS] HTML Element present: #${id}`);
 });
+console.log(`[PASS] All ${requiredElements.length} required DOM elements verified in index.html!`);
 
-// 3. Test app.js logic by evaluating data structures and methods
-const appJs = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf-8');
-
-// Mock a lightweight browser environment to test app.js methods
-global.window = {
-  AudioContext: class {
-    constructor() { this.state = 'running'; }
-    createOscillator() { return { type: '', frequency: { setValueAtTime() {} }, connect() {}, start() {}, stop() {} }; }
-    createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {} }; }
-  }
-};
-global.navigator = {
-  clipboard: {
-    writeText: async (text) => { return Promise.resolve(text); }
-  },
-  vibrate: (ms) => true
-};
+// 4. Verify StoryPad boots in pure clean empty state before DB sync
+global.window = {};
+global.navigator = { clipboard: { writeText: async (t) => t }, vibrate: () => true };
 global.document = {
   querySelectorAll: () => [],
-  getElementById: (id) => ({
-    classList: { add() {}, remove() {}, contains: () => false },
+  querySelector: () => null,
+  getElementById: () => ({
+    classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
     style: {},
     addEventListener: () => {},
-    querySelector: () => null
+    setAttribute: () => {},
+    removeAttribute: () => {},
+    getAttribute: () => null
   }),
   addEventListener: () => {}
 };
 
 const StoryPad = require('./app.js');
+assert.strictEqual(StoryPad.db.projects.length, 0, 'Initial local projects array must be empty before Supabase sync');
+assert.strictEqual(StoryPad.db.crewProfiles.length, 0, 'Initial local crewProfiles array must be empty');
+assert.strictEqual(StoryPad.state.notifications.length, 0, 'Initial local notifications array must be empty');
+assert.strictEqual(Object.keys(StoryPad.state.scriptNotes).length, 0, 'Initial local scriptNotes must be empty');
+console.log('[PASS] StoryPad engine boots with 0 hardcoded dummy records!');
 
-if (!StoryPad) {
-  throw new Error('StoryPad object is not defined');
-}
-
-console.log('[PASS] StoryPad engine loaded successfully');
-
-// Test 4: Auto-naming engine
-const naming = StoryPad.generateFileNames('d-2', 2);
-console.log('Generated Auto-Naming result:', naming);
-
-if (naming.videoName !== 'SC01_SH02_T02_JanganPergi_CAM-A.mp4') {
-  throw new Error(`Unexpected video naming: ${naming.videoName}`);
-}
-if (naming.audioName !== 'SC01_SH02_T02_JanganPergi_AUD.wav') {
-  throw new Error(`Unexpected audio naming: ${naming.audioName}`);
-}
-console.log('[PASS] Auto-naming generated format SC01_SH02_T02_JanganPergi_CAM-A.mp4 & AUD.wav matches requirement!');
-
-// Test 5: Dynamic Half-Gauge Calculation
-const dialogues = StoryPad.db.scriptData.lines.filter(l => l.type === 'dialogue');
-const goodTakeCount = dialogues.filter(d => d.status === 'good').length;
-const totalCount = dialogues.length;
-const percentage = Math.round((goodTakeCount / totalCount) * 100);
-
-console.log(`Dynamic Progress calculation: ${goodTakeCount} / ${totalCount} = ${percentage}%`);
-if (percentage !== 20) {
-  throw new Error(`Expected 20% but got ${percentage}%`);
-}
-console.log('[PASS] Dynamic 20% calculation confirmed!');
-
-// Test 6: Verify 4 View Filter keys
-const filterKeys = ['showFileCode', 'filterGoodTakeOnly', 'highlightStatus', 'focusDialogueMode'];
-filterKeys.forEach(k => {
-  if (!(k in StoryPad.state.viewSettings)) {
-    throw new Error(`Missing viewSettings key: ${k}`);
-  }
-});
-console.log('[PASS] All 4 View Settings filters properly initialized in state!');
-
-// Test 7: Verify 5 Roles in state
-const roleKeys = ['scriptSupervisor', 'videoEditor', 'soundRecordist', 'directorProducer', 'autoExportMeta'];
-roleKeys.forEach(r => {
-  if (!(r in StoryPad.state.roles)) {
-    throw new Error(`Missing role key: ${r}`);
-  }
-});
-console.log('[PASS] All 5 role switcher keys verified!');
-
-console.log('--- ALL TESTS PASSED SUCCESSFULLY! ---');
+console.log('--- ALL ZERO-DUMMY & CORE VERIFICATION TESTS PASSED! ---');

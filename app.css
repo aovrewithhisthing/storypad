@@ -753,7 +753,34 @@ button {
   color: #FFFFFF;
 }
 
-/* Script Supervisor rows */
+/* Script Supervisor rows & inline filter chips */
+.script-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-control);
+  background-color: var(--panel-lowest);
+  color: var(--text-secondary);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.script-filter-chip:hover {
+  background-color: var(--panel-elevated);
+  color: var(--text-primary);
+}
+
+.script-filter-chip.is-active {
+  background-color: var(--primary-tint);
+  border-color: var(--primary-accent);
+  color: var(--primary-text);
+}
+
 .script-paper-sheet {
   background-color: var(--script-paper);
   border: 1px solid var(--border-flat);
@@ -766,7 +793,13 @@ button {
   border: 1px solid var(--border-flat);
   border-left: 4px solid transparent;
   border-radius: var(--radius-md);
+  cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.script-line-card:hover {
+  background-color: var(--panel-elevated);
+  border-color: var(--border-control);
 }
 
 .script-line-card.status-good {
@@ -785,6 +818,37 @@ button {
   background-color: var(--primary-tint);
   border-color: var(--primary-accent);
   border-left-color: var(--primary-accent);
+}
+
+.script-cue-toolbar {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--primary-tint-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.script-filecode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-flat);
+  color: var(--primary-text);
+  max-width: 100%;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.script-filecode-btn:hover {
+  border-color: var(--primary-accent);
+  background-color: var(--panel-elevated);
 }
 
 /* Inspector & modal drawers */
@@ -1096,6 +1160,56 @@ button {
 /* Tactile press feedback */
 .btn-press:active {
   transform: scale(0.98);
+}
+
+/* Admin Console Data Table */
+.admin-table th,
+.admin-table td {
+  vertical-align: middle;
+}
+
+.admin-table-row {
+  background-color: var(--panel-bg);
+  transition: background-color 0.14s ease;
+}
+
+.admin-table-row:hover {
+  background-color: var(--panel-lowest);
+}
+
+/* Wide modal for Script Converter & Dropzone */
+@media (min-width: 768px) {
+  .bottom-sheet-drawer.modal-dialog.modal-dialog-wide {
+    width: min(680px, 94vw);
+  }
+}
+
+.sp-dropzone {
+  background-color: var(--panel-lowest);
+  border: 1px dashed var(--border-control);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sp-dropzone:hover {
+  background-color: var(--panel-elevated);
+  border-color: var(--primary-accent);
+}
+
+.scene-divider-banner {
+  background-color: var(--panel-elevated);
+  border: 1px solid var(--border-flat);
+  border-left: 4px solid var(--primary-accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.script-parenthetical {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.45;
 }
 
 /* Reduced motion support */

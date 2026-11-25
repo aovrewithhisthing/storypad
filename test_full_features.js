@@ -1,26 +1,12 @@
 /**
- * Comprehensive Feature Verification Test for StoryPad Engine
+ * Comprehensive Feature Verification Test for StoryPad Engine:
+ * DOCX Converter, Multi-Scene Reader, Auto-Naming, Take Logging, and Real Media Attachment
  */
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-console.log('=== STARTING EXTENDED FEATURE TESTS ===\n');
-
-// Mock browser DOM environment
-global.window = {
-  AudioContext: class {
-    constructor() { this.state = 'running'; }
-    createOscillator() { return { type: '', frequency: { setValueAtTime() {} }, connect() {}, start() {}, stop() {} }; }
-    createGain() { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {} }; }
-  },
-  localStorage: {
-    _data: {},
-    getItem(k) { return this._data[k] || null; },
-    setItem(k, v) { this._data[k] = String(v); },
-    removeItem(k) { delete this._data[k]; }
-  }
-};
+console.log('=== STARTING EXTENDED STORYPAD FEATURE TESTS ===\n');
 
 const elements = {};
 function getOrCreateElement(id) {
@@ -35,149 +21,178 @@ function getOrCreateElement(id) {
         _classes: new Set(),
         add(c) { this._classes.add(c); },
         remove(c) { this._classes.delete(c); },
+        toggle(c, force) {
+          if (force === undefined) {
+            if (this._classes.has(c)) this._classes.delete(c);
+            else this._classes.add(c);
+          } else if (force) this._classes.add(c);
+          else this._classes.delete(c);
+        },
         contains(c) { return this._classes.has(c); }
       },
       querySelectorAll: () => [],
       querySelector: () => null,
       addEventListener: () => {},
       closest: () => null,
-      setAttribute: () => {}
+      setAttribute(k, v) { this['_' + k] = v; },
+      getAttribute(k) { return this['_' + k] || null; },
+      removeAttribute(k) { delete this['_' + k]; },
+      pause: () => {},
+      play: async () => {}
     };
   }
   return elements[id];
 }
+
+global.window = {
+  localStorage: {
+    _data: {},
+    getItem(k) { return this._data[k] || null; },
+    setItem(k, v) { this._data[k] = String(v); },
+    removeItem(k) { delete this._data[k]; }
+  }
+};
 
 global.document = {
   getElementById: (id) => getOrCreateElement(id),
   querySelectorAll: () => [],
   querySelector: () => null,
   addEventListener: () => {},
-  createElement: (tag) => ({
-    style: {},
-    classList: { add() {}, remove() {} },
-    appendChild: () => {},
-    focus: () => {},
-    select: () => {}
-  }),
-  body: {
-    appendChild: () => {},
-    removeChild: () => {}
-  }
+  documentElement: { setAttribute: () => {}, getAttribute: () => 'daylight' },
+  body: { setAttribute: () => {}, appendChild: () => {}, removeChild: () => {} },
+  createElement: () => ({ style: {}, classList: { add() {}, remove() {} }, appendChild: () => {}, focus: () => {}, select: () => {} })
 };
 
 global.navigator = {
-  clipboard: {
-    writeText: async (t) => Promise.resolve(t)
-  },
+  clipboard: { writeText: async (t) => t },
   vibrate: () => true
 };
 
 const StoryPad = require('./app.js');
 
-// 1. Verify StoryPad initialization
-StoryPad.init();
-console.log('✔ Test 1: StoryPad.init() initialized without exceptions');
+async function runTests() {
+  StoryPad.init();
+  console.log('1. [PASS] StoryPad.init() initialized cleanly with zero dummy state');
 
-// 2. Verify all 3 projects exist with distinct scenes
-assert.ok(StoryPad.db.scriptDataProjects['proj-1'], 'Project 1 must exist');
-assert.ok(StoryPad.db.scriptDataProjects['proj-2'], 'Project 2 must exist');
-assert.ok(StoryPad.db.scriptDataProjects['proj-3'], 'Project 3 must exist');
-console.log('✔ Test 2: All 3 screenplay databases present');
+  // 2. Test real .docx binary extraction & conversion if JADI- SCRIPT.docx is available, plus raw script conversion
+  const docxPath = 'c:\\Users\\T4\\Downloads\\JADI- SCRIPT.docx';
+  let parsedScript;
+  if (fs.existsSync(docxPath)) {
+    const buf = fs.readFileSync(docxPath);
+    const blocks = await StoryPad.extractDocxBlocksFromArrayBuffer(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+    parsedScript = StoryPad.parseBlocksToProject(blocks, { id: 'proj-jadi', code: 'JADI-01', sourceFilename: 'JADI- SCRIPT.docx' });
+    assert.strictEqual(parsedScript.project.title, 'JADI?');
+    assert.strictEqual(parsedScript.summary.sceneCount, 6, 'Must detect all 6 scenes from JADI- SCRIPT.docx');
+    assert.ok(parsedScript.summary.dialogueCount >= 35, 'Must detect all dialogues in JADI- SCRIPT.docx');
+    assert.ok(!JSON.stringify(parsedScript).includes('\u2014'), 'Em dashes must be normalized out');
+    console.log(`2. [PASS] Real DOCX Converter extracted "${parsedScript.project.title}" (${parsedScript.summary.sceneCount} scenes, ${parsedScript.summary.dialogueCount} dialogues)`);
+  } else {
+    parsedScript = StoryPad.parseScriptText([
+      'JADI?',
+      'Genre: Komedi absurd | Lokasi: Technopark',
+      '',
+      'SCENE 1 — BRIEFING',
+      'Durasi: 0:00–0:07',
+      '[SHOT: Wide shot di Technopark]',
+      'KHOIRUL',
+      '“Kita 10 orang?”',
+      '(Emosi: Memastikan | Gesture: Menghitung anggota)',
+      'SCENE 2 — IDE',
+      'JEZANIA',
+      '“Horror mulu, bosen.”'
+    ].join('\n'), { id: 'proj-jadi', code: 'JADI-01' });
+    assert.strictEqual(parsedScript.summary.sceneCount, 2);
+    console.log('2. [PASS] Raw Script Converter parsed multi-scene text accurately');
+  }
 
-// 3. Auto-naming tests for each project
-const n1 = StoryPad.generateFileNames('d-2', 2);
-assert.strictEqual(n1.videoName, 'SC01_SH02_T02_JanganPergi_CAM-A.mp4');
-assert.strictEqual(n1.audioName, 'SC01_SH02_T02_JanganPergi_AUD.wav');
+  // 3. Hydrate StoryPad via applyBootstrapPayload (simulating Supabase response)
+  StoryPad.applyBootstrapPayload([parsedScript.project], parsedScript.lines, [], [], []);
+  assert.strictEqual(StoryPad.db.projects.length, 1);
+  assert.strictEqual(StoryPad.state.activeProjectId, 'proj-jadi');
+  console.log('3. [PASS] Bootstrap payload hydrated project & multi-scene lines cleanly');
 
-// Switch to proj-2
-StoryPad.openProject('proj-2');
-assert.strictEqual(StoryPad.state.activeProjectId, 'proj-2');
-const n2 = StoryPad.generateFileNames('d-201', 3);
-assert.strictEqual(n2.videoName, 'SC04_SH01_T03_MatikanSenter_CAM-A.mp4');
-assert.strictEqual(n2.audioName, 'SC04_SH01_T03_MatikanSenter_AUD.wav');
+  // 4. Test Auto-Naming Engine on Scene 01 Dialogue 01 ("Kita 10 orang?")
+  const firstDlg = StoryPad.db.scriptData.lines.find(l => l.type === 'dialogue');
+  const naming = StoryPad.generateFileNames(firstDlg.id, 1);
+  assert.strictEqual(naming.videoName, 'SC01_SH01_T01_Kita10Orang_CAM-A.mp4');
+  assert.strictEqual(naming.audioName, 'SC01_SH01_T01_Kita10Orang_AUD.wav');
+  console.log('4. [PASS] Auto-naming generated exact NLE filenames:', naming.videoName);
 
-// Switch to proj-3
-StoryPad.openProject('proj-3');
-assert.strictEqual(StoryPad.state.activeProjectId, 'proj-3');
-const n3 = StoryPad.generateFileNames('d-301', 1);
-assert.strictEqual(n3.videoName, 'SC01_SH01_T01_InspirasiDatang_CAM-A.mp4');
-assert.strictEqual(n3.audioName, 'SC01_SH01_T01_InspirasiDatang_AUD.wav');
-console.log('✔ Test 3: Auto-naming engine correctly formats filenames across all projects');
+  // 5. Multi-scene filtering
+  StoryPad.selectSceneFilter('02');
+  assert.strictEqual(StoryPad.state.activeSceneFilter, '02');
+  const sc2Dlg = StoryPad.getActiveDialogueObject();
+  assert.strictEqual(sc2Dlg.sceneNumber, '02');
+  StoryPad.selectSceneFilter('all');
+  console.log('5. [PASS] Multi-scene filter switches active scene & dialogue cue accurately');
 
-// 4. Circle take toggling & dynamic gauge updates
-StoryPad.openProject('proj-1');
-assert.strictEqual(StoryPad.state.activeProjectId, 'proj-1');
-const pctInitial = elements['hero-gauge-pct'].textContent;
-console.log('Initial Gauge pct in proj-1:', pctInitial);
-assert.strictEqual(pctInitial, '20%');
+  // 6. Log Take & Circle Take Gauge Math
+  StoryPad.selectDialogueLine(firstDlg.id);
+  assert.strictEqual(elements['hero-gauge-pct'].textContent, '0%');
+  StoryPad.logNewTake();
+  assert.strictEqual(firstDlg.takes.length, 1);
+  StoryPad.toggleCircleTake(1);
+  assert.strictEqual(firstDlg.takes[0].isGood, true);
+  const expectedPct = `${Math.round((1 / StoryPad.db.scriptData.lines.filter(l => l.type === 'dialogue').length) * 100)}%`;
+  assert.strictEqual(elements['hero-gauge-pct'].textContent, expectedPct);
+  console.log(`6. [PASS] Take logging & Circle Take updated continuity gauge to ${expectedPct}`);
 
-// Toggle dialogue d-1 Take 2 to Good
-StoryPad.state.activeDialogueId = 'd-1';
-StoryPad.toggleCircleTake(2);
-const pctAfterToggle = elements['hero-gauge-pct'].textContent;
-console.log('Gauge pct after adding Circle Take:', pctAfterToggle);
-assert.strictEqual(pctAfterToggle, '40%'); // 2 out of 5 = 40%
+  // 7. Attach & Clear Real Audio & Footage URLs on Take 01
+  getOrCreateElement('input-audio-url').value = 'https://example.supabase.co/storage/v1/object/public/storypad-media/proj-jadi/test_aud.wav';
+  await StoryPad.attachMediaByUrl('audio');
+  assert.ok(firstDlg.takes[0].audioUrl.endsWith('test_aud.wav'));
 
-// Toggle off
-StoryPad.toggleCircleTake(2);
-const pctAfterRevert = elements['hero-gauge-pct'].textContent;
-console.log('Gauge pct after removing Circle Take:', pctAfterRevert);
-assert.strictEqual(pctAfterRevert, '20%');
-console.log('✔ Test 4: Dynamic Circle Take toggles & radial gauge recalculation work perfectly');
+  getOrCreateElement('input-video-url').value = 'https://example.supabase.co/storage/v1/object/public/storypad-media/proj-jadi/test_vid.mp4';
+  await StoryPad.attachMediaByUrl('video');
+  assert.ok(firstDlg.takes[0].videoUrl.endsWith('test_vid.mp4'));
 
-// 5. Persona logins
-StoryPad.loginAs('videoEditor');
-assert.strictEqual(StoryPad.state.currentUser.name, 'Dimas Wicaksono');
-assert.strictEqual(StoryPad.state.currentUser.initials, 'DW');
-assert.strictEqual(elements['profile-user-name'].textContent, 'Dimas Wicaksono');
-assert.strictEqual(elements['header-avatar-dash'].textContent, 'DW');
+  StoryPad.togglePanelAudioPlayback();
+  assert.strictEqual(StoryPad.state.audio.isPlaying, true);
+  StoryPad.stopAudioPlayback();
+  assert.strictEqual(StoryPad.state.audio.isPlaying, false);
 
-StoryPad.loginAs('soundRecordist');
-assert.strictEqual(StoryPad.state.currentUser.name, 'Rama Satria');
-assert.strictEqual(StoryPad.state.currentUser.initials, 'RS');
-assert.strictEqual(elements['profile-user-name'].textContent, 'Rama Satria');
+  StoryPad.switchPanelMediaTab('video');
+  assert.strictEqual(StoryPad.state.activeMediaTab, 'video');
+  StoryPad.stepFootage(1);
+  assert.strictEqual(StoryPad.state.footage.frame, 1);
 
-StoryPad.loginAs('scriptSupervisor');
-assert.strictEqual(StoryPad.state.currentUser.name, 'Aulia Larasati, S.Sn.');
-assert.strictEqual(StoryPad.state.currentUser.initials, 'AL');
-console.log('✔ Test 5: Crew persona switcher correctly updates names, roles, and avatars');
+  await StoryPad.clearTakeMedia('audio');
+  assert.strictEqual(firstDlg.takes[0].audioUrl, null);
+  console.log('7. [PASS] Real audio & footage attachment, playback, frame-step, and removal verified');
 
-// 6. View Settings
-StoryPad.handleViewToggle('focusDialogueMode', true);
-assert.strictEqual(StoryPad.state.viewSettings.focusDialogueMode, true);
-StoryPad.resetViewFilters();
-assert.strictEqual(StoryPad.state.viewSettings.focusDialogueMode, false);
-assert.strictEqual(StoryPad.state.viewSettings.showFileCode, true);
-console.log('✔ Test 6: View Filters toggling and reset functionality working');
+  // 8. Manual Add Line to Scene + Theme + Crew Quick Session + Modal Preview
+  getOrCreateElement('addline-type').value = 'dialogue';
+  getOrCreateElement('addline-scene-num').value = '06';
+  getOrCreateElement('addline-scene-title').value = 'SCENE 06 - FILMNYA';
+  getOrCreateElement('addline-character').value = 'KHOIRUL';
+  getOrCreateElement('addline-shot').value = '04';
+  getOrCreateElement('addline-dialogue-text').value = 'Udah langsung upload aja!';
+  getOrCreateElement('addline-parenthetical').value = 'Emosi: Lega';
+  await StoryPad.submitAddLine();
+  const lastAdded = StoryPad.db.scriptData.lines[StoryPad.db.scriptData.lines.length - 1];
+  assert.strictEqual(lastAdded.character, 'KHOIRUL');
+  assert.strictEqual(lastAdded.keyword, 'UdahLangsungUpload');
 
-// 7. Video footage controls
-const initialFrame = StoryPad.state.footage.frame;
-StoryPad.stepFootage(1);
-assert.strictEqual(StoryPad.state.footage.frame, initialFrame + 1);
-StoryPad.stepFootage(-1);
-assert.strictEqual(StoryPad.state.footage.frame, initialFrame);
-console.log('✔ Test 7: Video slate monitor frame-stepping working');
+  StoryPad.openScriptImportModal();
+  StoryPad.switchImportSourceTab('text');
+  getOrCreateElement('import-raw-textarea').value = 'TES\nSCENE 1 - SET\nRAKA\n"Siap!"';
+  await StoryPad.runScriptPreview();
+  assert.strictEqual(StoryPad.state.importModal.lastParsed.summary.dialogueCount, 1);
+  StoryPad.closeScriptImportModal();
 
-// 8. Notifications
-assert.strictEqual(StoryPad.state.notifications[0].unread, true);
-StoryPad.markAllNotificationsRead();
-assert.strictEqual(StoryPad.state.notifications[0].unread, false);
-console.log('✔ Test 8: Notifications state and mark all as read working');
+  StoryPad.loginQuickSession();
+  assert.strictEqual(StoryPad.state.currentUser.studio, 'Kelompok 10');
+  StoryPad.setTheme('slate');
+  assert.strictEqual(StoryPad.state.theme, 'slate');
+  StoryPad.setTheme('daylight');
+  assert.strictEqual(StoryPad.state.theme, 'daylight');
+  console.log('8. [PASS] Add Line, Script Converter Preview, Quick Session, and Theme switches verified');
 
-// 9. Audio Playback
-StoryPad.togglePanelAudioPlayback();
-assert.strictEqual(StoryPad.state.audio.isPlaying, true);
-StoryPad.stopAudioPlayback();
-assert.strictEqual(StoryPad.state.audio.isPlaying, false);
-console.log('✔ Test 9: Audio playback start and stop working cleanly');
+  clearInterval(StoryPad.state._clocks.clockTimer);
+  console.log('\n=== ALL 8 EXTENDED FEATURE SUITE TESTS PASSED 100%! ===');
+}
 
-// 10. Navigation & Smart Go Back
-StoryPad.navigate('projects');
-assert.strictEqual(StoryPad.state.currentScreen, 'projects');
-StoryPad.navigate('script-reader');
-assert.strictEqual(StoryPad.state.currentScreen, 'script-reader');
-StoryPad.goBack();
-assert.strictEqual(StoryPad.state.currentScreen, 'projects');
-console.log('✔ Test 10: Navigation history and smart goBack working correctly');
-
-console.log('\n=== ALL 10 COMPREHENSIVE SUITE TESTS PASSED 100%! ===');
+runTests().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
