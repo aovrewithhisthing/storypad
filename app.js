@@ -4206,7 +4206,15 @@ const StoryPad = {
     }
 
     if (!this.supabase) {
-      setFeedback('Klien Supabase belum siap. Coba beberapa detik lagi.', true);
+      this.initSupabase();
+    }
+
+    if (!this.supabase) {
+      if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
+        setFeedback('Konfigurasi Supabase (.env) belum termuat. Restart server atau buka lewat index.php / server.js.', true);
+      } else {
+        setFeedback('Klien Supabase belum siap. Coba beberapa detik lagi.', true);
+      }
       return;
     }
 

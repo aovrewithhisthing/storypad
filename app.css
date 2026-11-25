@@ -658,27 +658,46 @@ button {
   color: var(--red-text);
 }
 
-/* Form inputs */
+/* Form inputs (override @tailwindcss/forms runtime-injected styles) */
+input.sp-input,
+select.sp-input,
+textarea.sp-textarea,
 .sp-input,
 .sp-textarea {
   width: 100%;
-  background-color: var(--panel-bg);
-  border: 1px solid var(--border-control);
+  background-color: var(--panel-bg) !important;
+  border: 1px solid var(--border-control) !important;
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   font-family: var(--font-sans);
   font-size: 13px;
   padding: 10px 12px;
   transition: border-color 0.15s ease;
 }
 
+.sp-input::placeholder,
+.sp-textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+input.sp-input:-webkit-autofill,
+input.sp-input:-webkit-autofill:hover,
+input.sp-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--panel-bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input.sp-input-monitor,
+textarea.sp-textarea-monitor,
 .sp-input-monitor,
 .sp-textarea-monitor {
   width: 100%;
-  background-color: var(--monitor-lowest);
-  border: 1px solid var(--monitor-control-border);
+  background-color: var(--monitor-lowest) !important;
+  border: 1px solid var(--monitor-control-border) !important;
   border-radius: var(--radius-sm);
-  color: var(--monitor-text);
+  color: var(--monitor-text) !important;
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
