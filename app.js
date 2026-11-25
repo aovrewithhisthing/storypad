@@ -202,7 +202,24 @@ const StoryPad = {
 
     if (this.supabase) return;
     if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
-      this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
+      if (!this._configFallbackTried && typeof fetch === 'function') {
+        this._configFallbackTried = true;
+        fetch('api/supabase.php?action=client_config')
+          .then(r => (r.ok ? r.json() : null))
+          .then(cfg => {
+            if (cfg && cfg.ok && cfg.supabase && cfg.supabase.url && cfg.supabase.anonKey) {
+              this.supabaseConfig = { ...this.supabaseConfig, ...cfg.supabase };
+              this.initSupabase();
+            } else {
+              this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
+            }
+          })
+          .catch(() => {
+            this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
+          });
+      } else {
+        this.updateSupabaseStatusBadge('Konfigurasi Supabase belum diatur', 'warn');
+      }
       return;
     }
     try {

@@ -14,6 +14,20 @@ $client = new SupabaseClient(
 
 $action = isset($_GET['action']) && is_string($_GET['action']) ? trim($_GET['action']) : 'health';
 
+if ($action === 'client_config') {
+    echo json_encode([
+        'ok' => true,
+        'studioName' => $config['studio_name'] ?? 'Kelompok 10',
+        'supabase' => [
+            'url' => $config['supabase']['url'],
+            'anonKey' => $config['supabase']['anon_key'],
+            'projectId' => $config['supabase']['project_id'],
+            'storageBucket' => $config['supabase']['storage_bucket'] ?? 'storypad-media',
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 if ($action === 'health') {
     $start = microtime(true);
     $probe = $client->select('projects', ['select' => 'id', 'is_archived' => 'eq.false', 'limit' => '1']);
