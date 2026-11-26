@@ -196,7 +196,7 @@ const StoryPad = {
 
   clearSensitiveSessionData() {
     if (this._realtimeChannel && this.supabase && typeof this.supabase.removeChannel === 'function') {
-      try { this.supabase.removeChannel(this._realtimeChannel); } catch (_e) {}
+      try { this.supabase.removeChannel(this._realtimeChannel); } catch (_e) { }
     }
     this._realtimeChannel = null;
     this._signedUrlCache = {};
@@ -247,7 +247,7 @@ const StoryPad = {
         window.localStorage.removeItem('storypad_persona_key');
         window.localStorage.removeItem('storypad_roles');
       }
-    } catch (_e) {}
+    } catch (_e) { }
   },
 
   hydratePhpBoot() {
@@ -368,7 +368,7 @@ const StoryPad = {
             this.navigate('login');
           }
         }
-      }).catch(() => {});
+      }).catch(() => { });
 
       this.supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY' && session && session.user) {
@@ -425,7 +425,7 @@ const StoryPad = {
         this.state.supabaseLoading = false;
         this.updateSupabaseStatusBadge('Supabase Terhubung', 'good');
       }
-    } catch (e) {}
+    } catch (e) { }
   },
 
   updateSupabaseStatusBadge(text, variant = 'neutral') {
@@ -765,7 +765,7 @@ const StoryPad = {
           this.state.theme = savedTheme;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   },
 
   savePersistedSettings() {
@@ -774,7 +774,7 @@ const StoryPad = {
         window.localStorage.setItem('storypad_view_settings', JSON.stringify(this.state.viewSettings));
         window.localStorage.setItem('storypad_theme', this.state.theme);
       }
-    } catch (e) {}
+    } catch (e) { }
   },
 
   applyTheme(themeName) {
@@ -840,7 +840,7 @@ const StoryPad = {
 
   triggerHaptic() {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate(15); } catch (e) {}
+      try { navigator.vibrate(15); } catch (e) { }
     }
   },
 
@@ -1467,13 +1467,13 @@ const StoryPad = {
         this.supabase.from('takes').update({ is_archived: true }).eq('project_id', projectId),
         this.supabase.from('script_lines').update({ is_archived: true }).eq('project_id', projectId),
         this.supabase.from('projects').update({ is_archived: true }).eq('id', projectId)
-      ]).catch(() => {});
+      ]).catch(() => { });
     } else if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
       fetch('api/supabase.php?action=archive_project', {
         method: 'POST',
         headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ project_id: projectId })
-      }).catch(() => {});
+      }).catch(() => { });
     }
   },
 
@@ -2118,7 +2118,7 @@ const StoryPad = {
           };
           return data.signedUrl;
         }
-      } catch (_e) {}
+      } catch (_e) { }
     }
     return val.startsWith('https://') ? val : '';
   },
@@ -2448,11 +2448,11 @@ const StoryPad = {
         is_ng: false,
         director_pick: false,
         is_archived: false
-      }, { onConflict: 'dialogue_id,take_number' }).then(() => {});
+      }, { onConflict: 'dialogue_id,take_number' }).then(() => { });
       this.supabase.from('script_lines').update({
         status: dialogue.status,
         status_label: dialogue.statusLabel
-      }).eq('id', dialogue.id).then(() => {});
+      }).eq('id', dialogue.id).then(() => { });
     }
   },
 
@@ -2491,11 +2491,11 @@ const StoryPad = {
         is_good: take.isGood,
         is_ng: take.isNg,
         status_label: take.statusLabel
-      }).eq('dialogue_id', dialogue.id).eq('take_number', takeNumber).then(() => {});
+      }).eq('dialogue_id', dialogue.id).eq('take_number', takeNumber).then(() => { });
       this.supabase.from('script_lines').update({
         status: dialogue.status,
         status_label: dialogue.statusLabel
-      }).eq('id', dialogue.id).then(() => {});
+      }).eq('id', dialogue.id).then(() => { });
     }
   },
 
@@ -2515,7 +2515,7 @@ const StoryPad = {
         good_take_percentage: proj.goodTakePercentage,
         review_percentage: proj.reviewPercentage,
         takes_logged: proj.takesLogged || 0
-      }).eq('id', projectId).then(() => {});
+      }).eq('id', projectId).then(() => { });
     }
   },
 
@@ -2584,7 +2584,7 @@ const StoryPad = {
       const done = (val) => {
         if (settled) return;
         settled = true;
-        try { URL.revokeObjectURL(tempUrl); } catch (e) {}
+        try { URL.revokeObjectURL(tempUrl); } catch (e) { }
         resolve(val);
       };
       el.preload = 'metadata';
@@ -2765,7 +2765,7 @@ const StoryPad = {
       const patch = mediaType === 'audio'
         ? { audio_url: url, audio_filename: filename }
         : { video_url: url, video_filename: filename };
-      await this.supabase.from('takes').update(patch).eq('dialogue_id', dialogue.id).eq('take_number', take.number).catch(() => {});
+      await this.supabase.from('takes').update(patch).eq('dialogue_id', dialogue.id).eq('take_number', take.number).catch(() => { });
     }
     return true;
   },
@@ -2800,7 +2800,7 @@ const StoryPad = {
       const patch = mediaType === 'audio'
         ? { audio_url: null, audio_filename: null, audio_mime: null, audio_size_bytes: null }
         : { video_url: null, video_filename: null, video_mime: null, video_size_bytes: null };
-      await this.supabase.from('takes').update(patch).eq('dialogue_id', dialogue.id).eq('take_number', take.number).catch(() => {});
+      await this.supabase.from('takes').update(patch).eq('dialogue_id', dialogue.id).eq('take_number', take.number).catch(() => { });
     }
   },
 
@@ -2839,18 +2839,18 @@ const StoryPad = {
         const direct = take.audioSignedUrl || (String(targetRef).startsWith('https://') || String(targetRef).startsWith('blob:') ? targetRef : '');
         if (direct) {
           audioEl.src = direct;
-          audioEl.play().catch(() => {});
+          audioEl.play().catch(() => { });
         } else {
           this.resolveMediaSignedUrl(targetRef).then(resolved => {
             if (resolved && audioEl.getAttribute('data-bound-url') === targetRef) {
               take.audioSignedUrl = resolved;
               audioEl.src = resolved;
-              if (this.state.audio.isPlaying) audioEl.play().catch(() => {});
+              if (this.state.audio.isPlaying) audioEl.play().catch(() => { });
             }
           });
         }
       } else {
-        audioEl.play().catch(() => {});
+        audioEl.play().catch(() => { });
       }
     }
 
@@ -2886,7 +2886,7 @@ const StoryPad = {
 
     const audioEl = document.getElementById('panel-real-audio');
     if (audioEl && typeof audioEl.pause === 'function') {
-      try { audioEl.pause(); } catch (e) {}
+      try { audioEl.pause(); } catch (e) { }
     }
 
     const playIcon = document.getElementById('panel-play-icon');
@@ -2914,7 +2914,7 @@ const StoryPad = {
         this.state.footage.isPlaying = true;
         const playIcon = document.getElementById('footage-play-icon');
         if (playIcon) playIcon.textContent = 'pause';
-        videoEl.play().catch(() => {});
+        videoEl.play().catch(() => { });
       }
       return;
     }
@@ -2939,7 +2939,7 @@ const StoryPad = {
     clearInterval(this.state.footage.interval);
     const videoEl = document.getElementById('panel-real-video');
     if (videoEl && typeof videoEl.pause === 'function') {
-      try { videoEl.pause(); } catch (e) {}
+      try { videoEl.pause(); } catch (e) { }
     }
     const playIcon = document.getElementById('footage-play-icon');
     if (playIcon) playIcon.textContent = 'play_arrow';
@@ -3060,7 +3060,7 @@ const StoryPad = {
     if (this.supabase) {
       this.supabase.from('script_lines').update({
         continuity_note: notesEl.value
-      }).eq('id', dialogueId).then(() => {});
+      }).eq('id', dialogueId).then(() => { });
     }
   },
 
@@ -3095,7 +3095,7 @@ const StoryPad = {
       if (proj) proj.syncStatus = 'In Sync';
 
       if (this.supabase && this.state.activeProjectId) {
-        this.supabase.from('projects').update({ sync_status: 'In Sync' }).eq('id', this.state.activeProjectId).then(() => {});
+        this.supabase.from('projects').update({ sync_status: 'In Sync' }).eq('id', this.state.activeProjectId).then(() => { });
         this.supabase.from('notifications').insert({
           user_id: this.state.supabaseUser ? this.state.supabaseUser.id : undefined,
           project_id: this.state.activeProjectId,
@@ -3107,7 +3107,7 @@ const StoryPad = {
           unread: true,
           dismissed: false,
           is_archived: false
-        }).then(() => {});
+        }).then(() => { });
       }
 
       setTimeout(() => {
@@ -3535,46 +3535,46 @@ const StoryPad = {
     const dbLines = lines.map(ln => {
       const row = ln.type === 'action'
         ? {
-            id: `${slugBase}-s${ln.sceneNumber}-a${String(actionIdx++).padStart(2, '0')}`,
+          id: `${slugBase}-s${ln.sceneNumber}-a${String(actionIdx++).padStart(2, '0')}`,
+          project_id: projectId,
+          line_type: 'action',
+          sort_order: sortOrder,
+          scene_number: ln.sceneNumber,
+          scene_title: ln.sceneTitle,
+          content: ln.content,
+          character_name: null,
+          timecode: null,
+          dialogue_text: null,
+          parenthetical: '',
+          keyword: null,
+          shot: null,
+          status: null,
+          status_label: null,
+          continuity_note: '',
+          is_archived: false
+        }
+        : (() => {
+          charactersSet.add(ln.character);
+          return {
+            id: `${slugBase}-s${ln.sceneNumber}-d${String(dlgIdx++).padStart(2, '0')}`,
             project_id: projectId,
-            line_type: 'action',
+            line_type: 'dialogue',
             sort_order: sortOrder,
             scene_number: ln.sceneNumber,
             scene_title: ln.sceneTitle,
-            content: ln.content,
-            character_name: null,
-            timecode: null,
-            dialogue_text: null,
-            parenthetical: '',
-            keyword: null,
-            shot: null,
-            status: null,
-            status_label: null,
+            content: null,
+            character_name: ln.character,
+            timecode: ln.timecode,
+            dialogue_text: ln.text,
+            parenthetical: ln.parenthetical || '',
+            keyword: ln.keyword,
+            shot: ln.shot,
+            status: 'pending',
+            status_label: 'Pending Shoot',
             continuity_note: '',
             is_archived: false
-          }
-        : (() => {
-            charactersSet.add(ln.character);
-            return {
-              id: `${slugBase}-s${ln.sceneNumber}-d${String(dlgIdx++).padStart(2, '0')}`,
-              project_id: projectId,
-              line_type: 'dialogue',
-              sort_order: sortOrder,
-              scene_number: ln.sceneNumber,
-              scene_title: ln.sceneTitle,
-              content: null,
-              character_name: ln.character,
-              timecode: ln.timecode,
-              dialogue_text: ln.text,
-              parenthetical: ln.parenthetical || '',
-              keyword: ln.keyword,
-              shot: ln.shot,
-              status: 'pending',
-              status_label: 'Pending Shoot',
-              continuity_note: '',
-              is_archived: false
-            };
-          })();
+          };
+        })();
       sortOrder += 10;
       return row;
     });
@@ -3632,6 +3632,103 @@ const StoryPad = {
     return this.parseBlocksToProject(blocks, overrides);
   },
 
+  getScriptFormatPromptMarkdown() {
+    return [
+      '# Prompt Konversi Format Naskah StoryPad',
+      '',
+      'Ubah naskah film di bawah ini ke format teks polos (`.txt`) agar terbaca akurat oleh parser **StoryPad** (Scene, Pemeran, Dialog, Arahan Akting, dan Aksi).',
+      '',
+      '## Aturan Wajib',
+      '',
+      '1. **Dilarang memakai styling Markdown pada isi naskah:**',
+      '   - Hapus seluruh tanda bold (`**...**`), italic (`*...*`), blockquote (`>`), bullet list (`*`, `-`), dan garis pemisah (`---`).',
+      '   - Jangan gunakan heading `#`, `##`, atau `###` setelah `SCENE 1` dimulai (parser menganggap `###` sebagai nama karakter).',
+      '2. **Header Proyek (di paling atas sebelum `SCENE 1`):**',
+      '   - Baris 1: Judul bersih tanpa awalan `NASKAH FILM PENDEK:` dan tanpa `#`.',
+      '   - Baris 2: `Genre: <kategori> | Lokasi: <lokasi utama> | Durasi: <durasi target>`',
+      '   - Baris 3: `Sinopsis: <ringkasan cerita dalam 1 paragraf>`',
+      '   - Jangan sisipkan daftar karakter/properti berpoin sebelum `SCENE 1`. Jika perlu dicatat, taruh di awal `SCENE 1` dengan format `[CATATAN PRA-PRODUKSI: ...]`.',
+      '3. **Format Scene Heading:**',
+      '   - Gunakan format: `SCENE <angka> - <INT/EXT. LOKASI - WAKTU>`',
+      '   - Contoh: `SCENE 1 - EXT. LORONG KELAS MENUJU KANTIN - SORE`',
+      '4. **Format Baris Aksi & Catatan Teknis:**',
+      '   - Tulis deskripsi aksi sebagai kalimat biasa tanpa tanda `*`.',
+      '   - Bungkus catatan teknis dalam kurung siku `[...]`, misalnya `[Pencahayaan: Natural daylight]` atau `[SHOT: Wide shot]`.',
+      '   - Jangan menulis baris HURUF KAPITAL SEMUA berdiri sendiri jika bukan nama karakter (bungkus dengan `[...]`, mis. `[FADE TO BLACK]`).',
+      '5. **Format Karakter, Arahan Akting, & Dialog:**',
+      '   - Ikuti urutan persis ini tanpa baris kosong di antaranya:',
+      '     ```text',
+      '     NAMA KARAKTER',
+      '     (Arahan akting/emosi dalam kurung, opsional)',
+      '     Teks dialog lengkap dalam SATU paragraf tunggal.',
+      '     ```',
+      '   - Nama karakter harus HURUF KAPITAL POLOS tanpa `**` dan tanpa `:` (contoh: `BIMA`, `PAK MIN`, `VOICE OVER (AKBAR)`).',
+      '   - Satu blok karakter + parenthetical hanya boleh diikuti 1 paragraf dialog utuh (jangan dipisah Enter menjadi dua paragraf).',
+      '6. **Penutup / On-Screen Text:**',
+      '   - Bungkus dengan kurung siku, misalnya: `[ON-SCREEN TEXT & LOGO: "Judul/Slogan" - Keterangan]`',
+      '',
+      '## Contoh Output yang Benar',
+      '',
+      '```text',
+      'TIMBANGAN KECIL',
+      'Genre: Film Pendek | Lokasi: Koridor & Kantin SMK | Durasi: 02:30 - 02:45 Menit',
+      'Sinopsis: Siswa SMK diuji kejujurannya saat menerima uang kembalian berlebih di kantin.',
+      '',
+      'SCENE 1 - EXT. LORONG KELAS MENUJU KANTIN - SORE',
+      '[Pencahayaan: Natural daylight sore hari]',
+      'Akbar dan Bima berjalan beriringan membawa map proposal.',
+      '',
+      'BIMA',
+      '(Mendengus sinis, memperlihatkan layar HP sekilas ke Akbar)',
+      'Miris banget, Bar. Liat deh berita hari ini.',
+      '',
+      'AKBAR',
+      '(Menyahut tenang tanpa menghentikan langkah)',
+      'Integritas itu gampang diomongin, tapi berat dilakoni.',
+      '```',
+      '',
+      '## Format Output',
+      '',
+      '- Berikan hasil konversi akhir saja dalam satu blok kode teks polos siap simpan ke `.txt`, tanpa komentar tambahan.',
+      '',
+      '---',
+      '',
+      'Naskah yang harus dikonversi:',
+      '',
+      '[TEMPEL NASKAH MENTAH DI SINI]'
+    ].join('\n');
+  },
+
+  copyScriptFormatPrompt() {
+    this.triggerHaptic();
+    const md = this.getScriptFormatPromptMarkdown();
+    this.writeClipboardText(md, 'Prompt format naskah (.md) berhasil disalin');
+    return true;
+  },
+
+  downloadScriptFormatPrompt() {
+    this.triggerHaptic();
+    const md = this.getScriptFormatPromptMarkdown();
+    if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      this.showToast('Pengunduhan berkas tidak tersedia di lingkungan ini');
+      return false;
+    }
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'storypad-prompt-format-naskah.md';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(url);
+    }, 1000);
+    this.showToast('Prompt format naskah (.md) diunduh');
+    return true;
+  },
+
   openScriptImportModal(targetProjectId = '') {
     this.triggerHaptic();
     this.state.importModal.targetProjectId = targetProjectId || '';
@@ -3646,6 +3743,8 @@ const StoryPad = {
     const fileLabel = document.getElementById('import-file-picked-name');
     const previewBox = document.getElementById('import-preview-box');
     const fbEl = document.getElementById('import-script-feedback');
+    const promptPreviewEl = document.getElementById('import-format-prompt-preview');
+    const previewWarnEl = document.getElementById('import-preview-format-warning');
 
     if (titleInput) titleInput.value = existingProj ? existingProj.title : '';
     if (codeInput) codeInput.value = existingProj ? existingProj.code : '';
@@ -3654,6 +3753,8 @@ const StoryPad = {
     if (fileLabel) fileLabel.textContent = 'Klik untuk memilih berkas naskah (.docx, .txt, .fountain, .md)';
     if (previewBox) previewBox.classList.add('hidden');
     if (fbEl) fbEl.classList.add('hidden');
+    if (previewWarnEl) previewWarnEl.classList.add('hidden');
+    if (promptPreviewEl) promptPreviewEl.textContent = this.getScriptFormatPromptMarkdown();
 
     this.switchImportSourceTab('file');
 
@@ -3790,6 +3891,17 @@ const StoryPad = {
           ? `Pemeran terdeteksi (${parsed.summary.characters.length}): ${parsed.summary.characters.join(', ')}`
           : 'Tidak ada pemeran dialog terdeteksi (hanya deskripsi aksi).';
       }
+      const previewWarnEl = document.getElementById('import-preview-format-warning');
+      if (previewWarnEl) {
+        const lowDialogueRatio = parsed.summary.dialogueCount === 0
+          || (parsed.summary.dialogueCount <= 2 && parsed.summary.actionCount >= 10);
+        if (lowDialogueRatio) {
+          previewWarnEl.textContent = 'Peringatan: Dialog terdeteksi sangat sedikit dibanding baris aksi. Pastikan nama karakter memakai HURUF KAPITAL POLOS tanpa ** atau :, dan hindari ### setelah SCENE 1. Gunakan tombol Salin / Unduh Prompt (.md) di atas untuk merapikan naskah.';
+          previewWarnEl.classList.remove('hidden');
+        } else {
+          previewWarnEl.classList.add('hidden');
+        }
+      }
       if (linesEl) {
         linesEl.innerHTML = parsed.lines.slice(0, 8).map(ln => {
           if (ln.line_type === 'action') {
@@ -3845,7 +3957,7 @@ const StoryPad = {
           unread: true,
           dismissed: false,
           is_archived: false
-        }).catch(() => {});
+        }).catch(() => { });
 
         await this.syncFromSupabase();
       } else if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
@@ -4047,7 +4159,7 @@ const StoryPad = {
     }
 
     if (this.supabase) {
-      await this.supabase.from('script_lines').insert(dbRow).catch(() => {});
+      await this.supabase.from('script_lines').insert(dbRow).catch(() => { });
     }
 
     this.closeAddLineModal();
@@ -4333,7 +4445,7 @@ const StoryPad = {
       item.unread = false;
       this.renderNotificationsList();
       if (this.supabase) {
-        this.supabase.from('notifications').update({ unread: false }).eq('id', id).then(() => {});
+        this.supabase.from('notifications').update({ unread: false }).eq('id', id).then(() => { });
       }
     }
   },
@@ -4345,7 +4457,7 @@ const StoryPad = {
       item.unread = false;
       this.renderNotificationsList();
       if (this.supabase) {
-        this.supabase.from('notifications').update({ dismissed: true, unread: false }).eq('id', id).then(() => {});
+        this.supabase.from('notifications').update({ dismissed: true, unread: false }).eq('id', id).then(() => { });
       }
     }
   },
@@ -4355,7 +4467,7 @@ const StoryPad = {
     this.renderNotificationsList();
     this.showToast('Notifikasi aktif dipulihkan');
     if (this.supabase) {
-      this.supabase.from('notifications').update({ dismissed: false }).eq('is_archived', false).then(() => {});
+      this.supabase.from('notifications').update({ dismissed: false }).eq('is_archived', false).then(() => { });
     }
   },
 
@@ -4365,7 +4477,7 @@ const StoryPad = {
     this.renderNotificationsList();
     this.showToast('Semua notifikasi ditandai dibaca');
     if (this.supabase) {
-      this.supabase.from('notifications').update({ unread: false }).eq('is_archived', false).then(() => {});
+      this.supabase.from('notifications').update({ unread: false }).eq('is_archived', false).then(() => { });
     }
   },
 
@@ -4429,7 +4541,7 @@ const StoryPad = {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(this.REMEMBERED_STORAGE_KEY, JSON.stringify(clean));
       }
-    } catch (_e) {}
+    } catch (_e) { }
     return clean;
   },
 
@@ -5023,7 +5135,7 @@ const StoryPad = {
     if (btn) btn.disabled = true;
     try {
       const redirectTo = this.getSafeAuthRedirectUrl();
-      await this.supabase.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
+      await this.supabase.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => { });
       // Selalu tampilkan pesan netral anti-enumerasi
       this.setAuthFeedback(
         'forgot-auth-feedback',
@@ -5066,7 +5178,7 @@ const StoryPad = {
         this.setAuthFeedback('recovery-auth-feedback', 'Gagal memperbarui kata sandi. Pastikan tautan pemulihan masih berlaku.', 'error');
         return false;
       }
-      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => { });
       this.logSecurityEvent('password_updated', 'success', { source: 'recovery' });
       if (p1El) p1El.value = '';
       if (p2El) p2El.value = '';
@@ -5091,7 +5203,7 @@ const StoryPad = {
         if (this.isAuthenticated()) {
           await this.logSecurityEvent('logout_local', 'success', { scope: 'local' });
         }
-        await this.supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        await this.supabase.auth.signOut({ scope: 'local' }).catch(() => { });
       }
       await this.syncPhpSession({ action: 'logout' });
     } finally {
@@ -5325,7 +5437,7 @@ const StoryPad = {
       }
 
       this.state.supabaseSession = reauth.data.session;
-      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => { });
       await this.logSecurityEvent('password_changed', 'success', { sessions_others_revoked: true });
 
       if (curEl) curEl.value = '';
@@ -5425,8 +5537,8 @@ const StoryPad = {
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">${this.escapeHtml(deviceSummary)}</span>
               ${isCurrent
-                ? '<span class="sp-badge sp-badge-primary">Sesi Saat Ini</span>'
-                : '<span class="sp-badge sp-badge-neutral">Perangkat Lain</span>'}
+          ? '<span class="sp-badge sp-badge-primary">Sesi Saat Ini</span>'
+          : '<span class="sp-badge sp-badge-neutral">Perangkat Lain</span>'}
               <span class="sp-badge sp-badge-neutral">${this.escapeHtml(aalBadge)}</span>
             </div>
             <div class="font-mono text-[11px] mt-1" style="color: var(--text-secondary);">
@@ -5434,9 +5546,9 @@ const StoryPad = {
             </div>
           </div>
           ${isCurrent
-            ? '<span class="font-mono text-[10px] font-bold shrink-0" style="color: var(--primary-text);">Aktif</span>'
-            : `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.revokeSession('${this.escapeHtml(sid)}')">Cabut Sesi</button>`
-          }
+          ? '<span class="font-mono text-[10px] font-bold shrink-0" style="color: var(--primary-text);">Aktif</span>'
+          : `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.revokeSession('${this.escapeHtml(sid)}')">Cabut Sesi</button>`
+        }
         </div>
       `;
     }).join('');
@@ -5602,9 +5714,9 @@ const StoryPad = {
             </div>
           </div>
           ${canUnlink
-            ? `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.unlinkUserIdentity('${this.escapeHtml(idKey)}')">Putuskan Tautan</button>`
-            : '<span class="font-mono text-[10px] shrink-0" style="color: var(--text-secondary);">Minimal 1 metode masuk</span>'
-          }
+          ? `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.unlinkUserIdentity('${this.escapeHtml(idKey)}')">Putuskan Tautan</button>`
+          : '<span class="font-mono text-[10px] shrink-0" style="color: var(--text-secondary);">Minimal 1 metode masuk</span>'
+        }
         </div>
       `;
     }).join('');
@@ -5954,7 +6066,7 @@ const StoryPad = {
           window.history.replaceState({}, '', nextUrl);
         }
       }
-    } catch (_e) {}
+    } catch (_e) { }
   },
 
   async processPendingInvitation() {

@@ -60,7 +60,7 @@ global.document = {
   addEventListener: () => {},
   documentElement: { setAttribute: () => {}, getAttribute: () => 'daylight' },
   body: { setAttribute: () => {}, appendChild: () => {}, removeChild: () => {} },
-  createElement: () => ({ style: {}, classList: { add() {}, remove() {} }, appendChild: () => {}, focus: () => {}, select: () => {} })
+  createElement: () => ({ style: {}, classList: { add() {}, remove() {} }, appendChild: () => {}, removeChild: () => {}, click: () => {}, focus: () => {}, select: () => {} })
 };
 
 global.navigator = {
@@ -174,10 +174,38 @@ async function runTests() {
   assert.strictEqual(lastAdded.keyword, 'UdahLangsungUpload');
 
   StoryPad.openScriptImportModal();
+  const promptMd = StoryPad.getScriptFormatPromptMarkdown();
+  assert.ok(promptMd.includes('# Prompt Konversi Format Naskah StoryPad'), 'Markdown prompt heading missing');
+  assert.ok(!promptMd.includes('\u2014'), 'Markdown prompt must not contain em dashes');
+  assert.ok(elements['import-format-prompt-preview'].textContent.includes('SCENE <angka>'), 'Modal must populate prompt preview on open');
+  assert.strictEqual(StoryPad.copyScriptFormatPrompt(), true);
+
+  global.Blob = function(parts, opts) { this.parts = parts; this.type = opts && opts.type; };
+  global.URL = { createObjectURL: () => 'blob:storypad-prompt-test', revokeObjectURL: () => {} };
+  assert.strictEqual(StoryPad.downloadScriptFormatPrompt(), true);
+
   StoryPad.switchImportSourceTab('text');
+  getOrCreateElement('import-raw-textarea').value = [
+    '# TES MARKDOWN',
+    'SCENE 1 - SET',
+    '**BIMA**',
+    '*(Sinis)*',
+    'Baris 1',
+    'Baris 2',
+    'Baris 3',
+    'Baris 4',
+    'Baris 5',
+    'Baris 6',
+    'Baris 7',
+    'Baris 8'
+  ].join('\n');
+  await StoryPad.runScriptPreview();
+  assert.strictEqual(elements['import-preview-format-warning'].classList.contains('hidden'), false, 'Low-dialogue Markdown script must show format warning');
+
   getOrCreateElement('import-raw-textarea').value = 'TES\nSCENE 1 - SET\nRAKA\n"Siap!"';
   await StoryPad.runScriptPreview();
   assert.strictEqual(StoryPad.state.importModal.lastParsed.summary.dialogueCount, 1);
+  assert.strictEqual(elements['import-preview-format-warning'].classList.contains('hidden'), true, 'Valid script must hide format warning');
   StoryPad.closeScriptImportModal();
 
   const unauthBlocked = StoryPad.navigate('dashboard', 'home');

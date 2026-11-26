@@ -186,6 +186,33 @@ declare(strict_types=1);
           </button>
         </div>
 
+        <!-- Format Warning + Markdown Prompt Copy/Download -->
+        <div id="import-format-notice" class="p-3 rounded border flex flex-col gap-2" role="note" style="background-color: var(--amber-tint); border-color: var(--amber-tint-border);">
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style="color: var(--amber-text);" aria-hidden="true">warning</span>
+            <div class="flex-1 min-w-0 flex flex-col gap-1">
+              <p class="font-sans text-xs font-bold m-0" style="color: var(--amber-text);">Peringatan Format Naskah Sebelum Impor</p>
+              <p class="font-sans text-[11px] leading-relaxed m-0" style="color: var(--text-primary);">
+                Agar pemeran &amp; dialog terdeteksi otomatis, tulis nama karakter <strong>HURUF KAPITAL POLOS</strong> tanpa <code>**</code> atau <code>:</code>, tulis arahan <code>(ekspresi)</code> tanpa <code>*</code>, hindari heading <code>###</code> setelah <code>SCENE 1</code>, dan bungkus catatan teknis dengan <code>[...]</code>.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btn-copy-script-prompt" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.copyScriptFormatPrompt()">
+              <span class="material-symbols-outlined text-[15px]" aria-hidden="true">content_copy</span>
+              <span>Salin Prompt (.md)</span>
+            </button>
+            <button type="button" id="btn-download-script-prompt" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.downloadScriptFormatPrompt()">
+              <span class="material-symbols-outlined text-[15px]" aria-hidden="true">download</span>
+              <span>Unduh Prompt (.md)</span>
+            </button>
+          </div>
+          <details class="text-[11px]" style="color: var(--text-secondary);">
+            <summary class="cursor-pointer font-sans font-semibold select-none" style="color: var(--amber-text);">Lihat template prompt konversi (.md)</summary>
+            <pre id="import-format-prompt-preview" class="mt-2 p-2.5 rounded border font-mono text-[11px] whitespace-pre-wrap overflow-y-auto max-h-40 m-0" style="background-color: var(--panel-lowest); border-color: var(--border-flat); color: var(--text-primary);"></pre>
+          </details>
+        </div>
+
         <!-- Source Panel A: File Picker -->
         <div id="import-source-file" class="flex flex-col gap-2">
           <label for="input-script-file" class="sp-dropzone p-4 rounded border text-center flex flex-col items-center gap-1.5">
@@ -242,6 +269,7 @@ declare(strict_types=1);
             <span class="sp-badge sp-badge-good font-mono tabular-nums" id="import-preview-counts">0 Scene | 0 Dialog</span>
           </div>
           <p class="font-mono text-[11px] m-0" id="import-preview-chars" style="color: var(--text-secondary);"></p>
+          <p class="hidden font-sans text-[11px] font-medium p-2 rounded border m-0" id="import-preview-format-warning" role="alert" style="background-color: var(--amber-tint); border-color: var(--amber-tint-border); color: var(--amber-text);"></p>
           <div class="max-h-36 overflow-y-auto flex flex-col gap-1.5 pt-1 border-t" id="import-preview-lines" style="border-color: var(--border-flat);"></div>
         </div>
 

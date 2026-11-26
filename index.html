@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id" data-theme="daylight">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -8,10 +9,14 @@
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap"
+    rel="stylesheet">
 
   <!-- Material Symbols Outlined -->
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    rel="stylesheet">
 
   <!-- Tailwind CSS CDN & Supabase JS -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -37,6 +42,7 @@
 
   <link rel="stylesheet" href="app.css">
 </head>
+
 <body data-active-screen="login">
   <a href="#main-viewport" class="skip-link">Lewati ke konten utama</a>
 
@@ -49,8 +55,10 @@
         <div class="w-9 h-9 rounded bg-[#1E222B] border border-[#373C4A] flex items-center justify-center shrink-0">
           <svg class="w-5 h-5 text-[#60A5FA]" viewBox="0 0 48 48" fill="none" aria-hidden="true">
             <rect x="6" y="16" width="36" height="26" rx="3" fill="#161920" stroke="#60A5FA" stroke-width="2.5"></rect>
-            <path d="M6 18L13 6H42L36 18H6Z" fill="#1E222B" stroke="#60A5FA" stroke-width="2.5" stroke-linejoin="round"></path>
-            <path d="M17 6L14 18M27 6L24 18M37 6L34 18" stroke="#34D399" stroke-width="2.5" stroke-linecap="round"></path>
+            <path d="M6 18L13 6H42L36 18H6Z" fill="#1E222B" stroke="#60A5FA" stroke-width="2.5" stroke-linejoin="round">
+            </path>
+            <path d="M17 6L14 18M27 6L24 18M37 6L34 18" stroke="#34D399" stroke-width="2.5" stroke-linecap="round">
+            </path>
           </svg>
         </div>
         <div class="app-nav-brand-sub min-w-0">
@@ -60,22 +68,26 @@
       </div>
 
       <div class="app-nav-inner">
-        <button type="button" class="nav-capsule-tab active" data-tab="home" onclick="StoryPad.navigate('dashboard', 'home')">
+        <button type="button" class="nav-capsule-tab active" data-tab="home"
+          onclick="StoryPad.navigate('dashboard', 'home')">
           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">dashboard</span>
           <span>Beranda</span>
         </button>
 
-        <button type="button" class="nav-capsule-tab" data-tab="project-list" onclick="StoryPad.navigate('projects', 'project-list')">
+        <button type="button" class="nav-capsule-tab" data-tab="project-list"
+          onclick="StoryPad.navigate('projects', 'project-list')">
           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">movie</span>
           <span>Proyek</span>
         </button>
 
-        <button type="button" class="nav-capsule-tab" data-tab="script-reader" onclick="StoryPad.navigate('script-reader', 'script-reader')">
+        <button type="button" class="nav-capsule-tab" data-tab="script-reader"
+          onclick="StoryPad.navigate('script-reader', 'script-reader')">
           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit_note</span>
           <span>Naskah</span>
         </button>
 
-        <button type="button" class="nav-capsule-tab" data-tab="profile" onclick="StoryPad.navigate('profile', 'profile')">
+        <button type="button" class="nav-capsule-tab" data-tab="profile"
+          onclick="StoryPad.navigate('profile', 'profile')">
           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">badge</span>
           <span>Profil</span>
         </button>
@@ -83,19 +95,25 @@
 
       <div class="app-nav-footer">
         <div class="app-nav-footer-meta px-2 py-1.5 rounded bg-[#161920] border border-[#2A2E39]">
-          <span class="font-sans text-[11px] font-semibold text-[#F3F4F6] truncate" id="nav-user-name">Kru Produksi</span>
+          <span class="font-sans text-[11px] font-semibold text-[#F3F4F6] truncate" id="nav-user-name">Kru
+            Produksi</span>
           <span class="font-mono text-[11px] text-[#A1A9B8] truncate" id="nav-prod-name">-</span>
         </div>
-        <button type="button" class="sp-btn sp-btn-primary sp-btn-compact w-full" onclick="StoryPad.openScriptImportModal()" aria-label="Impor atau Tambah Naskah Baru">
+        <button type="button" class="sp-btn sp-btn-primary sp-btn-compact w-full"
+          onclick="StoryPad.openScriptImportModal()" aria-label="Impor atau Tambah Naskah Baru">
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
           <span class="app-nav-brand-sub">Impor Naskah</span>
         </button>
-        <button type="button" id="nav-theme-btn" class="sp-btn sp-btn-monitor sp-btn-compact w-full" onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Tampilan">
+        <button type="button" id="nav-theme-btn" class="sp-btn sp-btn-monitor sp-btn-compact w-full"
+          onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Tampilan">
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">contrast</span>
           <span class="app-nav-brand-sub theme-label-text">Mode Slate Gelap</span>
         </button>
-        <a href="/admin" id="nav-admin-console-link" class="hidden sp-btn sp-btn-monitor sp-btn-compact w-full no-underline" aria-label="Buka StoryPad Admin Console">
-          <span class="material-symbols-outlined text-[16px] text-[#FBBF24]" aria-hidden="true">admin_panel_settings</span>
+        <a href="/admin" id="nav-admin-console-link"
+          class="hidden sp-btn sp-btn-monitor sp-btn-compact w-full no-underline"
+          aria-label="Buka StoryPad Admin Console">
+          <span class="material-symbols-outlined text-[16px] text-[#FBBF24]"
+            aria-hidden="true">admin_panel_settings</span>
           <span class="app-nav-brand-sub">Admin Console</span>
         </a>
       </div>
@@ -108,20 +126,26 @@
           <!-- ========================================== -->
           <!-- LAYAR 1: ACCOUNT HUB & AUTENTIKASI KRU -->
           <!-- ========================================== -->
-          <section class="screen-view flex items-center justify-center p-4 md:p-8" id="screen-login" aria-labelledby="login-heading">
+          <section class="screen-view flex items-center justify-center p-4 md:p-8" id="screen-login"
+            aria-labelledby="login-heading">
             <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
               <div class="md:col-span-6 sp-panel p-6 md:p-8 flex flex-col justify-between gap-6">
                 <div>
                   <div class="flex items-center gap-3 mb-6">
-                    <div class="w-12 h-12 rounded bg-[#0F1115] border border-[#373C4A] flex items-center justify-center shrink-0">
+                    <div
+                      class="w-12 h-12 rounded bg-[#0F1115] border border-[#373C4A] flex items-center justify-center shrink-0">
                       <svg class="w-7 h-7 text-[#60A5FA]" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                        <rect x="6" y="16" width="36" height="26" rx="3" fill="#161920" stroke="#60A5FA" stroke-width="2.5"></rect>
-                        <path d="M6 18L13 6H42L36 18H6Z" fill="#1E222B" stroke="#60A5FA" stroke-width="2.5" stroke-linejoin="round"></path>
-                        <path d="M17 6L14 18M27 6L24 18M37 6L34 18" stroke="#34D399" stroke-width="2.5" stroke-linecap="round"></path>
+                        <rect x="6" y="16" width="36" height="26" rx="3" fill="#161920" stroke="#60A5FA"
+                          stroke-width="2.5"></rect>
+                        <path d="M6 18L13 6H42L36 18H6Z" fill="#1E222B" stroke="#60A5FA" stroke-width="2.5"
+                          stroke-linejoin="round"></path>
+                        <path d="M17 6L14 18M27 6L24 18M37 6L34 18" stroke="#34D399" stroke-width="2.5"
+                          stroke-linecap="round"></path>
                       </svg>
                     </div>
                     <div>
-                      <h1 id="login-heading" class="font-sans text-2xl md:text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
+                      <h1 id="login-heading" class="font-sans text-2xl md:text-3xl font-bold tracking-tight"
+                        style="color: var(--text-primary);">
                         StoryPad
                       </h1>
                       <p class="font-sans text-sm" style="color: var(--text-secondary);">
@@ -131,36 +155,44 @@
                   </div>
 
                   <p class="font-sans text-sm leading-relaxed mb-6" style="color: var(--text-secondary);">
-                    Impor naskah dari format Word (<code class="font-mono">.docx</code>), Fountain, atau teks biasa, pantau adegan per scene, unggah rekaman audio maupun klip footage ke setiap take, dan hasilkan penamaan file standar untuk Premiere Pro atau DaVinci Resolve.
+                    Impor naskah dari format Word (<code class="font-mono">.docx</code>), Fountain, atau teks biasa,
+                    pantau adegan per scene, unggah rekaman audio maupun klip footage ke setiap take, dan hasilkan
+                    penamaan file standar untuk Premiere Pro atau DaVinci Resolve.
                   </p>
 
                   <div class="sp-panel-muted p-4">
-                    <h2 class="font-sans text-xs font-bold uppercase tracking-wide mb-3" style="color: var(--text-secondary);">
+                    <h2 class="font-sans text-xs font-bold uppercase tracking-wide mb-3"
+                      style="color: var(--text-secondary);">
                       Status Sesi Produksi
                     </h2>
                     <dl class="grid grid-cols-3 gap-3 text-left">
                       <div>
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Unit Produksi</dt>
-                        <dd class="font-sans text-xs font-semibold mt-0.5" id="login-studio-name" style="color: var(--text-primary);">StoryPad Studio</dd>
+                        <dd class="font-sans text-xs font-semibold mt-0.5" id="login-studio-name"
+                          style="color: var(--text-primary);">StoryPad Studio</dd>
                       </div>
                       <div>
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Akses Data</dt>
-                        <dd class="font-mono text-xs font-semibold mt-0.5 tabular-nums" id="login-projects-count" style="color: var(--text-primary);">Terproteksi</dd>
+                        <dd class="font-mono text-xs font-semibold mt-0.5 tabular-nums" id="login-projects-count"
+                          style="color: var(--text-primary);">Terproteksi</dd>
                       </div>
                       <div>
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Jam Sistem</dt>
-                        <dd class="font-mono text-xs font-semibold mt-0.5 tabular-nums" id="master-tc-live" style="color: var(--good-text);">00:00:00</dd>
+                        <dd class="font-mono text-xs font-semibold mt-0.5 tabular-nums" id="master-tc-live"
+                          style="color: var(--good-text);">00:00:00</dd>
                       </div>
                     </dl>
                   </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t" style="border-color: var(--border-flat);">
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t"
+                  style="border-color: var(--border-flat);">
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="sp-badge sp-badge-neutral font-mono" id="supabase-status-badge">Menghubungkan...</span>
                     <span class="font-mono text-xs" style="color: var(--text-muted);">Auth &amp; Private Storage</span>
                   </div>
-                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Tampilan">
+                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.toggleTheme()"
+                    aria-label="Ganti Tema Tampilan">
                     <span class="material-symbols-outlined text-[16px]" aria-hidden="true">contrast</span>
                     <span class="theme-label-text">Mode Slate Gelap</span>
                   </button>
@@ -174,18 +206,23 @@
                       Selamat datang kembali
                     </h2>
                     <p class="font-sans text-xs m-0 leading-relaxed" style="color: var(--text-secondary);">
-                      Akun berikut pernah digunakan di browser ini. Memilih akun tetap memerlukan kata sandi dan verifikasi sesi server.
+                      Akun berikut pernah digunakan di browser ini. Memilih akun tetap memerlukan kata sandi dan
+                      verifikasi sesi server.
                     </p>
                   </div>
 
-                  <div class="flex flex-col gap-2" id="account-hub-list" role="region" aria-label="Daftar akun yang diingat di browser ini"></div>
+                  <div class="flex flex-col gap-2" id="account-hub-list" role="region"
+                    aria-label="Daftar akun yang diingat di browser ini"></div>
 
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button type="button" id="btn-hub-use-another" class="sp-btn sp-btn-primary sp-btn-compact w-full" onclick="StoryPad.openAuthView('credentials', 'signin')">
+                    <button type="button" id="btn-hub-use-another" class="sp-btn sp-btn-primary sp-btn-compact w-full"
+                      onclick="StoryPad.openAuthView('credentials', 'signin')">
                       <span class="material-symbols-outlined text-[17px]" aria-hidden="true">login</span>
                       <span>Gunakan akun lain</span>
                     </button>
-                    <button type="button" id="btn-hub-create-account" class="sp-btn sp-btn-secondary sp-btn-compact w-full" onclick="StoryPad.openAuthView('credentials', 'signup')">
+                    <button type="button" id="btn-hub-create-account"
+                      class="sp-btn sp-btn-secondary sp-btn-compact w-full"
+                      onclick="StoryPad.openAuthView('credentials', 'signup')">
                       <span class="material-symbols-outlined text-[17px]" aria-hidden="true">person_add</span>
                       <span>Daftar akun baru</span>
                     </button>
@@ -196,14 +233,17 @@
                       Tentang akun yang diingat
                     </summary>
                     <p class="font-sans text-[11px] m-0 mt-2 leading-relaxed" style="color: var(--text-secondary);">
-                      StoryPad hanya menyimpan nama tampilan, inisial, email, dan waktu terakhir digunakan di perangkat ini. Kata sandi dan token autentikasi tidak pernah disimpan di daftar akun. Pada komputer bersama, hapus akun setelah selesai atau matikan opsi ingat akun saat masuk.
+                      StoryPad hanya menyimpan nama tampilan, inisial, email, dan waktu terakhir digunakan di perangkat
+                      ini. Kata sandi dan token autentikasi tidak pernah disimpan di daftar akun. Pada komputer bersama,
+                      hapus akun setelah selesai atau matikan opsi ingat akun saat masuk.
                     </p>
                   </details>
                 </div>
 
                 <div id="auth-view-selected" class="hidden flex-col gap-4">
                   <div class="flex items-center justify-between gap-2">
-                    <button type="button" id="btn-selected-back-hub" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.openAuthView('hub')">
+                    <button type="button" id="btn-selected-back-hub" class="sp-btn sp-btn-secondary sp-btn-compact"
+                      onclick="StoryPad.openAuthView('hub')">
                       <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
                       <span>Kembali ke Account Hub</span>
                     </button>
@@ -219,19 +259,28 @@
                   </div>
 
                   <div class="sp-panel-muted p-3 flex items-center gap-3">
-                    <span class="w-10 h-10 rounded bg-[#2563EB] text-white font-sans text-xs font-bold flex items-center justify-center shrink-0" id="selected-account-avatar">KP</span>
+                    <span
+                      class="w-10 h-10 rounded bg-[#2563EB] text-white font-sans text-xs font-bold flex items-center justify-center shrink-0"
+                      id="selected-account-avatar">KP</span>
                     <div class="min-w-0">
-                      <p class="font-sans text-sm font-bold truncate m-0" id="selected-account-name" style="color: var(--text-primary);">Kru Produksi</p>
-                      <p class="font-mono text-xs truncate m-0" id="selected-account-email" style="color: var(--text-secondary);"></p>
+                      <p class="font-sans text-sm font-bold truncate m-0" id="selected-account-name"
+                        style="color: var(--text-primary);">Kru Produksi</p>
+                      <p class="font-mono text-xs truncate m-0" id="selected-account-email"
+                        style="color: var(--text-secondary);"></p>
                     </div>
                   </div>
 
-                  <form id="selected-login-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitSelectedAccountLogin();" novalidate>
+                  <form id="selected-login-form" class="flex flex-col gap-3"
+                    onsubmit="event.preventDefault(); StoryPad.submitSelectedAccountLogin();" novalidate>
                     <div class="flex flex-col gap-1">
-                      <label for="selected-password-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Kata Sandi</label>
+                      <label for="selected-password-input" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Kata Sandi</label>
                       <div class="sp-password-wrap">
-                        <input type="password" id="selected-password-input" class="sp-input pr-12" placeholder="Masukkan kata sandi Anda" autocomplete="current-password" required>
-                        <button type="button" id="toggle-selected-password" class="sp-password-toggle" aria-label="Tampilkan kata sandi" aria-pressed="false" onclick="StoryPad.togglePasswordVisibility('selected-password-input', this)">
+                        <input type="password" id="selected-password-input" class="sp-input pr-12"
+                          placeholder="Masukkan kata sandi Anda" autocomplete="current-password" required>
+                        <button type="button" id="toggle-selected-password" class="sp-password-toggle"
+                          aria-label="Tampilkan kata sandi" aria-pressed="false"
+                          onclick="StoryPad.togglePasswordVisibility('selected-password-input', this)">
                           <span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span>
                         </button>
                       </div>
@@ -239,15 +288,20 @@
 
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <label for="selected-remember-checkbox" class="sp-checkbox-row">
-                        <input type="checkbox" id="selected-remember-checkbox" class="w-4 h-4 rounded border-[#736F63] text-[#2563EB]" checked>
-                        <span class="font-sans text-xs" style="color: var(--text-secondary);">Ingat akun di perangkat ini</span>
+                        <input type="checkbox" id="selected-remember-checkbox"
+                          class="w-4 h-4 rounded border-[#736F63] text-[#2563EB]" checked>
+                        <span class="font-sans text-xs" style="color: var(--text-secondary);">Ingat akun di perangkat
+                          ini</span>
                       </label>
-                      <button type="button" class="font-sans text-xs font-semibold bg-transparent border-0 p-1 hover:underline" style="color: var(--primary-text);" onclick="StoryPad.openAuthView('forgot')">
+                      <button type="button"
+                        class="font-sans text-xs font-semibold bg-transparent border-0 p-1 hover:underline"
+                        style="color: var(--primary-text);" onclick="StoryPad.openAuthView('forgot')">
                         Lupa kata sandi?
                       </button>
                     </div>
 
-                    <div id="selected-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert"></div>
+                    <div id="selected-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert">
+                    </div>
 
                     <button type="submit" id="selected-signin-btn" class="sp-btn sp-btn-primary w-full btn-press">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">lock_open</span>
@@ -259,36 +313,47 @@
                 <div id="auth-view-credentials" class="flex flex-col gap-4">
                   <div class="flex items-center justify-between gap-2">
                     <div>
-                      <h2 class="font-sans text-lg font-bold m-0 mb-1" id="cred-heading" style="color: var(--text-primary);">
+                      <h2 class="font-sans text-lg font-bold m-0 mb-1" id="cred-heading"
+                        style="color: var(--text-primary);">
                         Masuk ke Sesi Produksi
                       </h2>
                       <p class="font-sans text-xs m-0" id="cred-subheading" style="color: var(--text-secondary);">
                         Masuk dengan akun kru terdaftar atau daftarkan akun baru.
                       </p>
                     </div>
-                    <button type="button" id="cred-back-hub-btn" class="hidden sp-btn sp-btn-secondary sp-btn-compact shrink-0" onclick="StoryPad.openAuthView('hub')">
+                    <button type="button" id="cred-back-hub-btn"
+                      class="hidden sp-btn sp-btn-secondary sp-btn-compact shrink-0"
+                      onclick="StoryPad.openAuthView('hub')">
                       <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
                       <span>Daftar Akun</span>
                     </button>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-1.5 p-1 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" role="tablist" aria-label="Pilih mode autentikasi">
-                    <button type="button" role="tab" id="auth-tab-signin" aria-selected="true" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.setAuthMode('signin')">
+                  <div class="grid grid-cols-2 gap-1.5 p-1 rounded border"
+                    style="background-color: var(--panel-lowest); border-color: var(--border-flat);" role="tablist"
+                    aria-label="Pilih mode autentikasi">
+                    <button type="button" role="tab" id="auth-tab-signin" aria-selected="true"
+                      class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.setAuthMode('signin')">
                       Masuk
                     </button>
-                    <button type="button" role="tab" id="auth-tab-signup" aria-selected="false" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setAuthMode('signup')">
+                    <button type="button" role="tab" id="auth-tab-signup" aria-selected="false"
+                      class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setAuthMode('signup')">
                       Daftar Akun
                     </button>
                   </div>
 
-                  <form id="credentials-auth-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitCredentialsAuth();" novalidate>
+                  <form id="credentials-auth-form" class="flex flex-col gap-3"
+                    onsubmit="event.preventDefault(); StoryPad.submitCredentialsAuth();" novalidate>
                     <div id="credentials-signup-fields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div class="flex flex-col gap-1">
-                        <label for="cred-name-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Nama Lengkap Kru</label>
-                        <input type="text" id="cred-name-input" class="sp-input" placeholder="Nama lengkap" autocomplete="name">
+                        <label for="cred-name-input" class="font-sans text-xs font-semibold"
+                          style="color: var(--text-primary);">Nama Lengkap Kru</label>
+                        <input type="text" id="cred-name-input" class="sp-input" placeholder="Nama lengkap"
+                          autocomplete="name">
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label for="cred-role-select" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Peran Utama</label>
+                        <label for="cred-role-select" class="font-sans text-xs font-semibold"
+                          style="color: var(--text-primary);">Peran Utama</label>
                         <select id="cred-role-select" class="sp-input">
                           <option value="scriptSupervisor">Script Supervisor</option>
                           <option value="videoEditor">Offline Video Editor</option>
@@ -298,34 +363,46 @@
                     </div>
 
                     <div class="flex flex-col gap-1">
-                      <label for="cred-email-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Email Kru</label>
-                      <input type="email" id="cred-email-input" class="sp-input" placeholder="nama@domain.id" autocomplete="email" required>
+                      <label for="cred-email-input" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Email Kru</label>
+                      <input type="email" id="cred-email-input" class="sp-input" placeholder="nama@domain.id"
+                        autocomplete="email" required>
                     </div>
 
                     <div class="flex flex-col gap-1">
-                      <label for="cred-password-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Kata Sandi</label>
+                      <label for="cred-password-input" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Kata Sandi</label>
                       <div class="sp-password-wrap">
-                        <input type="password" id="cred-password-input" class="sp-input pr-12" placeholder="Masukkan kata sandi" autocomplete="current-password" required>
-                        <button type="button" id="toggle-cred-password" class="sp-password-toggle" aria-label="Tampilkan kata sandi" aria-pressed="false" onclick="StoryPad.togglePasswordVisibility('cred-password-input', this)">
+                        <input type="password" id="cred-password-input" class="sp-input pr-12"
+                          placeholder="Masukkan kata sandi" autocomplete="current-password" required>
+                        <button type="button" id="toggle-cred-password" class="sp-password-toggle"
+                          aria-label="Tampilkan kata sandi" aria-pressed="false"
+                          onclick="StoryPad.togglePasswordVisibility('cred-password-input', this)">
                           <span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span>
                         </button>
                       </div>
-                      <p id="cred-password-hint" class="hidden font-sans text-[11px] m-0 mt-0.5" style="color: var(--text-secondary);">
+                      <p id="cred-password-hint" class="hidden font-sans text-[11px] m-0 mt-0.5"
+                        style="color: var(--text-secondary);">
                         Minimal 12 karakter. Gunakan frasa sandi agar mudah diingat dan kuat (maksimal 128 karakter).
                       </p>
                     </div>
 
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <label for="cred-remember-checkbox" class="sp-checkbox-row">
-                        <input type="checkbox" id="cred-remember-checkbox" class="w-4 h-4 rounded border-[#736F63] text-[#2563EB]">
-                        <span class="font-sans text-xs" style="color: var(--text-secondary);">Ingat akun di perangkat ini</span>
+                        <input type="checkbox" id="cred-remember-checkbox"
+                          class="w-4 h-4 rounded border-[#736F63] text-[#2563EB]">
+                        <span class="font-sans text-xs" style="color: var(--text-secondary);">Ingat akun di perangkat
+                          ini</span>
                       </label>
-                      <button type="button" id="cred-forgot-btn" class="font-sans text-xs font-semibold bg-transparent border-0 p-1 hover:underline" style="color: var(--primary-text);" onclick="StoryPad.openAuthView('forgot')">
+                      <button type="button" id="cred-forgot-btn"
+                        class="font-sans text-xs font-semibold bg-transparent border-0 p-1 hover:underline"
+                        style="color: var(--primary-text);" onclick="StoryPad.openAuthView('forgot')">
                         Lupa kata sandi?
                       </button>
                     </div>
 
-                    <div id="cred-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert"></div>
+                    <div id="cred-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert">
+                    </div>
 
                     <button type="submit" id="cred-submit-btn" class="sp-btn sp-btn-primary w-full btn-press">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">login</span>
@@ -336,7 +413,8 @@
 
                 <div id="auth-view-forgot" class="hidden flex-col gap-4">
                   <div>
-                    <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact mb-3" onclick="StoryPad.openAuthView('credentials', 'signin')">
+                    <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact mb-3"
+                      onclick="StoryPad.openAuthView('credentials', 'signin')">
                       <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
                       <span>Kembali ke halaman masuk</span>
                     </button>
@@ -344,17 +422,22 @@
                       Atur ulang kata sandi
                     </h2>
                     <p class="font-sans text-xs m-0 leading-relaxed" style="color: var(--text-secondary);">
-                      Masukkan email akun Anda. Jika terdaftar, sistem akan mengirim tautan atur ulang sekali pakai ke email tersebut.
+                      Masukkan email akun Anda. Jika terdaftar, sistem akan mengirim tautan atur ulang sekali pakai ke
+                      email tersebut.
                     </p>
                   </div>
 
-                  <form id="forgot-password-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitForgotPassword();" novalidate>
+                  <form id="forgot-password-form" class="flex flex-col gap-3"
+                    onsubmit="event.preventDefault(); StoryPad.submitForgotPassword();" novalidate>
                     <div class="flex flex-col gap-1">
-                      <label for="forgot-email-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Email Akun</label>
-                      <input type="email" id="forgot-email-input" class="sp-input" placeholder="nama@domain.id" autocomplete="email" required>
+                      <label for="forgot-email-input" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Email Akun</label>
+                      <input type="email" id="forgot-email-input" class="sp-input" placeholder="nama@domain.id"
+                        autocomplete="email" required>
                     </div>
 
-                    <div id="forgot-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="status"></div>
+                    <div id="forgot-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="status">
+                    </div>
 
                     <button type="submit" id="forgot-submit-btn" class="sp-btn sp-btn-primary w-full">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">mail</span>
@@ -369,32 +452,43 @@
                       Buat kata sandi baru
                     </h2>
                     <p class="font-sans text-xs m-0 leading-relaxed" style="color: var(--text-secondary);">
-                      Tautan pemulihan terverifikasi. Tetapkan kata sandi baru minimal 12 karakter (disarankan frasa sandi).
+                      Tautan pemulihan terverifikasi. Tetapkan kata sandi baru minimal 12 karakter (disarankan frasa
+                      sandi).
                     </p>
                   </div>
 
-                  <form id="recovery-password-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitPasswordRecovery();" novalidate>
+                  <form id="recovery-password-form" class="flex flex-col gap-3"
+                    onsubmit="event.preventDefault(); StoryPad.submitPasswordRecovery();" novalidate>
                     <div class="flex flex-col gap-1">
-                      <label for="recovery-password-input" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Kata Sandi Baru</label>
+                      <label for="recovery-password-input" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Kata Sandi Baru</label>
                       <div class="sp-password-wrap">
-                        <input type="password" id="recovery-password-input" class="sp-input pr-12" placeholder="Minimal 12 karakter" autocomplete="new-password" required>
-                        <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi baru" aria-pressed="false" onclick="StoryPad.togglePasswordVisibility('recovery-password-input', this)">
+                        <input type="password" id="recovery-password-input" class="sp-input pr-12"
+                          placeholder="Minimal 12 karakter" autocomplete="new-password" required>
+                        <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi baru"
+                          aria-pressed="false"
+                          onclick="StoryPad.togglePasswordVisibility('recovery-password-input', this)">
                           <span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span>
                         </button>
                       </div>
                     </div>
 
                     <div class="flex flex-col gap-1">
-                      <label for="recovery-password-confirm" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Konfirmasi Kata Sandi Baru</label>
+                      <label for="recovery-password-confirm" class="font-sans text-xs font-semibold"
+                        style="color: var(--text-primary);">Konfirmasi Kata Sandi Baru</label>
                       <div class="sp-password-wrap">
-                        <input type="password" id="recovery-password-confirm" class="sp-input pr-12" placeholder="Ulangi kata sandi baru" autocomplete="new-password" required>
-                        <button type="button" class="sp-password-toggle" aria-label="Tampilkan konfirmasi kata sandi" aria-pressed="false" onclick="StoryPad.togglePasswordVisibility('recovery-password-confirm', this)">
+                        <input type="password" id="recovery-password-confirm" class="sp-input pr-12"
+                          placeholder="Ulangi kata sandi baru" autocomplete="new-password" required>
+                        <button type="button" class="sp-password-toggle" aria-label="Tampilkan konfirmasi kata sandi"
+                          aria-pressed="false"
+                          onclick="StoryPad.togglePasswordVisibility('recovery-password-confirm', this)">
                           <span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span>
                         </button>
                       </div>
                     </div>
 
-                    <div id="recovery-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert"></div>
+                    <div id="recovery-auth-feedback" class="hidden p-3 rounded border text-xs font-medium" role="alert">
+                    </div>
 
                     <button type="submit" id="recovery-submit-btn" class="sp-btn sp-btn-primary w-full">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span>
@@ -412,27 +506,36 @@
           <section class="screen-view hidden flex-col" id="screen-dashboard" aria-labelledby="dash-heading">
             <header class="sp-topbar">
               <div class="flex items-center gap-3 min-w-0">
-                <h1 id="dash-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate" style="color: var(--text-primary);">
+                <h1 id="dash-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate"
+                  style="color: var(--text-primary);">
                   Beranda Produksi
                 </h1>
-                <span class="font-mono text-xs px-2 py-0.5 rounded border tabular-nums hidden sm:inline-flex" style="background-color: var(--panel-lowest); border-color: var(--border-flat); color: var(--text-secondary);" id="mobile-clock">00:00</span>
+                <span class="font-mono text-xs px-2 py-0.5 rounded border tabular-nums hidden sm:inline-flex"
+                  style="background-color: var(--panel-lowest); border-color: var(--border-flat); color: var(--text-secondary);"
+                  id="mobile-clock">00:00</span>
               </div>
               <div class="flex items-center gap-2">
-                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden sm:inline-flex" onclick="StoryPad.openScriptImportModal()">
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden sm:inline-flex"
+                  onclick="StoryPad.openScriptImportModal()">
                   <span class="material-symbols-outlined text-[17px]" aria-hidden="true">upload_file</span>
                   <span>Impor Naskah</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Tampilan" title="Ganti Tema Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()"
+                  aria-label="Ganti Tema Tampilan" title="Ganti Tema Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">contrast</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()" aria-label="Pengaturan Tampilan Skrip" title="Pengaturan Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()"
+                  aria-label="Pengaturan Tampilan Skrip" title="Pengaturan Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">tune</span>
                 </button>
-                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()" aria-label="Buka Notifikasi">
+                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()"
+                  aria-label="Buka Notifikasi">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">notifications</span>
-                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]" aria-hidden="true"></span>
+                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]"
+                    aria-hidden="true"></span>
                 </button>
-                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-dash" onclick="StoryPad.navigate('profile', 'profile')" aria-label="Buka Profil Kru">
+                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-dash"
+                  onclick="StoryPad.navigate('profile', 'profile')" aria-label="Buka Profil Kru">
                   KP
                 </button>
               </div>
@@ -444,36 +547,45 @@
                   <div>
                     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <span class="sp-badge sp-badge-blue">Produksi Aktif</span>
-                      <span class="font-mono text-xs tabular-nums" style="color: var(--text-secondary);" id="dash-active-proj-meta">
+                      <span class="font-mono text-xs tabular-nums" style="color: var(--text-secondary);"
+                        id="dash-active-proj-meta">
                         Memuat metadata proyek...
                       </span>
                     </div>
-                    <h2 class="font-sans text-xl md:text-2xl font-bold tracking-tight" id="dash-active-proj-title" style="color: var(--text-primary);">
+                    <h2 class="font-sans text-xl md:text-2xl font-bold tracking-tight" id="dash-active-proj-title"
+                      style="color: var(--text-primary);">
                       Memuat Naskah...
                     </h2>
-                    <p class="font-mono text-xs mt-1 font-medium" id="dash-active-scene-line" style="color: var(--text-secondary);">
+                    <p class="font-mono text-xs mt-1 font-medium" id="dash-active-scene-line"
+                      style="color: var(--text-secondary);">
                       Menghubungkan ke database naskah...
                     </p>
-                    <p class="font-sans text-xs mt-2 leading-relaxed hidden" id="dash-active-synopsis" style="color: var(--text-secondary);"></p>
+                    <p class="font-sans text-xs mt-2 leading-relaxed hidden" id="dash-active-synopsis"
+                      style="color: var(--text-secondary);"></p>
                   </div>
 
                   <div class="sp-panel-muted p-3.5">
-                    <p class="font-sans text-xs font-bold mb-1" style="color: var(--text-primary);">Langkah Berikutnya</p>
-                    <p class="font-sans text-xs leading-relaxed" id="dash-next-action" style="color: var(--text-secondary);">
+                    <p class="font-sans text-xs font-bold mb-1" style="color: var(--text-primary);">Langkah Berikutnya
+                    </p>
+                    <p class="font-sans text-xs leading-relaxed" id="dash-next-action"
+                      style="color: var(--text-secondary);">
                       Pilih proyek naskah atau unggah dokumen naskah baru untuk memulai pencatatan shot dan take.
                     </p>
                   </div>
 
                   <div class="flex flex-wrap items-center gap-2.5">
-                    <button type="button" id="dash-open-active-btn" class="sp-btn sp-btn-primary btn-press" onclick="StoryPad.openProject(StoryPad.state.activeProjectId)">
+                    <button type="button" id="dash-open-active-btn" class="sp-btn sp-btn-primary btn-press"
+                      onclick="StoryPad.openProject(StoryPad.state.activeProjectId)">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit_note</span>
                       <span>Buka Meja Naskah Aktif</span>
                     </button>
-                    <button type="button" class="sp-btn sp-btn-secondary btn-press" onclick="StoryPad.openAudioPanel(StoryPad.state.activeDialogueId, 'audio')">
+                    <button type="button" class="sp-btn sp-btn-secondary btn-press"
+                      onclick="StoryPad.openAudioPanel(StoryPad.state.activeDialogueId, 'audio')">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">perm_media</span>
                       <span>Kelola Audio &amp; Footage</span>
                     </button>
-                    <button type="button" class="sp-btn sp-btn-secondary btn-press" onclick="StoryPad.openScriptImportModal()">
+                    <button type="button" class="sp-btn sp-btn-secondary btn-press"
+                      onclick="StoryPad.openScriptImportModal()">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">upload_file</span>
                       <span>Tambah Naskah (.docx)</span>
                     </button>
@@ -488,23 +600,31 @@
 
                   <div class="relative w-48 h-24 mx-auto flex flex-col items-center justify-end my-1">
                     <svg class="w-48 h-24 overflow-visible" viewBox="0 0 200 100" aria-hidden="true">
-                      <path class="radial-progress-track" d="M 20 95 A 80 80 0 0 1 180 95" fill="none" stroke-linecap="round" stroke-width="14"></path>
-                      <path class="radial-progress-fill" id="hero-gauge-fill" d="M 20 95 A 80 80 0 0 1 180 95" fill="none" stroke-linecap="round" stroke-width="14" stroke-dasharray="251.32" stroke-dashoffset="251.32"></path>
+                      <path class="radial-progress-track" d="M 20 95 A 80 80 0 0 1 180 95" fill="none"
+                        stroke-linecap="round" stroke-width="14"></path>
+                      <path class="radial-progress-fill" id="hero-gauge-fill" d="M 20 95 A 80 80 0 0 1 180 95"
+                        fill="none" stroke-linecap="round" stroke-width="14" stroke-dasharray="251.32"
+                        stroke-dashoffset="251.32"></path>
                     </svg>
                     <div class="absolute bottom-0 flex flex-col items-center text-center">
-                      <span class="font-mono text-2xl font-bold leading-none tabular-nums" id="hero-gauge-pct" style="color: var(--primary-text);">0%</span>
-                      <span class="font-sans text-[11px] font-medium mt-1" style="color: var(--text-secondary);">Dialog Selesai</span>
+                      <span class="font-mono text-2xl font-bold leading-none tabular-nums" id="hero-gauge-pct"
+                        style="color: var(--primary-text);">0%</span>
+                      <span class="font-sans text-[11px] font-medium mt-1" style="color: var(--text-secondary);">Dialog
+                        Selesai</span>
                     </div>
                   </div>
 
                   <div class="grid grid-cols-2 gap-2 pt-3 border-t" style="border-color: var(--border-flat);">
                     <div class="sp-panel-muted p-2.5 text-center">
                       <span class="block font-sans text-[11px]" style="color: var(--text-muted);">Cakupan Dialog</span>
-                      <span class="block font-mono text-xs font-bold mt-0.5 tabular-nums" id="hero-gauge-takes" style="color: var(--text-primary);">0 / 0 Dialog</span>
+                      <span class="block font-mono text-xs font-bold mt-0.5 tabular-nums" id="hero-gauge-takes"
+                        style="color: var(--text-primary);">0 / 0 Dialog</span>
                     </div>
                     <div class="sp-panel-muted p-2.5 text-center">
-                      <span class="block font-sans text-[11px]" style="color: var(--text-muted);">Circle Good Take</span>
-                      <span class="block font-mono text-xs font-bold mt-0.5 tabular-nums" id="hero-gauge-circle" style="color: var(--good-text);">0 Confirmed</span>
+                      <span class="block font-sans text-[11px]" style="color: var(--text-muted);">Circle Good
+                        Take</span>
+                      <span class="block font-mono text-xs font-bold mt-0.5 tabular-nums" id="hero-gauge-circle"
+                        style="color: var(--good-text);">0 Confirmed</span>
                     </div>
                   </div>
                 </article>
@@ -512,9 +632,13 @@
 
               <div class="dash-work-grid">
                 <section class="sp-panel p-5 flex flex-col gap-3" aria-labelledby="dash-projects-title">
-                  <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
+                  <div class="flex items-center justify-between gap-2 pb-2 border-b"
+                    style="border-color: var(--border-flat);">
                     <h2 id="dash-projects-title" class="sp-section-heading">Daftar Proyek Naskah</h2>
-                    <button type="button" class="font-sans text-xs font-semibold hover:underline bg-transparent border-0 px-2 py-1" id="dash-all-projects-btn" style="color: var(--primary-text);" onclick="StoryPad.navigate('projects', 'project-list')">
+                    <button type="button"
+                      class="font-sans text-xs font-semibold hover:underline bg-transparent border-0 px-2 py-1"
+                      id="dash-all-projects-btn" style="color: var(--primary-text);"
+                      onclick="StoryPad.navigate('projects', 'project-list')">
                       Lihat Semua
                     </button>
                   </div>
@@ -523,19 +647,26 @@
 
                 <section class="sp-monitor-panel p-5 flex flex-col gap-3" aria-labelledby="dash-audio-title">
                   <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#2A2E39]">
-                    <h2 id="dash-audio-title" class="font-sans text-sm font-bold text-[#F3F4F6]">Rekaman Audio &amp; Footage Take</h2>
-                    <span class="font-mono text-[11px] text-[#A1A9B8] tabular-nums" id="dash-media-count-badge">0 Klip</span>
+                    <h2 id="dash-audio-title" class="font-sans text-sm font-bold text-[#F3F4F6]">Rekaman Audio &amp;
+                      Footage Take</h2>
+                    <span class="font-mono text-[11px] text-[#A1A9B8] tabular-nums" id="dash-media-count-badge">0
+                      Klip</span>
                   </div>
                   <div class="flex flex-col gap-2.5" id="dash-media-tracks-list"></div>
                 </section>
               </div>
 
-              <div class="sp-panel-muted px-4 py-3 flex flex-wrap items-center justify-between gap-2 transition-all duration-200" id="floating-quick-dock">
+              <div
+                class="sp-panel-muted px-4 py-3 flex flex-wrap items-center justify-between gap-2 transition-all duration-200"
+                id="floating-quick-dock">
                 <div class="flex items-center gap-2 text-xs">
-                  <span class="font-semibold" style="color: var(--text-primary);">Konverter Naskah &amp; NLE Bridge:</span>
-                  <span style="color: var(--text-secondary);">Mendukung impor dokumen Word (.docx), Fountain, Markdown, dan teks naskah multi-scene.</span>
+                  <span class="font-semibold" style="color: var(--text-primary);">Konverter Naskah &amp; NLE
+                    Bridge:</span>
+                  <span style="color: var(--text-secondary);">Mendukung impor dokumen Word (.docx), Fountain, Markdown,
+                    dan teks naskah multi-scene.</span>
                 </div>
-                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.openViewSettings()">
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact"
+                  onclick="StoryPad.openViewSettings()">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">display_settings</span>
                   <span>Pengaturan Tampilan Skrip</span>
                 </button>
@@ -549,28 +680,35 @@
           <section class="screen-view hidden flex-col" id="screen-projects" aria-labelledby="projects-heading">
             <header class="sp-topbar">
               <div class="flex items-center gap-3 min-w-0">
-                <h1 id="projects-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate" style="color: var(--text-primary);">
+                <h1 id="projects-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate"
+                  style="color: var(--text-primary);">
                   Daftar Proyek &amp; Naskah
                 </h1>
                 <span class="sp-badge sp-badge-blue font-mono tabular-nums" id="projects-count-label">0 Aktif</span>
               </div>
               <div class="flex items-center gap-2">
-                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.openScriptImportModal()">
+                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact"
+                  onclick="StoryPad.openScriptImportModal()">
                   <span class="material-symbols-outlined text-[17px]" aria-hidden="true">upload_file</span>
                   <span class="hidden sm:inline">Tambah / Impor Naskah</span>
                   <span class="sm:hidden">Impor</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleProjectSearch()" aria-label="Fokus atau Tutup Pencarian Proyek">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleProjectSearch()"
+                  aria-label="Fokus atau Tutup Pencarian Proyek">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">search</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()" aria-label="Pengaturan Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()"
+                  aria-label="Pengaturan Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">tune</span>
                 </button>
-                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()" aria-label="Notifikasi">
+                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()"
+                  aria-label="Notifikasi">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">notifications</span>
-                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]" aria-hidden="true"></span>
+                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]"
+                    aria-hidden="true"></span>
                 </button>
-                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-proj" onclick="StoryPad.navigate('profile', 'profile')" aria-label="Buka Profil Kru">
+                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-proj"
+                  onclick="StoryPad.navigate('profile', 'profile')" aria-label="Buka Profil Kru">
                   KP
                 </button>
               </div>
@@ -580,36 +718,49 @@
               <div class="sp-panel p-4 flex flex-col gap-3">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div id="project-search-bar" class="flex-1 min-w-0">
-                    <label for="project-search-input" class="sr-only">Cari judul naskah, kode proyek, lokasi, atau format</label>
+                    <label for="project-search-input" class="sr-only">Cari judul naskah, kode proyek, lokasi, atau
+                      format</label>
                     <div class="relative flex items-center">
-                      <span class="material-symbols-outlined absolute left-3 text-[18px]" style="color: var(--text-muted);" aria-hidden="true">search</span>
-                      <input type="text" id="project-search-input" placeholder="Cari judul naskah, kode proyek, lokasi, atau FPS..." class="sp-input pl-10 pr-10" oninput="StoryPad.filterProjects(this.value)">
-                      <button type="button" onclick="StoryPad.clearProjectSearch()" aria-label="Hapus kata kunci pencarian" class="absolute right-1.5 w-9 h-9 flex items-center justify-center rounded bg-transparent border-0" style="color: var(--text-secondary);">
+                      <span class="material-symbols-outlined absolute left-3 text-[18px]"
+                        style="color: var(--text-muted);" aria-hidden="true">search</span>
+                      <input type="text" id="project-search-input"
+                        placeholder="Cari judul naskah, kode proyek, lokasi, atau FPS..." class="sp-input pl-10 pr-10"
+                        oninput="StoryPad.filterProjects(this.value)">
+                      <button type="button" onclick="StoryPad.clearProjectSearch()"
+                        aria-label="Hapus kata kunci pencarian"
+                        class="absolute right-1.5 w-9 h-9 flex items-center justify-center rounded bg-transparent border-0"
+                        style="color: var(--text-secondary);">
                         <span class="material-symbols-outlined text-[17px]" aria-hidden="true">close</span>
                       </button>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1.5 overflow-x-auto" id="project-category-chips" role="group" aria-label="Filter kategori produksi"></div>
+                  <div class="flex items-center gap-1.5 overflow-x-auto" id="project-category-chips" role="group"
+                    aria-label="Filter kategori produksi"></div>
                 </div>
               </div>
 
               <div id="projects-status-banner" class="hidden sp-panel p-4" role="status" aria-live="polite"></div>
 
               <div id="project-search-empty" class="hidden sp-panel p-6 text-center">
-                <p class="font-sans text-sm font-semibold mb-1" id="project-empty-heading" style="color: var(--text-primary);">Tidak ada proyek yang cocok dengan filter aktif</p>
-                <p class="font-sans text-xs mb-4" id="project-empty-desc" style="color: var(--text-secondary);">Ubah kata kunci pencarian, tampilkan semua kategori, atau impor dokumen naskah baru.</p>
+                <p class="font-sans text-sm font-semibold mb-1" id="project-empty-heading"
+                  style="color: var(--text-primary);">Tidak ada proyek yang cocok dengan filter aktif</p>
+                <p class="font-sans text-xs mb-4" id="project-empty-desc" style="color: var(--text-secondary);">Ubah
+                  kata kunci pencarian, tampilkan semua kategori, atau impor dokumen naskah baru.</p>
                 <div class="flex flex-wrap items-center justify-center gap-2">
-                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.resetProjectFilters()">
+                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact"
+                    onclick="StoryPad.resetProjectFilters()">
                     Reset Filter &amp; Pencarian
                   </button>
-                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.openScriptImportModal()">
+                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact"
+                    onclick="StoryPad.openScriptImportModal()">
                     <span class="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
                     <span>Impor Naskah Baru</span>
                   </button>
                 </div>
               </div>
 
-              <section class="flex flex-col gap-3" id="projects-cards-list" aria-label="Daftar proyek produksi"></section>
+              <section class="flex flex-col gap-3" id="projects-cards-list" aria-label="Daftar proyek produksi">
+              </section>
             </div>
           </section>
 
@@ -619,36 +770,44 @@
           <section class="screen-view hidden flex-col" id="screen-script-reader" aria-labelledby="script-heading">
             <header class="sp-topbar">
               <div class="flex items-center gap-2.5 min-w-0">
-                <button aria-label="Kembali ke halaman sebelumnya" class="sp-icon-btn btn-press" onclick="StoryPad.goBack()" type="button">
+                <button aria-label="Kembali ke halaman sebelumnya" class="sp-icon-btn btn-press"
+                  onclick="StoryPad.goBack()" type="button">
                   <span class="material-symbols-outlined text-[20px]" aria-hidden="true">arrow_back</span>
                 </button>
                 <div class="min-w-0">
-                  <h1 id="script-heading" class="font-sans text-sm md:text-base font-bold tracking-tight truncate" style="color: var(--text-primary);">
+                  <h1 id="script-heading" class="font-sans text-sm md:text-base font-bold tracking-tight truncate"
+                    style="color: var(--text-primary);">
                     Live Script Supervisor
                   </h1>
                   <p class="font-mono text-[11px] truncate" style="color: var(--text-secondary);">
-                    <span id="script-project-title">Memuat Naskah...</span> | <span id="script-project-draft">Draft</span>
+                    <span id="script-project-title">Memuat Naskah...</span> | <span
+                      id="script-project-draft">Draft</span>
                   </p>
                 </div>
               </div>
 
               <div class="flex items-center gap-2 shrink-0">
-                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden sm:inline-flex" onclick="StoryPad.openAddLineModal()">
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden sm:inline-flex"
+                  onclick="StoryPad.openAddLineModal()">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">playlist_add</span>
                   <span>+ Baris</span>
                 </button>
-                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden md:inline-flex" onclick="StoryPad.openScriptImportModal()">
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact hidden md:inline-flex"
+                  onclick="StoryPad.openScriptImportModal()">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
                   <span>Impor Naskah</span>
                 </button>
-                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact lg:hidden" onclick="StoryPad.openAudioPanel(StoryPad.state.activeDialogueId, 'audio')">
+                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact lg:hidden"
+                  onclick="StoryPad.openAudioPanel(StoryPad.state.activeDialogueId, 'audio')">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">perm_media</span>
                   <span>Media &amp; Take</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Kertas atau Gelap" title="Ganti Tema Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()"
+                  aria-label="Ganti Tema Kertas atau Gelap" title="Ganti Tema Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">contrast</span>
                 </button>
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()" aria-label="Pengaturan Tampilan Skrip" title="Pengaturan Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.openViewSettings()"
+                  aria-label="Pengaturan Tampilan Skrip" title="Pengaturan Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">tune</span>
                 </button>
               </div>
@@ -656,9 +815,11 @@
 
             <div class="screen-content-wrap">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5 overflow-x-auto" id="script-project-switcher" role="group" aria-label="Pindah proyek naskah"></div>
+                <div class="flex items-center gap-1.5 overflow-x-auto" id="script-project-switcher" role="group"
+                  aria-label="Pindah proyek naskah"></div>
                 <div class="flex items-center gap-2">
-                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact sm:hidden" onclick="StoryPad.openAddLineModal()">
+                  <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact sm:hidden"
+                    onclick="StoryPad.openAddLineModal()">
                     <span class="material-symbols-outlined text-[15px]" aria-hidden="true">playlist_add</span>
                     <span>+ Baris</span>
                   </button>
@@ -666,32 +827,41 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-1.5 overflow-x-auto pb-1" id="script-scene-switcher" role="tablist" aria-label="Pilih adegan (scene) naskah"></div>
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1" id="script-scene-switcher" role="tablist"
+                aria-label="Pilih adegan (scene) naskah"></div>
 
               <div class="sp-panel p-4 flex flex-col gap-2.5">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div class="flex items-center gap-2">
                     <span class="sp-badge sp-badge-blue font-mono" id="script-slug-badge">SCENE 01</span>
-                    <span class="font-mono text-xs font-bold tabular-nums" id="script-header-tc" style="color: var(--good-text);">00:00:00</span>
-                    <span class="sp-badge sp-badge-good font-mono tabular-nums" id="script-scene-coverage-badge">0 / 0 GOOD TAKE</span>
+                    <span class="font-mono text-xs font-bold tabular-nums" id="script-header-tc"
+                      style="color: var(--good-text);">00:00:00</span>
+                    <span class="sp-badge sp-badge-good font-mono tabular-nums" id="script-scene-coverage-badge">0 / 0
+                      GOOD TAKE</span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="font-mono text-xs font-semibold" id="script-take-info" style="color: var(--text-secondary);">0 TAKE</span>
+                    <span class="font-mono text-xs font-semibold" id="script-take-info"
+                      style="color: var(--text-secondary);">0 TAKE</span>
                   </div>
                 </div>
-                <h2 class="font-mono text-sm md:text-base font-bold uppercase tracking-wide break-words m-0" id="script-scene-title" style="color: var(--text-primary);">
+                <h2 class="font-mono text-sm md:text-base font-bold uppercase tracking-wide break-words m-0"
+                  id="script-scene-title" style="color: var(--text-primary);">
                   MEMUAT ADEGAN...
                 </h2>
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
                   <div class="text-xs font-mono" id="script-filter-summary" style="color: var(--text-secondary);"></div>
-                  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter cepat tampilan naskah">
-                    <button type="button" id="inline-chip-focusdialog" class="script-filter-chip" aria-pressed="false" onclick="StoryPad.toggleInlineViewFilter('focusDialogueMode')">
+                  <div class="flex flex-wrap items-center gap-1.5" role="group"
+                    aria-label="Filter cepat tampilan naskah">
+                    <button type="button" id="inline-chip-focusdialog" class="script-filter-chip" aria-pressed="false"
+                      onclick="StoryPad.toggleInlineViewFilter('focusDialogueMode')">
                       Fokus Dialog
                     </button>
-                    <button type="button" id="inline-chip-goodtake" class="script-filter-chip" aria-pressed="false" onclick="StoryPad.toggleInlineViewFilter('filterGoodTakeOnly')">
+                    <button type="button" id="inline-chip-goodtake" class="script-filter-chip" aria-pressed="false"
+                      onclick="StoryPad.toggleInlineViewFilter('filterGoodTakeOnly')">
                       Good Take Saja
                     </button>
-                    <button type="button" id="inline-chip-filecode" class="script-filter-chip is-active" aria-pressed="true" onclick="StoryPad.toggleInlineViewFilter('showFileCode')">
+                    <button type="button" id="inline-chip-filecode" class="script-filter-chip is-active"
+                      aria-pressed="true" onclick="StoryPad.toggleInlineViewFilter('showFileCode')">
                       Kode File
                     </button>
                   </div>
@@ -699,11 +869,14 @@
               </div>
 
               <div class="script-paper-sheet p-4 md:p-6 flex flex-col gap-4">
-                <div class="pb-3 border-b flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-flat);">
-                  <p class="font-mono text-xs md:text-sm font-bold uppercase tracking-wide m-0" id="script-box-scenename" style="color: var(--text-script);">
+                <div class="pb-3 border-b flex flex-wrap items-center justify-between gap-2"
+                  style="border-color: var(--border-flat);">
+                  <p class="font-mono text-xs md:text-sm font-bold uppercase tracking-wide m-0"
+                    id="script-box-scenename" style="color: var(--text-script);">
                     LEMBAR NASKAH INTERAKTIF
                   </p>
-                  <span class="font-mono text-xs" style="color: var(--text-muted);">Klik baris dialog untuk memilih shot, unggah media, atau catat take</span>
+                  <span class="font-mono text-xs" style="color: var(--text-muted);">Klik baris dialog untuk memilih
+                    shot, unggah media, atau catat take</span>
                 </div>
                 <div class="flex flex-col gap-3 w-full" id="script-lines-container"></div>
               </div>
@@ -716,19 +889,24 @@
           <section class="screen-view hidden flex-col" id="screen-profile" aria-labelledby="profile-heading">
             <header class="sp-topbar">
               <div class="flex items-center gap-3 min-w-0">
-                <h1 id="profile-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate" style="color: var(--text-primary);">
+                <h1 id="profile-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate"
+                  style="color: var(--text-primary);">
                   Profil Kru &amp; Izin Produksi
                 </h1>
               </div>
               <div class="flex items-center gap-2">
-                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()" aria-label="Ganti Tema Tampilan">
+                <button type="button" class="sp-icon-btn" onclick="StoryPad.toggleTheme()"
+                  aria-label="Ganti Tema Tampilan">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">contrast</span>
                 </button>
-                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()" aria-label="Notifikasi">
+                <button type="button" class="sp-icon-btn relative" onclick="StoryPad.openNotifications()"
+                  aria-label="Notifikasi">
                   <span class="material-symbols-outlined text-[19px]" aria-hidden="true">notifications</span>
-                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]" aria-hidden="true"></span>
+                  <span class="notif-unread-dot hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#2563EB]"
+                    aria-hidden="true"></span>
                 </button>
-                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-profile" onclick="StoryPad.openLoginAccounts()" aria-label="Pilih Akun Kru">
+                <button type="button" class="sp-icon-btn font-sans text-xs font-bold" id="header-avatar-profile"
+                  onclick="StoryPad.openLoginAccounts()" aria-label="Pilih Akun Kru">
                   KP
                 </button>
               </div>
@@ -739,46 +917,59 @@
                 <div class="flex flex-col gap-4">
                   <article class="sp-panel p-5 flex flex-col gap-4">
                     <div class="flex items-center gap-3.5">
-                      <div class="w-14 h-14 rounded bg-[#2563EB] text-white flex items-center justify-center text-lg font-bold font-sans shrink-0" id="profile-avatar-initials">
+                      <div
+                        class="w-14 h-14 rounded bg-[#2563EB] text-white flex items-center justify-center text-lg font-bold font-sans shrink-0"
+                        id="profile-avatar-initials">
                         KP
                       </div>
                       <div class="min-w-0">
-                        <h2 class="font-sans text-base font-bold truncate m-0" id="profile-user-name" style="color: var(--text-primary);">Kru Produksi</h2>
-                        <p class="font-sans text-xs font-semibold truncate m-0 mt-0.5" id="profile-user-role" style="color: var(--primary-text);">Script Supervisor &amp; Continuity</p>
-                        <p class="font-mono text-xs mt-0.5 truncate m-0" id="profile-user-badge" style="color: var(--text-secondary);">SP-01 | StoryPad Studio</p>
+                        <h2 class="font-sans text-base font-bold truncate m-0" id="profile-user-name"
+                          style="color: var(--text-primary);">Kru Produksi</h2>
+                        <p class="font-sans text-xs font-semibold truncate m-0 mt-0.5" id="profile-user-role"
+                          style="color: var(--primary-text);">Script Supervisor &amp; Continuity</p>
+                        <p class="font-mono text-xs mt-0.5 truncate m-0" id="profile-user-badge"
+                          style="color: var(--text-secondary);">SP-01 | StoryPad Studio</p>
                       </div>
                     </div>
 
                     <div class="sp-panel-muted p-3 flex items-center justify-between gap-2 text-xs">
                       <span style="color: var(--text-secondary);">Naskah Aktif</span>
-                      <span class="font-sans font-bold" id="profile-active-prod" style="color: var(--text-primary);">-</span>
+                      <span class="font-sans font-bold" id="profile-active-prod"
+                        style="color: var(--text-primary);">-</span>
                     </div>
 
                     <dl class="grid grid-cols-3 gap-2 text-center m-0">
                       <div class="sp-panel-muted p-2.5">
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Naskah</dt>
-                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-projects" style="color: var(--text-primary);">0</dd>
+                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-projects"
+                          style="color: var(--text-primary);">0</dd>
                       </div>
                       <div class="sp-panel-muted p-2.5">
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Total Take</dt>
-                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-takes" style="color: var(--text-primary);">0</dd>
+                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-takes"
+                          style="color: var(--text-primary);">0</dd>
                       </div>
                       <div class="sp-panel-muted p-2.5">
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Circle Take</dt>
-                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-circled" style="color: var(--good-text);">0</dd>
+                        <dd class="font-mono text-sm font-bold mt-0.5 tabular-nums m-0" id="profile-stat-circled"
+                          style="color: var(--good-text);">0</dd>
                       </div>
                     </dl>
 
                     <div class="flex flex-col gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
-                      <button type="button" class="sp-btn sp-btn-secondary w-full" onclick="StoryPad.openLoginAccounts()">
+                      <button type="button" class="sp-btn sp-btn-secondary w-full"
+                        onclick="StoryPad.openLoginAccounts()">
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">switch_account</span>
                         <span>Kelola / Ganti Akun Kru</span>
                       </button>
-                      <a href="/admin" id="profile-admin-console-link" class="hidden sp-btn sp-btn-secondary w-full no-underline">
-                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">admin_panel_settings</span>
+                      <a href="/admin" id="profile-admin-console-link"
+                        class="hidden sp-btn sp-btn-secondary w-full no-underline">
+                        <span class="material-symbols-outlined text-[18px]"
+                          aria-hidden="true">admin_panel_settings</span>
                         <span>Buka Admin Console</span>
                       </a>
-                      <button class="sp-btn sp-btn-danger w-full btn-press" id="logout-btn" onclick="StoryPad.handleLogout()" type="button">
+                      <button class="sp-btn sp-btn-danger w-full btn-press" id="logout-btn"
+                        onclick="StoryPad.handleLogout()" type="button">
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>
                         <span>Keluar Sesi Produksi</span>
                       </button>
@@ -788,10 +979,12 @@
                   <article class="sp-panel p-5 flex flex-col gap-3">
                     <h2 class="sp-section-heading">Preferensi Permukaan Kerja</h2>
                     <div class="grid grid-cols-2 gap-2">
-                      <button type="button" id="profile-theme-daylight" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setTheme('daylight')">
+                      <button type="button" id="profile-theme-daylight" class="sp-btn sp-btn-secondary sp-btn-compact"
+                        onclick="StoryPad.setTheme('daylight')">
                         Kertas Editorial
                       </button>
-                      <button type="button" id="profile-theme-slate" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setTheme('slate')">
+                      <button type="button" id="profile-theme-slate" class="sp-btn sp-btn-secondary sp-btn-compact"
+                        onclick="StoryPad.setTheme('slate')">
                         Slate Gelap
                       </button>
                     </div>
@@ -803,23 +996,31 @@
                       <span id="profile-remember-status-badge" class="sp-badge sp-badge-neutral">Tidak Disimpan</span>
                     </div>
                     <p class="font-sans text-xs m-0" style="color: var(--text-secondary);">
-                      Akun tersimpan hanya menyimpan email, nama, dan peran di perangkat ini. Kata sandi dan token tidak pernah disimpan.
+                      Akun tersimpan hanya menyimpan email, nama, dan peran di perangkat ini. Kata sandi dan token tidak
+                      pernah disimpan.
                     </p>
                     <div class="sp-panel-muted p-3 flex items-center justify-between gap-3">
                       <div class="min-w-0">
-                        <div class="font-sans text-xs font-bold" style="color: var(--text-primary);">Daftar Cepat di Perangkat Ini</div>
-                        <div id="profile-remembered-count" class="font-mono text-[11px]" style="color: var(--text-secondary);">0 akun tersimpan</div>
+                        <div class="font-sans text-xs font-bold" style="color: var(--text-primary);">Daftar Cepat di
+                          Perangkat Ini</div>
+                        <div id="profile-remembered-count" class="font-mono text-[11px]"
+                          style="color: var(--text-secondary);">0 akun tersimpan</div>
                       </div>
-                      <button type="button" id="profile-remember-current-btn" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0" onclick="StoryPad.toggleRememberCurrentAccount()">
+                      <button type="button" id="profile-remember-current-btn"
+                        class="sp-btn sp-btn-secondary sp-btn-compact shrink-0"
+                        onclick="StoryPad.toggleRememberCurrentAccount()">
                         Simpan Akun
                       </button>
                     </div>
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-                      <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.openLoginAccountsSheet()">
+                      <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact"
+                        onclick="StoryPad.openLoginAccountsSheet()">
                         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">manage_accounts</span>
                         <span>Kelola Daftar Akun</span>
                       </button>
-                      <button type="button" id="profile-clear-remembered-btn" class="sp-btn sp-btn-danger-ghost sp-btn-compact" onclick="StoryPad.clearAllRememberedAccounts()">
+                      <button type="button" id="profile-clear-remembered-btn"
+                        class="sp-btn sp-btn-danger-ghost sp-btn-compact"
+                        onclick="StoryPad.clearAllRememberedAccounts()">
                         Hapus Semua dari Perangkat
                       </button>
                     </div>
@@ -833,30 +1034,44 @@
                     <p class="font-sans text-xs m-0" style="color: var(--text-secondary);">
                       Verifikasi kata sandi saat ini sebelum menetapkan kata sandi baru (minimal 12 karakter).
                     </p>
-                    <form id="profile-pw-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitChangePassword();">
+                    <form id="profile-pw-form" class="flex flex-col gap-3"
+                      onsubmit="event.preventDefault(); StoryPad.submitChangePassword();">
                       <div class="flex flex-col gap-1">
-                        <label for="profile-pw-current" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Kata Sandi Saat Ini</label>
+                        <label for="profile-pw-current" class="font-sans text-xs font-bold"
+                          style="color: var(--text-primary);">Kata Sandi Saat Ini</label>
                         <div class="sp-password-wrap">
-                          <input id="profile-pw-current" type="password" autocomplete="current-password" minlength="1" maxlength="128" placeholder="Masukkan kata sandi aktif" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
-                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi saat ini" onclick="StoryPad.togglePasswordVisibility('profile-pw-current', this)">
+                          <input id="profile-pw-current" type="password" autocomplete="current-password" minlength="1"
+                            maxlength="128" placeholder="Masukkan kata sandi aktif" required
+                            class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi saat ini"
+                            onclick="StoryPad.togglePasswordVisibility('profile-pw-current', this)">
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
                           </button>
                         </div>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label for="profile-pw-next" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Kata Sandi Baru</label>
+                        <label for="profile-pw-next" class="font-sans text-xs font-bold"
+                          style="color: var(--text-primary);">Kata Sandi Baru</label>
                         <div class="sp-password-wrap">
-                          <input id="profile-pw-next" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Minimal 12 karakter" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
-                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi baru" onclick="StoryPad.togglePasswordVisibility('profile-pw-next', this)">
+                          <input id="profile-pw-next" type="password" autocomplete="new-password" minlength="12"
+                            maxlength="128" placeholder="Minimal 12 karakter" required
+                            class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi baru"
+                            onclick="StoryPad.togglePasswordVisibility('profile-pw-next', this)">
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
                           </button>
                         </div>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label for="profile-pw-confirm" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Konfirmasi Kata Sandi Baru</label>
+                        <label for="profile-pw-confirm" class="font-sans text-xs font-bold"
+                          style="color: var(--text-primary);">Konfirmasi Kata Sandi Baru</label>
                         <div class="sp-password-wrap">
-                          <input id="profile-pw-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Ulangi kata sandi baru" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
-                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan konfirmasi kata sandi baru" onclick="StoryPad.togglePasswordVisibility('profile-pw-confirm', this)">
+                          <input id="profile-pw-confirm" type="password" autocomplete="new-password" minlength="12"
+                            maxlength="128" placeholder="Ulangi kata sandi baru" required
+                            class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle"
+                            aria-label="Tampilkan konfirmasi kata sandi baru"
+                            onclick="StoryPad.togglePasswordVisibility('profile-pw-confirm', this)">
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
                           </button>
                         </div>
@@ -872,57 +1087,84 @@
 
                 <div class="flex flex-col gap-4">
                   <article class="sp-panel p-5 flex flex-col gap-3">
-                    <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
+                    <div class="flex items-center justify-between gap-2 pb-2 border-b"
+                      style="border-color: var(--border-flat);">
                       <div>
                         <h2 class="sp-section-heading">Pengaturan Peran (Role Switcher)</h2>
-                        <p class="font-sans text-xs mt-0.5 m-0" style="color: var(--text-secondary);">Hanya peran yang diotorisasi untuk akun Anda yang dapat diaktifkan dan diverifikasi server.</p>
+                        <p class="font-sans text-xs mt-0.5 m-0" style="color: var(--text-secondary);">Hanya peran yang
+                          diotorisasi untuk akun Anda yang dapat diaktifkan dan diverifikasi server.</p>
                       </div>
                       <span class="sp-badge sp-badge-blue">Server-Verified</span>
                     </div>
 
                     <div class="rounded border divide-y overflow-hidden" style="border-color: var(--border-flat);">
-                      <button type="button" class="role-item flex items-center justify-between p-3.5" data-role-key="scriptSupervisor" aria-pressed="true" onclick="StoryPad.toggleRole('scriptSupervisor', this.querySelector('.toggle-box'))">
-                        <span class="font-sans text-xs font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                      <button type="button" class="role-item flex items-center justify-between p-3.5"
+                        data-role-key="scriptSupervisor" aria-pressed="true"
+                        onclick="StoryPad.toggleRole('scriptSupervisor', this.querySelector('.toggle-box'))">
+                        <span class="font-sans text-xs font-bold flex items-center gap-2"
+                          style="color: var(--text-primary);">
                           <span>Script Supervisor</span>
                           <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
                         </span>
-                        <span class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white" data-checked="true">
+                        <span
+                          class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white"
+                          data-checked="true">
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
-                      <button type="button" class="role-item flex items-center justify-between p-3.5" data-role-key="videoEditor" aria-pressed="true" onclick="StoryPad.toggleRole('videoEditor', this.querySelector('.toggle-box'))">
-                        <span class="font-sans text-xs font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                      <button type="button" class="role-item flex items-center justify-between p-3.5"
+                        data-role-key="videoEditor" aria-pressed="true"
+                        onclick="StoryPad.toggleRole('videoEditor', this.querySelector('.toggle-box'))">
+                        <span class="font-sans text-xs font-bold flex items-center gap-2"
+                          style="color: var(--text-primary);">
                           <span>Video Editor</span>
                           <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
                         </span>
-                        <span class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white" data-checked="true">
+                        <span
+                          class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white"
+                          data-checked="true">
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
-                      <button type="button" class="role-item flex items-center justify-between p-3.5 opacity-70" data-role-key="soundRecordist" aria-pressed="false" onclick="StoryPad.toggleRole('soundRecordist', this.querySelector('.toggle-box'))">
-                        <span class="font-sans text-xs font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                      <button type="button" class="role-item flex items-center justify-between p-3.5 opacity-70"
+                        data-role-key="soundRecordist" aria-pressed="false"
+                        onclick="StoryPad.toggleRole('soundRecordist', this.querySelector('.toggle-box'))">
+                        <span class="font-sans text-xs font-bold flex items-center gap-2"
+                          style="color: var(--text-primary);">
                           <span>Sound Recordist</span>
                           <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
                         </span>
-                        <span class="toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent" data-checked="false">
+                        <span
+                          class="toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent"
+                          data-checked="false">
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
-                      <button type="button" class="role-item flex items-center justify-between p-3.5 opacity-70" data-role-key="directorProducer" aria-pressed="false" onclick="StoryPad.toggleRole('directorProducer', this.querySelector('.toggle-box'))">
-                        <span class="font-sans text-xs font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                      <button type="button" class="role-item flex items-center justify-between p-3.5 opacity-70"
+                        data-role-key="directorProducer" aria-pressed="false"
+                        onclick="StoryPad.toggleRole('directorProducer', this.querySelector('.toggle-box'))">
+                        <span class="font-sans text-xs font-bold flex items-center gap-2"
+                          style="color: var(--text-primary);">
                           <span>Director &amp; Producer View</span>
                           <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
                         </span>
-                        <span class="toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent" data-checked="false">
+                        <span
+                          class="toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent"
+                          data-checked="false">
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
-                      <button type="button" class="role-item flex items-center justify-between p-3.5" data-role-key="autoExportMeta" aria-pressed="true" onclick="StoryPad.toggleRole('autoExportMeta', this.querySelector('.toggle-box'))">
-                        <span class="font-sans text-xs font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                      <button type="button" class="role-item flex items-center justify-between p-3.5"
+                        data-role-key="autoExportMeta" aria-pressed="true"
+                        onclick="StoryPad.toggleRole('autoExportMeta', this.querySelector('.toggle-box'))">
+                        <span class="font-sans text-xs font-bold flex items-center gap-2"
+                          style="color: var(--text-primary);">
                           <span>Auto-Export Meta Naming</span>
                           <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
                         </span>
-                        <span class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white" data-checked="true">
+                        <span
+                          class="toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white"
+                          data-checked="true">
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
@@ -938,17 +1180,20 @@
                         </p>
                       </div>
                       <div class="flex items-center gap-2">
-                        <button type="button" id="profile-sessions-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadActiveSessions()">
+                        <button type="button" id="profile-sessions-refresh-btn"
+                          class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadActiveSessions()">
                           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
                           <span>Muat Ulang</span>
                         </button>
-                        <button type="button" id="profile-sessions-logout-others-btn" class="sp-btn sp-btn-danger-ghost sp-btn-compact" onclick="StoryPad.logoutOtherSessions()">
+                        <button type="button" id="profile-sessions-logout-others-btn"
+                          class="sp-btn sp-btn-danger-ghost sp-btn-compact" onclick="StoryPad.logoutOtherSessions()">
                           Keluar Perangkat Lain
                         </button>
                       </div>
                     </div>
                     <div id="profile-sessions-list" class="flex flex-col gap-2">
-                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat sesi aktif...</p>
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat sesi aktif...
+                      </p>
                     </div>
                   </article>
 
@@ -961,18 +1206,22 @@
                         </p>
                       </div>
                       <div class="flex items-center gap-2">
-                        <button type="button" id="profile-identities-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadLinkedIdentities()">
+                        <button type="button" id="profile-identities-refresh-btn"
+                          class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadLinkedIdentities()">
                           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
                           <span>Periksa</span>
                         </button>
-                        <button type="button" id="profile-link-google-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.linkAdditionalIdentity('google')">
+                        <button type="button" id="profile-link-google-btn"
+                          class="sp-btn sp-btn-secondary sp-btn-compact"
+                          onclick="StoryPad.linkAdditionalIdentity('google')">
                           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add_link</span>
                           <span>Tautkan Google</span>
                         </button>
                       </div>
                     </div>
                     <div id="profile-identities-list" class="flex flex-col gap-2">
-                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat identitas tertaut...</p>
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat identitas
+                        tertaut...</p>
                     </div>
                   </article>
 
@@ -984,13 +1233,15 @@
                           Riwayat autentikasi, perubahan peran, kata sandi, dan sesi akun ini.
                         </p>
                       </div>
-                      <button type="button" id="profile-audit-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadAuditLogs()">
+                      <button type="button" id="profile-audit-refresh-btn"
+                        class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadAuditLogs()">
                         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
                         <span>Muat Ulang</span>
                       </button>
                     </div>
                     <div id="profile-audit-list" class="flex flex-col gap-2">
-                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat log keamanan...</p>
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat log keamanan...
+                      </p>
                     </div>
                   </article>
                 </div>
@@ -1002,37 +1253,50 @@
         <!-- ========================================== -->
         <!-- INSPECTOR DECK: AUDIO, FOOTAGE, TAKE & NOTES -->
         <!-- ========================================== -->
-        <aside class="bottom-sheet-drawer monitor-deck inspector-drawer" id="sheet-audio-panel" aria-label="Panel Monitor Audio, Footage, Take, dan Catatan">
+        <aside class="bottom-sheet-drawer monitor-deck inspector-drawer" id="sheet-audio-panel"
+          aria-label="Panel Monitor Audio, Footage, Take, dan Catatan">
           <div class="bottom-sheet-handle"></div>
           <div class="bottom-sheet-content keyboard-avoiding-container" id="panel-scroll-container">
             <div class="flex items-center justify-between gap-2 pb-2 border-b border-[#2A2E39]">
               <h2 class="font-sans text-sm font-bold text-[#F3F4F6] truncate" id="panel-scene-title">
-                Panel Media &amp; Take <span class="text-xs text-[#A1A9B8] font-normal font-mono">(Scene 01 / Shot 01)</span>
+                Panel Media &amp; Take <span class="text-xs text-[#A1A9B8] font-normal font-mono">(Scene 01 / Shot
+                  01)</span>
               </h2>
-              <button aria-label="Tutup panel monitor" class="drawer-only-close sp-icon-btn sp-icon-btn-monitor" onclick="StoryPad.closeAudioPanel()" type="button">
+              <button aria-label="Tutup panel monitor" class="drawer-only-close sp-icon-btn sp-icon-btn-monitor"
+                onclick="StoryPad.closeAudioPanel()" type="button">
                 <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
               </button>
             </div>
 
             <audio id="panel-real-audio" preload="metadata" class="hidden"></audio>
-            <input type="file" id="input-upload-audio" accept=".wav,.mp3,.m4a,.aac,.ogg,.webm,audio/*" class="sr-only" onchange="StoryPad.handleMediaFileSelected('audio', this)">
-            <input type="file" id="input-upload-video" accept=".mp4,.mov,.webm,.mkv,video/*" class="sr-only" onchange="StoryPad.handleMediaFileSelected('video', this)">
+            <input type="file" id="input-upload-audio" accept=".wav,.mp3,.m4a,.aac,.ogg,.webm,audio/*" class="sr-only"
+              onchange="StoryPad.handleMediaFileSelected('audio', this)">
+            <input type="file" id="input-upload-video" accept=".mp4,.mov,.webm,.mkv,video/*" class="sr-only"
+              onchange="StoryPad.handleMediaFileSelected('video', this)">
 
-            <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#0F1115] border border-[#2A2E39] rounded" role="tablist" aria-label="Mode Pemantauan Media">
-              <button type="button" role="tab" aria-selected="true" id="panel-tab-audio" class="min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors bg-[#2563EB] text-white" onclick="StoryPad.switchPanelMediaTab('audio')">
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#0F1115] border border-[#2A2E39] rounded" role="tablist"
+              aria-label="Mode Pemantauan Media">
+              <button type="button" role="tab" aria-selected="true" id="panel-tab-audio"
+                class="min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors bg-[#2563EB] text-white"
+                onclick="StoryPad.switchPanelMediaTab('audio')">
                 <span class="material-symbols-outlined text-[16px]" aria-hidden="true">graphic_eq</span>
                 <span>Audio Take</span>
               </button>
-              <button type="button" role="tab" aria-selected="false" id="panel-tab-video" class="min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors text-[#A1A9B8] hover:text-white" onclick="StoryPad.switchPanelMediaTab('video')">
+              <button type="button" role="tab" aria-selected="false" id="panel-tab-video"
+                class="min-h-[40px] py-1.5 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors text-[#A1A9B8] hover:text-white"
+                onclick="StoryPad.switchPanelMediaTab('video')">
                 <span class="material-symbols-outlined text-[16px]" aria-hidden="true">videocam</span>
                 <span>Footage Kamera</span>
               </button>
             </div>
 
-            <div class="bg-[#12151B] border border-[#2A2E39] p-3 rounded flex flex-col gap-2.5" id="panel-audio-container">
+            <div class="bg-[#12151B] border border-[#2A2E39] p-3 rounded flex flex-col gap-2.5"
+              id="panel-audio-container">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-[#F3F4F6] font-sans text-xs font-bold">Monitor Audio Take</span>
-                <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] text-[#A1A9B8]" id="panel-audio-source-badge">Belum Ada File</span>
+                <span
+                  class="font-mono text-[11px] px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] text-[#A1A9B8]"
+                  id="panel-audio-source-badge">Belum Ada File</span>
               </div>
 
               <p class="font-mono text-[11px] text-[#A1A9B8] m-0 truncate" id="panel-audio-file-label">
@@ -1040,12 +1304,17 @@
               </p>
 
               <div class="flex items-center gap-2.5">
-                <button aria-label="Putar atau jeda audio take" class="btn-press w-11 h-11 shrink-0 rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center" id="audio-play-btn" onclick="StoryPad.togglePanelAudioPlayback()" type="button">
-                  <span class="material-symbols-outlined text-[20px]" id="panel-play-icon" aria-hidden="true">play_arrow</span>
+                <button aria-label="Putar atau jeda audio take"
+                  class="btn-press w-11 h-11 shrink-0 rounded bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center"
+                  id="audio-play-btn" onclick="StoryPad.togglePanelAudioPlayback()" type="button">
+                  <span class="material-symbols-outlined text-[20px]" id="panel-play-icon"
+                    aria-hidden="true">play_arrow</span>
                 </button>
 
                 <div class="flex flex-col flex-1 min-w-0 gap-1">
-                  <button type="button" aria-label="Putar atau jeda waveform" class="relative w-full h-9 bg-[#0F1115] border border-[#2A2E39] rounded flex items-center px-1.5 overflow-hidden text-left" id="panel-waveform" onclick="StoryPad.togglePanelAudioPlayback()">
+                  <button type="button" aria-label="Putar atau jeda waveform"
+                    class="relative w-full h-9 bg-[#0F1115] border border-[#2A2E39] rounded flex items-center px-1.5 overflow-hidden text-left"
+                    id="panel-waveform" onclick="StoryPad.togglePanelAudioPlayback()">
                     <span class="flex items-center justify-between w-full h-full gap-[2px]" aria-hidden="true">
                       <span class="waveform-bar w-[3px] h-[35%] bg-[#60A5FA]"></span>
                       <span class="waveform-bar w-[3px] h-[60%] bg-[#60A5FA]"></span>
@@ -1061,7 +1330,8 @@
                       <span class="waveform-bar w-[3px] h-[90%] bg-[#6A748B]"></span>
                       <span class="waveform-bar w-[3px] h-[50%] bg-[#6A748B]"></span>
                     </span>
-                    <span class="absolute left-[0%] top-0 bottom-0 w-[2px] bg-[#34D399]" id="panel-audio-playhead" aria-hidden="true"></span>
+                    <span class="absolute left-[0%] top-0 bottom-0 w-[2px] bg-[#34D399]" id="panel-audio-playhead"
+                      aria-hidden="true"></span>
                   </button>
 
                   <div class="flex items-center justify-between font-mono text-[11px] tabular-nums">
@@ -1072,24 +1342,31 @@
               </div>
 
               <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#2A2E39]">
-                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="btn-trigger-audio-upload" onclick="StoryPad.triggerMediaPicker('audio')">
+                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="btn-trigger-audio-upload"
+                  onclick="StoryPad.triggerMediaPicker('audio')">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">upload</span>
                   <span>Unggah Audio</span>
                 </button>
-                <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact" onclick="StoryPad.toggleMediaUrlInput('audio')">
+                <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact"
+                  onclick="StoryPad.toggleMediaUrlInput('audio')">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">link</span>
                   <span>URL</span>
                 </button>
-                <button type="button" id="btn-clear-audio" class="hidden sp-btn sp-btn-monitor sp-btn-compact text-[#F87171]" onclick="StoryPad.clearTakeMedia('audio')" aria-label="Lepas berkas audio">
+                <button type="button" id="btn-clear-audio"
+                  class="hidden sp-btn sp-btn-monitor sp-btn-compact text-[#F87171]"
+                  onclick="StoryPad.clearTakeMedia('audio')" aria-label="Lepas berkas audio">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">delete</span>
                 </button>
               </div>
 
               <div id="audio-url-box" class="hidden flex-col gap-1.5 p-2 rounded bg-[#0F1115] border border-[#2A2E39]">
-                <label for="input-audio-url" class="font-sans text-[11px] font-semibold text-[#A1A9B8]">Tautkan URL Audio Langsung (.wav / .mp3)</label>
+                <label for="input-audio-url" class="font-sans text-[11px] font-semibold text-[#A1A9B8]">Tautkan URL
+                  Audio Langsung (.wav / .mp3)</label>
                 <div class="flex items-center gap-1.5">
-                  <input type="url" id="input-audio-url" class="sp-input-monitor flex-1" placeholder="https://.../take01_audio.wav">
-                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.attachMediaByUrl('audio')">Simpan</button>
+                  <input type="url" id="input-audio-url" class="sp-input-monitor flex-1"
+                    placeholder="https://.../take01_audio.wav">
+                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact"
+                    onclick="StoryPad.attachMediaByUrl('audio')">Simpan</button>
                 </div>
               </div>
 
@@ -1115,35 +1392,51 @@
               </div>
             </div>
 
-            <div class="hidden bg-[#12151B] border border-[#2A2E39] p-3 rounded flex flex-col gap-2.5" id="panel-footage-container">
+            <div class="hidden bg-[#12151B] border border-[#2A2E39] p-3 rounded flex flex-col gap-2.5"
+              id="panel-footage-container">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-[#F3F4F6] font-sans text-xs font-bold">Monitor Footage Kamera</span>
-                <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] text-[#A1A9B8]" id="panel-video-source-badge">Mode Slate</span>
+                <span
+                  class="font-mono text-[11px] px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] text-[#A1A9B8]"
+                  id="panel-video-source-badge">Mode Slate</span>
               </div>
 
-              <div class="relative w-full aspect-video camera-monitor-screen overflow-hidden flex flex-col justify-between p-2.5 select-none">
-                <video id="panel-real-video" width="640" height="360" playsinline preload="metadata" class="hidden absolute inset-0 w-full h-full object-contain bg-black z-0"></video>
+              <div
+                class="relative w-full aspect-video camera-monitor-screen overflow-hidden flex flex-col justify-between p-2.5 select-none">
+                <video id="panel-real-video" width="640" height="360" playsinline preload="metadata"
+                  class="hidden absolute inset-0 w-full h-full object-contain bg-black z-0"></video>
                 <div class="flex items-center justify-between text-[11px] font-mono z-10 relative">
                   <div class="flex items-center gap-1.5 bg-[#0F1115]/90 border border-[#2A2E39] px-2 py-0.5">
                     <span class="text-[#F3F4F6] font-bold">CAM-A</span>
                     <span class="text-[#A1A9B8]">|</span>
                     <span class="text-[#60A5FA]" id="footage-fps-badge">24 FPS</span>
                   </div>
-                  <div class="bg-[#0F1115]/90 border border-[#2A2E39] px-2 py-0.5 text-[#34D399] font-bold tabular-nums" id="footage-live-tc">
+                  <div class="bg-[#0F1115]/90 border border-[#2A2E39] px-2 py-0.5 text-[#34D399] font-bold tabular-nums"
+                    id="footage-live-tc">
                     00:00:00:00
                   </div>
                 </div>
                 <div class="camera-safe-frame" aria-hidden="true"></div>
                 <div class="camera-crosshair" aria-hidden="true"></div>
-                <div class="flex flex-col items-center justify-center text-center pointer-events-none my-auto z-10 relative" id="footage-slate-placeholder">
-                  <span class="font-sans text-[11px] text-[#A1A9B8] tracking-wide uppercase">Pratinjau Slate Kamera</span>
+                <div
+                  class="flex flex-col items-center justify-center text-center pointer-events-none my-auto z-10 relative"
+                  id="footage-slate-placeholder">
+                  <span class="font-sans text-[11px] text-[#A1A9B8] tracking-wide uppercase">Pratinjau Slate
+                    Kamera</span>
                   <div class="flex items-center gap-1.5 mt-1.5">
-                    <span class="font-mono text-xs font-bold text-[#F3F4F6] bg-[#161920] px-2 py-0.5 border border-[#373C4A]" id="footage-scene-badge">SC 01</span>
-                    <span class="font-mono text-xs font-bold text-[#60A5FA] bg-[#161920] px-2 py-0.5 border border-[#373C4A]" id="footage-shot-badge">SH 01</span>
-                    <span class="font-mono text-xs font-bold text-[#34D399] bg-[#161920] px-2 py-0.5 border border-[#373C4A]" id="footage-take-badge">TK 01</span>
+                    <span
+                      class="font-mono text-xs font-bold text-[#F3F4F6] bg-[#161920] px-2 py-0.5 border border-[#373C4A]"
+                      id="footage-scene-badge">SC 01</span>
+                    <span
+                      class="font-mono text-xs font-bold text-[#60A5FA] bg-[#161920] px-2 py-0.5 border border-[#373C4A]"
+                      id="footage-shot-badge">SH 01</span>
+                    <span
+                      class="font-mono text-xs font-bold text-[#34D399] bg-[#161920] px-2 py-0.5 border border-[#373C4A]"
+                      id="footage-take-badge">TK 01</span>
                   </div>
                 </div>
-                <div class="flex items-center justify-between text-[10px] font-mono text-[#A1A9B8] z-10 relative bg-[#0F1115]/90 border border-[#2A2E39] px-2 py-0.5">
+                <div
+                  class="flex items-center justify-between text-[10px] font-mono text-[#A1A9B8] z-10 relative bg-[#0F1115]/90 border border-[#2A2E39] px-2 py-0.5">
                   <span class="truncate max-w-[65%]" id="footage-file-caption">Belum ada klip video terlampir</span>
                   <span class="text-[#60A5FA] shrink-0">REC MONITOR</span>
                 </div>
@@ -1151,13 +1444,17 @@
 
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-1.5">
-                  <button type="button" onclick="StoryPad.stepFootage(-1)" aria-label="Mundur 1 frame" class="sp-icon-btn sp-icon-btn-monitor">
+                  <button type="button" onclick="StoryPad.stepFootage(-1)" aria-label="Mundur 1 frame"
+                    class="sp-icon-btn sp-icon-btn-monitor">
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">fast_rewind</span>
                   </button>
-                  <button type="button" onclick="StoryPad.toggleFootagePlayback()" id="footage-play-btn" aria-label="Putar atau jeda footage" class="sp-btn sp-btn-primary sp-btn-compact px-3">
-                    <span class="material-symbols-outlined text-[18px]" id="footage-play-icon" aria-hidden="true">play_arrow</span>
+                  <button type="button" onclick="StoryPad.toggleFootagePlayback()" id="footage-play-btn"
+                    aria-label="Putar atau jeda footage" class="sp-btn sp-btn-primary sp-btn-compact px-3">
+                    <span class="material-symbols-outlined text-[18px]" id="footage-play-icon"
+                      aria-hidden="true">play_arrow</span>
                   </button>
-                  <button type="button" onclick="StoryPad.stepFootage(1)" aria-label="Maju 1 frame" class="sp-icon-btn sp-icon-btn-monitor">
+                  <button type="button" onclick="StoryPad.stepFootage(1)" aria-label="Maju 1 frame"
+                    class="sp-icon-btn sp-icon-btn-monitor">
                     <span class="material-symbols-outlined text-[18px]" aria-hidden="true">fast_forward</span>
                   </button>
                 </div>
@@ -1168,36 +1465,50 @@
               </div>
 
               <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#2A2E39]">
-                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="btn-trigger-video-upload" onclick="StoryPad.triggerMediaPicker('video')">
+                <button type="button" class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="btn-trigger-video-upload"
+                  onclick="StoryPad.triggerMediaPicker('video')">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">video_call</span>
                   <span>Unggah Footage</span>
                 </button>
-                <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact" onclick="StoryPad.toggleMediaUrlInput('video')">
+                <button type="button" class="sp-btn sp-btn-monitor sp-btn-compact"
+                  onclick="StoryPad.toggleMediaUrlInput('video')">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">link</span>
                   <span>URL</span>
                 </button>
-                <button type="button" id="btn-clear-video" class="hidden sp-btn sp-btn-monitor sp-btn-compact text-[#F87171]" onclick="StoryPad.clearTakeMedia('video')" aria-label="Lepas klip footage">
+                <button type="button" id="btn-clear-video"
+                  class="hidden sp-btn sp-btn-monitor sp-btn-compact text-[#F87171]"
+                  onclick="StoryPad.clearTakeMedia('video')" aria-label="Lepas klip footage">
                   <span class="material-symbols-outlined text-[15px]" aria-hidden="true">delete</span>
                 </button>
               </div>
 
               <div id="video-url-box" class="hidden flex-col gap-1.5 p-2 rounded bg-[#0F1115] border border-[#2A2E39]">
-                <label for="input-video-url" class="font-sans text-[11px] font-semibold text-[#A1A9B8]">Tautkan URL Video Footage (.mp4 / .webm)</label>
+                <label for="input-video-url" class="font-sans text-[11px] font-semibold text-[#A1A9B8]">Tautkan URL
+                  Video Footage (.mp4 / .webm)</label>
                 <div class="flex items-center gap-1.5">
-                  <input type="url" id="input-video-url" class="sp-input-monitor flex-1" placeholder="https://.../take01_camA.mp4">
-                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.attachMediaByUrl('video')">Simpan</button>
+                  <input type="url" id="input-video-url" class="sp-input-monitor flex-1"
+                    placeholder="https://.../take01_camA.mp4">
+                  <button type="button" class="sp-btn sp-btn-primary sp-btn-compact"
+                    onclick="StoryPad.attachMediaByUrl('video')">Simpan</button>
                 </div>
               </div>
             </div>
 
-            <div id="panel-media-upload-status" class="hidden p-2.5 rounded bg-[#172554] border border-[#3B82F6] text-xs font-mono text-[#DBEAFE]" role="status" aria-live="polite"></div>
+            <div id="panel-media-upload-status"
+              class="hidden p-2.5 rounded bg-[#172554] border border-[#3B82F6] text-xs font-mono text-[#DBEAFE]"
+              role="status" aria-live="polite"></div>
 
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between gap-2">
-                <h3 class="font-sans text-xs font-bold text-[#F3F4F6] m-0" id="panel-takes-header-label">Daftar Rekaman Take</h3>
+                <h3 class="font-sans text-xs font-bold text-[#F3F4F6] m-0" id="panel-takes-header-label">Daftar Rekaman
+                  Take</h3>
                 <div class="flex items-center gap-2">
-                  <span class="font-mono text-[11px] text-[#60A5FA] bg-[#12151B] px-2 py-0.5 rounded border border-[#2A2E39] tabular-nums" id="panel-takes-count-badge">0 Take</span>
-                  <button type="button" class="font-sans text-[11px] font-semibold min-h-[36px] px-2.5 py-1 rounded bg-[#1E222B] border border-[#6A748B] text-[#F3F4F6] hover:bg-[#2A303C]" onclick="StoryPad.logNewTake()">
+                  <span
+                    class="font-mono text-[11px] text-[#60A5FA] bg-[#12151B] px-2 py-0.5 rounded border border-[#2A2E39] tabular-nums"
+                    id="panel-takes-count-badge">0 Take</span>
+                  <button type="button"
+                    class="font-sans text-[11px] font-semibold min-h-[36px] px-2.5 py-1 rounded bg-[#1E222B] border border-[#6A748B] text-[#F3F4F6] hover:bg-[#2A303C]"
+                    onclick="StoryPad.logNewTake()">
                     + Take Baru
                   </button>
                 </div>
@@ -1207,44 +1518,67 @@
 
             <div class="bg-[#12151B] border border-[#2A2E39] p-3 rounded flex flex-col gap-2">
               <div class="flex items-center justify-between gap-2">
-                <h3 class="font-sans text-xs font-bold text-[#60A5FA] m-0" id="panel-naming-title">Kode Penamaan Otomatis</h3>
-                <button class="sp-btn sp-btn-monitor sp-btn-compact px-2.5" id="copy-btn" onclick="StoryPad.copyFileNames()" type="button">
-                  <span class="material-symbols-outlined text-[15px]" id="copy-icon" aria-hidden="true">content_copy</span>
+                <h3 class="font-sans text-xs font-bold text-[#60A5FA] m-0" id="panel-naming-title">Kode Penamaan
+                  Otomatis</h3>
+                <button class="sp-btn sp-btn-monitor sp-btn-compact px-2.5" id="copy-btn"
+                  onclick="StoryPad.copyFileNames()" type="button">
+                  <span class="material-symbols-outlined text-[15px]" id="copy-icon"
+                    aria-hidden="true">content_copy</span>
                   <span id="copy-text">Salin Semua</span>
                 </button>
               </div>
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]" id="panel-naming-sc">SC: 01</span>
-                <span class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]" id="panel-naming-sh">SH: 01</span>
-                <span class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#34D399] font-bold" id="panel-naming-tk">TK: 01</span>
-                <span class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]" id="panel-naming-cam">CAM: A</span>
+                <span
+                  class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]"
+                  id="panel-naming-sc">SC: 01</span>
+                <span
+                  class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]"
+                  id="panel-naming-sh">SH: 01</span>
+                <span
+                  class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#34D399] font-bold"
+                  id="panel-naming-tk">TK: 01</span>
+                <span
+                  class="px-2 py-0.5 rounded bg-[#1E222B] border border-[#2A2E39] font-mono text-[11px] text-[#A1A9B8]"
+                  id="panel-naming-cam">CAM: A</span>
               </div>
               <div class="flex flex-col gap-1 bg-[#0F1115] border border-[#2A2E39] p-2 rounded font-mono text-[11px]">
-                <button type="button" class="w-full text-left flex items-center justify-between gap-2 py-1 px-1.5 rounded hover:bg-[#1E222B]" onclick="StoryPad.copySpecificFilename('video')">
+                <button type="button"
+                  class="w-full text-left flex items-center justify-between gap-2 py-1 px-1.5 rounded hover:bg-[#1E222B]"
+                  onclick="StoryPad.copySpecificFilename('video')">
                   <span class="text-[#A1A9B8] font-sans text-[10px] uppercase shrink-0 font-bold">VIDEO:</span>
-                  <span class="text-[#F3F4F6] font-medium truncate flex-1" id="filename-video">SC01_SH01_T01_Dialog_CAM-A.mp4</span>
-                  <span class="material-symbols-outlined text-[14px] text-[#A1A9B8]" aria-hidden="true">content_copy</span>
+                  <span class="text-[#F3F4F6] font-medium truncate flex-1"
+                    id="filename-video">SC01_SH01_T01_Dialog_CAM-A.mp4</span>
+                  <span class="material-symbols-outlined text-[14px] text-[#A1A9B8]"
+                    aria-hidden="true">content_copy</span>
                 </button>
-                <button type="button" class="w-full text-left flex items-center justify-between gap-2 py-1 px-1.5 rounded hover:bg-[#1E222B]" onclick="StoryPad.copySpecificFilename('audio')">
+                <button type="button"
+                  class="w-full text-left flex items-center justify-between gap-2 py-1 px-1.5 rounded hover:bg-[#1E222B]"
+                  onclick="StoryPad.copySpecificFilename('audio')">
                   <span class="text-[#A1A9B8] font-sans text-[10px] uppercase shrink-0 font-bold">AUDIO:</span>
-                  <span class="text-[#34D399] font-medium truncate flex-1" id="filename-audio">SC01_SH01_T01_Dialog_AUD.wav</span>
-                  <span class="material-symbols-outlined text-[14px] text-[#A1A9B8]" aria-hidden="true">content_copy</span>
+                  <span class="text-[#34D399] font-medium truncate flex-1"
+                    id="filename-audio">SC01_SH01_T01_Dialog_AUD.wav</span>
+                  <span class="material-symbols-outlined text-[14px] text-[#A1A9B8]"
+                    aria-hidden="true">content_copy</span>
                 </button>
               </div>
             </div>
 
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between gap-2">
-                <label class="font-sans text-xs font-bold text-[#F3F4F6]" for="panel-script-notes">Catatan Kontinuitas Lapangan</label>
+                <label class="font-sans text-xs font-bold text-[#F3F4F6]" for="panel-script-notes">Catatan Kontinuitas
+                  Lapangan</label>
                 <span class="font-mono text-[11px] text-[#34D399]" id="panel-autosave-status">Siap mencatat</span>
               </div>
-              <textarea class="sp-textarea-monitor resize-y" id="panel-script-notes" placeholder="Tulis catatan kontinuitas prop, posisi aktor, lensa, atau kualitas audio..." oninput="StoryPad.updateActiveNote(this.value)" rows="3"></textarea>
+              <textarea class="sp-textarea-monitor resize-y" id="panel-script-notes"
+                placeholder="Tulis catatan kontinuitas prop, posisi aktor, lensa, atau kualitas audio..."
+                oninput="StoryPad.updateActiveNote(this.value)" rows="3"></textarea>
               <div class="flex items-center gap-2 pt-1">
                 <button class="sp-btn sp-btn-monitor sp-btn-compact" onclick="StoryPad.saveNotes()" type="button">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">bookmark</span>
                   <span>Simpan Catatan</span>
                 </button>
-                <button class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="send-nle-btn" onclick="StoryPad.syncToNle()" type="button">
+                <button class="sp-btn sp-btn-primary sp-btn-compact flex-1" id="send-nle-btn"
+                  onclick="StoryPad.syncToNle()" type="button">
                   <span class="material-symbols-outlined text-[16px]" aria-hidden="true">send_time_extension</span>
                   <span>Kirim ke Editor NLE</span>
                 </button>
@@ -1261,49 +1595,75 @@
     <!-- ========================================== -->
     <div class="bottom-sheet-overlay" id="sheet-overlay"></div>
 
-    <div class="bottom-sheet-drawer modal-dialog" id="sheet-view-settings" role="dialog" aria-modal="true" aria-labelledby="view-settings-title">
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-view-settings" role="dialog" aria-modal="true"
+      aria-labelledby="view-settings-title">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="view-settings-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Pengaturan Tampilan Skrip</h2>
-          <button type="button" aria-label="Tutup pengaturan tampilan" class="sp-icon-btn" onclick="StoryPad.closeViewSettings()">
+          <h2 id="view-settings-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">
+            Pengaturan Tampilan Skrip</h2>
+          <button type="button" aria-label="Tutup pengaturan tampilan" class="sp-icon-btn"
+            onclick="StoryPad.closeViewSettings()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
         <div class="flex flex-col gap-2">
-          <label class="flex items-center justify-between gap-3 p-3 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" for="filter-toggle-filecode">
+          <label class="flex items-center justify-between gap-3 p-3 rounded border"
+            style="background-color: var(--panel-lowest); border-color: var(--border-flat);"
+            for="filter-toggle-filecode">
             <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Tampilkan Kode File</span>
-            <input id="filter-toggle-filecode" type="checkbox" checked class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]" onchange="StoryPad.handleViewToggle('showFileCode', this.checked)">
+            <input id="filter-toggle-filecode" type="checkbox" checked
+              class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]"
+              onchange="StoryPad.handleViewToggle('showFileCode', this.checked)">
           </label>
-          <label class="flex items-center justify-between gap-3 p-3 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" for="filter-toggle-goodtake">
+          <label class="flex items-center justify-between gap-3 p-3 rounded border"
+            style="background-color: var(--panel-lowest); border-color: var(--border-flat);"
+            for="filter-toggle-goodtake">
             <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Filter Good Take Only</span>
-            <input id="filter-toggle-goodtake" type="checkbox" class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]" onchange="StoryPad.handleViewToggle('filterGoodTakeOnly', this.checked)">
+            <input id="filter-toggle-goodtake" type="checkbox" class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]"
+              onchange="StoryPad.handleViewToggle('filterGoodTakeOnly', this.checked)">
           </label>
-          <label class="flex items-center justify-between gap-3 p-3 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" for="filter-toggle-highlight">
-            <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Highlight Status Syuting</span>
-            <input id="filter-toggle-highlight" type="checkbox" checked class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]" onchange="StoryPad.handleViewToggle('highlightStatus', this.checked)">
+          <label class="flex items-center justify-between gap-3 p-3 rounded border"
+            style="background-color: var(--panel-lowest); border-color: var(--border-flat);"
+            for="filter-toggle-highlight">
+            <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Highlight Status
+              Syuting</span>
+            <input id="filter-toggle-highlight" type="checkbox" checked
+              class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]"
+              onchange="StoryPad.handleViewToggle('highlightStatus', this.checked)">
           </label>
-          <label class="flex items-center justify-between gap-3 p-3 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" for="filter-toggle-focusdialog">
+          <label class="flex items-center justify-between gap-3 p-3 rounded border"
+            style="background-color: var(--panel-lowest); border-color: var(--border-flat);"
+            for="filter-toggle-focusdialog">
             <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Mode Fokus Dialog</span>
-            <input id="filter-toggle-focusdialog" type="checkbox" class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]" onchange="StoryPad.handleViewToggle('focusDialogueMode', this.checked)">
+            <input id="filter-toggle-focusdialog" type="checkbox"
+              class="w-5 h-5 rounded border-[#736F63] text-[#2563EB]"
+              onchange="StoryPad.handleViewToggle('focusDialogueMode', this.checked)">
           </label>
         </div>
-        <div class="pt-2 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-flat);">
+        <div class="pt-2 border-t flex flex-wrap items-center justify-between gap-2"
+          style="border-color: var(--border-flat);">
           <div class="flex items-center gap-1.5">
-            <button type="button" id="view-theme-daylight" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setTheme('daylight')">Kertas</button>
-            <button type="button" id="view-theme-slate" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.setTheme('slate')">Slate Gelap</button>
+            <button type="button" id="view-theme-daylight" class="sp-btn sp-btn-secondary sp-btn-compact"
+              onclick="StoryPad.setTheme('daylight')">Kertas</button>
+            <button type="button" id="view-theme-slate" class="sp-btn sp-btn-secondary sp-btn-compact"
+              onclick="StoryPad.setTheme('slate')">Slate Gelap</button>
           </div>
-          <button class="sp-btn sp-btn-secondary sp-btn-compact" id="resetFiltersBtn" onclick="StoryPad.resetViewFilters()" type="button">Reset View</button>
+          <button class="sp-btn sp-btn-secondary sp-btn-compact" id="resetFiltersBtn"
+            onclick="StoryPad.resetViewFilters()" type="button">Reset View</button>
         </div>
       </div>
     </div>
 
-    <div class="bottom-sheet-drawer modal-dialog" id="sheet-notifications" role="dialog" aria-modal="true" aria-labelledby="notif-modal-title">
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-notifications" role="dialog" aria-modal="true"
+      aria-labelledby="notif-modal-title">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="notif-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Notifikasi Produksi &amp; NLE</h2>
-          <button type="button" aria-label="Tutup panel notifikasi" class="sp-icon-btn" onclick="StoryPad.closeNotifications()">
+          <h2 id="notif-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">
+            Notifikasi Produksi &amp; NLE</h2>
+          <button type="button" aria-label="Tutup panel notifikasi" class="sp-icon-btn"
+            onclick="StoryPad.closeNotifications()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
@@ -1311,30 +1671,38 @@
       </div>
     </div>
 
-    <div class="bottom-sheet-drawer modal-dialog" id="sheet-login-accounts" role="dialog" aria-modal="true" aria-labelledby="accounts-modal-title">
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-login-accounts" role="dialog" aria-modal="true"
+      aria-labelledby="accounts-modal-title">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="accounts-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Kelola Akun &amp; Perangkat</h2>
-          <button type="button" aria-label="Tutup daftar akun" class="sp-icon-btn" onclick="StoryPad.closeLoginAccounts()">
+          <h2 id="accounts-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">
+            Kelola Akun &amp; Perangkat</h2>
+          <button type="button" aria-label="Tutup daftar akun" class="sp-icon-btn"
+            onclick="StoryPad.closeLoginAccounts()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
 
         <div id="modal-current-account-box" class="sp-panel-muted p-3 flex items-center justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-sans text-xs font-bold m-0 truncate" id="modal-current-account-name" style="color: var(--text-primary);">Belum masuk</p>
-            <p class="font-mono text-[11px] m-0 truncate" id="modal-current-account-email" style="color: var(--text-secondary);">Silakan masuk melalui Account Hub</p>
+            <p class="font-sans text-xs font-bold m-0 truncate" id="modal-current-account-name"
+              style="color: var(--text-primary);">Belum masuk</p>
+            <p class="font-mono text-[11px] m-0 truncate" id="modal-current-account-email"
+              style="color: var(--text-secondary);">Silakan masuk melalui Account Hub</p>
           </div>
-          <button type="button" id="modal-switch-account-btn" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0" onclick="StoryPad.switchAccountViaHub()">
+          <button type="button" id="modal-switch-account-btn" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0"
+            onclick="StoryPad.switchAccountViaHub()">
             Keluar &amp; Ganti Akun
           </button>
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <h3 class="font-sans text-xs font-bold m-0" style="color: var(--text-primary);">Akun yang diingat di browser ini</h3>
+          <h3 class="font-sans text-xs font-bold m-0" style="color: var(--text-primary);">Akun yang diingat di browser
+            ini</h3>
           <p class="font-sans text-[11px] m-0" style="color: var(--text-secondary);">
-            Hanya menyimpan identitas non-sensitif untuk mempercepat pemilihan akun. Menghapus dari sini tidak menghapus akun di server.
+            Hanya menyimpan identitas non-sensitif untuk mempercepat pemilihan akun. Menghapus dari sini tidak menghapus
+            akun di server.
           </p>
         </div>
 
@@ -1342,73 +1710,135 @@
       </div>
     </div>
 
-    <div class="bottom-sheet-drawer modal-dialog" id="sheet-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message">
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-confirm-dialog" role="alertdialog" aria-modal="true"
+      aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="confirm-dialog-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Konfirmasi Tindakan</h2>
-          <button type="button" aria-label="Tutup dialog konfirmasi" class="sp-icon-btn" onclick="StoryPad.resolveConfirmDialog(false)">
+          <h2 id="confirm-dialog-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">
+            Konfirmasi Tindakan</h2>
+          <button type="button" aria-label="Tutup dialog konfirmasi" class="sp-icon-btn"
+            onclick="StoryPad.resolveConfirmDialog(false)">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
-        <p id="confirm-dialog-message" class="font-sans text-xs leading-relaxed m-0" style="color: var(--text-secondary);"></p>
+        <p id="confirm-dialog-message" class="font-sans text-xs leading-relaxed m-0"
+          style="color: var(--text-secondary);"></p>
         <div class="pt-2 border-t flex items-center justify-end gap-2" style="border-color: var(--border-flat);">
-          <button type="button" id="confirm-dialog-cancel" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.resolveConfirmDialog(false)">Batal</button>
-          <button type="button" id="confirm-dialog-confirm" class="sp-btn sp-btn-danger sp-btn-compact" onclick="StoryPad.resolveConfirmDialog(true)">Lanjutkan</button>
+          <button type="button" id="confirm-dialog-cancel" class="sp-btn sp-btn-secondary sp-btn-compact"
+            onclick="StoryPad.resolveConfirmDialog(false)">Batal</button>
+          <button type="button" id="confirm-dialog-confirm" class="sp-btn sp-btn-danger sp-btn-compact"
+            onclick="StoryPad.resolveConfirmDialog(true)">Lanjutkan</button>
         </div>
       </div>
     </div>
 
-    <div class="bottom-sheet-drawer modal-dialog modal-dialog-wide" id="sheet-import-script" role="dialog" aria-modal="true" aria-labelledby="import-script-title">
+    <div class="bottom-sheet-drawer modal-dialog modal-dialog-wide" id="sheet-import-script" role="dialog"
+      aria-modal="true" aria-labelledby="import-script-title">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="import-script-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Tambah &amp; Konversi Naskah Produksi</h2>
-          <button type="button" aria-label="Tutup jendela impor naskah" class="sp-icon-btn" onclick="StoryPad.closeScriptImportModal()">
+          <h2 id="import-script-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">
+            Tambah &amp; Konversi Naskah Produksi</h2>
+          <button type="button" aria-label="Tutup jendela impor naskah" class="sp-icon-btn"
+            onclick="StoryPad.closeScriptImportModal()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-1.5 p-1 rounded border" style="background-color: var(--panel-lowest); border-color: var(--border-flat);" role="tablist">
-          <button type="button" role="tab" aria-selected="true" id="import-tab-file" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.switchImportSourceTab('file')">Unggah Berkas (.docx / .txt)</button>
-          <button type="button" role="tab" aria-selected="false" id="import-tab-text" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.switchImportSourceTab('text')">Tulis / Tempel Teks Naskah</button>
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded border"
+          style="background-color: var(--panel-lowest); border-color: var(--border-flat);" role="tablist">
+          <button type="button" role="tab" aria-selected="true" id="import-tab-file"
+            class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.switchImportSourceTab('file')">Unggah Berkas
+            (.docx / .txt)</button>
+          <button type="button" role="tab" aria-selected="false" id="import-tab-text"
+            class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.switchImportSourceTab('text')">Tulis /
+            Tempel Teks Naskah</button>
+        </div>
+
+        <div id="import-format-notice" class="p-3 rounded border flex flex-col gap-2" role="note"
+          style="background-color: var(--amber-tint); border-color: var(--amber-tint-border);">
+          <div class="flex items-start gap-2">
+            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5" style="color: var(--amber-text);"
+              aria-hidden="true">warning</span>
+            <div class="flex-1 min-w-0 flex flex-col gap-1">
+              <p class="font-sans text-xs font-bold m-0" style="color: var(--amber-text);">Peringatan Format Naskah
+                Sebelum Impor</p>
+              <p class="font-sans text-[11px] leading-relaxed m-0" style="color: var(--text-primary);">
+                Agar pemeran &amp; dialog terdeteksi otomatis, tulis nama karakter <strong>HURUF KAPITAL
+                  POLOS</strong> tanpa <code>**</code> atau <code>:</code>, tulis arahan <code>(ekspresi)</code> tanpa
+                <code>*</code>, hindari heading <code>###</code> setelah <code>SCENE 1</code>, dan bungkus catatan
+                teknis dengan <code>[...]</code>.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btn-copy-script-prompt" class="sp-btn sp-btn-secondary sp-btn-compact"
+              onclick="StoryPad.copyScriptFormatPrompt()">
+              <span class="material-symbols-outlined text-[15px]" aria-hidden="true">content_copy</span>
+              <span>Salin Prompt (.md)</span>
+            </button>
+            <button type="button" id="btn-download-script-prompt" class="sp-btn sp-btn-secondary sp-btn-compact"
+              onclick="StoryPad.downloadScriptFormatPrompt()">
+              <span class="material-symbols-outlined text-[15px]" aria-hidden="true">download</span>
+              <span>Unduh Prompt (.md)</span>
+            </button>
+          </div>
+          <details class="text-[11px]" style="color: var(--text-secondary);">
+            <summary class="cursor-pointer font-sans font-semibold select-none" style="color: var(--amber-text);">Lihat
+              template prompt konversi (.md)</summary>
+            <pre id="import-format-prompt-preview"
+              class="mt-2 p-2.5 rounded border font-mono text-[11px] whitespace-pre-wrap overflow-y-auto max-h-40 m-0"
+              style="background-color: var(--panel-lowest); border-color: var(--border-flat); color: var(--text-primary);"></pre>
+          </details>
         </div>
 
         <div id="import-source-file" class="flex flex-col gap-2">
-          <label for="input-script-file" class="sp-dropzone p-4 rounded border text-center flex flex-col items-center gap-1.5">
-            <span class="material-symbols-outlined text-[28px]" style="color: var(--primary-text);" aria-hidden="true">upload_file</span>
-            <span class="font-sans text-xs font-bold" id="import-file-picked-name" style="color: var(--text-primary);">Klik untuk memilih berkas naskah (.docx, .txt, .fountain, .md)</span>
+          <label for="input-script-file"
+            class="sp-dropzone p-4 rounded border text-center flex flex-col items-center gap-1.5">
+            <span class="material-symbols-outlined text-[28px]" style="color: var(--primary-text);"
+              aria-hidden="true">upload_file</span>
+            <span class="font-sans text-xs font-bold" id="import-file-picked-name"
+              style="color: var(--text-primary);">Klik untuk memilih berkas naskah (.docx, .txt, .fountain, .md)</span>
           </label>
-          <input type="file" id="input-script-file" accept=".docx,.txt,.fountain,.md" class="sr-only" onchange="StoryPad.handleScriptFileChosen(this)">
+          <input type="file" id="input-script-file" accept=".docx,.txt,.fountain,.md" class="sr-only"
+            onchange="StoryPad.handleScriptFileChosen(this)">
         </div>
 
         <div id="import-source-text" class="hidden flex flex-col gap-1.5">
-          <label for="import-raw-textarea" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Teks Naskah</label>
-          <textarea id="import-raw-textarea" rows="6" class="sp-textarea font-mono text-xs" oninput="StoryPad.previewRawScriptDebounced()"></textarea>
+          <label for="import-raw-textarea" class="font-sans text-xs font-semibold"
+            style="color: var(--text-primary);">Teks Naskah</label>
+          <textarea id="import-raw-textarea" rows="6" class="sp-textarea font-mono text-xs"
+            oninput="StoryPad.previewRawScriptDebounced()"></textarea>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div class="sm:col-span-2 flex flex-col gap-1">
-            <label for="import-proj-title" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Judul Naskah</label>
+            <label for="import-proj-title" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Judul Naskah</label>
             <input type="text" id="import-proj-title" class="sp-input" placeholder="Terdeteksi otomatis">
           </div>
           <div class="flex flex-col gap-1">
-            <label for="import-proj-code" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Kode Proyek</label>
+            <label for="import-proj-code" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Kode Proyek</label>
             <input type="text" id="import-proj-code" class="sp-input font-mono" placeholder="Otomatis">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div class="flex flex-col gap-1">
-            <label for="import-proj-category" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Kategori</label>
+            <label for="import-proj-category" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Kategori</label>
             <input type="text" id="import-proj-category" class="sp-input" placeholder="Film Pendek">
           </div>
           <div class="flex flex-col gap-1">
-            <label for="import-proj-location" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Lokasi</label>
+            <label for="import-proj-location" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Lokasi</label>
             <input type="text" id="import-proj-location" class="sp-input" placeholder="Studio Utama">
           </div>
           <div class="flex flex-col gap-1">
-            <label for="import-proj-fps" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Frame Rate</label>
+            <label for="import-proj-fps" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Frame Rate</label>
             <select id="import-proj-fps" class="sp-input font-mono">
               <option value="24 fps">24 fps</option>
               <option value="25 fps">25 fps</option>
@@ -1419,38 +1849,50 @@
 
         <div id="import-preview-box" class="hidden sp-panel-muted p-3 flex flex-col gap-2">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Pratinjau Hasil Konversi</span>
-            <span class="sp-badge sp-badge-good font-mono tabular-nums" id="import-preview-counts">0 Scene | 0 Dialog</span>
+            <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Pratinjau Hasil
+              Konversi</span>
+            <span class="sp-badge sp-badge-good font-mono tabular-nums" id="import-preview-counts">0 Scene | 0
+              Dialog</span>
           </div>
           <p class="font-mono text-[11px] m-0" id="import-preview-chars" style="color: var(--text-secondary);"></p>
-          <div class="max-h-36 overflow-y-auto flex flex-col gap-1.5 pt-1 border-t" id="import-preview-lines" style="border-color: var(--border-flat);"></div>
+          <p class="hidden font-sans text-[11px] font-medium p-2 rounded border m-0" id="import-preview-format-warning" role="alert" style="background-color: var(--amber-tint); border-color: var(--amber-tint-border); color: var(--amber-text);"></p>
+          <div class="max-h-36 overflow-y-auto flex flex-col gap-1.5 pt-1 border-t" id="import-preview-lines"
+            style="border-color: var(--border-flat);"></div>
         </div>
 
         <p id="import-script-feedback" class="hidden font-sans text-xs font-medium m-0" role="alert"></p>
 
-        <div class="pt-2 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border-flat);">
-          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.runScriptPreview()">Uji Konversi</button>
-          <button type="button" id="btn-submit-import-script" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.submitScriptImport()">Simpan &amp; Buka Naskah</button>
+        <div class="pt-2 border-t flex flex-wrap items-center justify-between gap-2"
+          style="border-color: var(--border-flat);">
+          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.runScriptPreview()">Uji
+            Konversi</button>
+          <button type="button" id="btn-submit-import-script" class="sp-btn sp-btn-primary sp-btn-compact"
+            onclick="StoryPad.submitScriptImport()">Simpan &amp; Buka Naskah</button>
         </div>
       </div>
     </div>
 
-    <div class="bottom-sheet-drawer modal-dialog" id="sheet-add-line" role="dialog" aria-modal="true" aria-labelledby="add-line-title">
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-add-line" role="dialog" aria-modal="true"
+      aria-labelledby="add-line-title">
       <div class="bottom-sheet-handle"></div>
       <div class="bottom-sheet-content">
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
-          <h2 id="add-line-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Tambah Baris ke Naskah Aktif</h2>
-          <button type="button" aria-label="Tutup formulir baris baru" class="sp-icon-btn" onclick="StoryPad.closeAddLineModal()">
+          <h2 id="add-line-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Tambah
+            Baris ke Naskah Aktif</h2>
+          <button type="button" aria-label="Tutup formulir baris baru" class="sp-icon-btn"
+            onclick="StoryPad.closeAddLineModal()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div class="flex flex-col gap-1">
-            <label for="addline-scene-num" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nomor Scene</label>
+            <label for="addline-scene-num" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Nomor Scene</label>
             <input type="text" id="addline-scene-num" class="sp-input font-mono" value="01">
           </div>
           <div class="flex flex-col gap-1">
-            <label for="addline-type" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Jenis Baris</label>
+            <label for="addline-type" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Jenis Baris</label>
             <select id="addline-type" class="sp-input" onchange="StoryPad.toggleAddLineTypeFields(this.value)">
               <option value="dialogue">Dialog Pemeran</option>
               <option value="action">Deskripsi Aksi / Shot</option>
@@ -1458,36 +1900,43 @@
           </div>
         </div>
         <div class="flex flex-col gap-1">
-          <label for="addline-scene-title" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Judul Scene</label>
+          <label for="addline-scene-title" class="font-sans text-[11px] font-semibold"
+            style="color: var(--text-secondary);">Judul Scene</label>
           <input type="text" id="addline-scene-title" class="sp-input font-mono">
         </div>
         <div id="addline-dialogue-fields" class="flex flex-col gap-2.5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div class="flex flex-col gap-1">
-              <label for="addline-character" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nama Pemeran</label>
+              <label for="addline-character" class="font-sans text-[11px] font-semibold"
+                style="color: var(--text-secondary);">Nama Pemeran</label>
               <input type="text" id="addline-character" class="sp-input font-mono uppercase">
             </div>
             <div class="flex flex-col gap-1">
-              <label for="addline-shot" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nomor Shot</label>
+              <label for="addline-shot" class="font-sans text-[11px] font-semibold"
+                style="color: var(--text-secondary);">Nomor Shot</label>
               <input type="text" id="addline-shot" class="sp-input font-mono" value="01">
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label for="addline-dialogue-text" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Teks Dialog</label>
+            <label for="addline-dialogue-text" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Teks Dialog</label>
             <textarea id="addline-dialogue-text" rows="2" class="sp-textarea font-mono"></textarea>
           </div>
           <div class="flex flex-col gap-1">
-            <label for="addline-parenthetical" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Arahan Akting</label>
+            <label for="addline-parenthetical" class="font-sans text-[11px] font-semibold"
+              style="color: var(--text-secondary);">Arahan Akting</label>
             <input type="text" id="addline-parenthetical" class="sp-input">
           </div>
         </div>
         <div id="addline-action-fields" class="hidden flex flex-col gap-1">
-          <label for="addline-action-content" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Deskripsi Aksi</label>
+          <label for="addline-action-content" class="font-sans text-[11px] font-semibold"
+            style="color: var(--text-secondary);">Deskripsi Aksi</label>
           <textarea id="addline-action-content" rows="3" class="sp-textarea font-mono"></textarea>
         </div>
         <p id="addline-feedback" class="hidden font-sans text-xs font-medium m-0" role="alert"></p>
         <div class="pt-2 border-t flex items-center justify-end gap-2" style="border-color: var(--border-flat);">
-          <button type="button" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.submitAddLine()">Tambahkan ke Naskah</button>
+          <button type="button" class="sp-btn sp-btn-primary sp-btn-compact"
+            onclick="StoryPad.submitAddLine()">Tambahkan ke Naskah</button>
         </div>
       </div>
     </div>
@@ -1500,4 +1949,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>
