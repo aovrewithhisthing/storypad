@@ -41,7 +41,25 @@
       ]
     },
     {
-      "source": "/(admin|admin\\.html|api/admin)",
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/admin.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/api/admin",
       "headers": [
         {
           "key": "Cache-Control",
