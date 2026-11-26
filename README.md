@@ -1,6 +1,6 @@
 # StoryPad
 
-**Script Continuity, Document Converter, Take Media Logger & NLE Timeline Bridge**
+**Script Continuity, Script Converter & NLE Timeline Bridge**
 
 [English](#english) | [Bahasa Indonesia](#bahasa-indonesia)
 
@@ -10,153 +10,39 @@
 
 ### Overview
 
-StoryPad is a database-driven web application built for film and video production crews to manage script continuity, convert screenplay documents into interactive cue sheets, log audio and camera takes, standardize file naming for Non-Linear Editing (NLE) timelines, and enforce role-based access control across projects.
+StoryPad is a web application built for film and video production crews to manage script continuity on set and prepare assets for post-production. It converts screenplay documents into interactive scene-by-scene cue sheets, tracks audio and camera takes per dialogue line, and generates standardized file names for Non-Linear Editing (NLE) workflows.
 
-The application supports two runtime modes backed by Supabase (Authentication, PostgreSQL with Row Level Security, and private Storage):
-1. **Static SPA + Serverless API** (`index.html`, `admin.html`, `api/config.js`, `api/admin-console.js`) for deployment on Vercel or local execution via the built-in Node.js server (`server.js`).
-2. **PHP Native SSR + API Proxy** (`index.php`, `admin.php`, `admin-login.php`, `api/*.php`, `lib/`, `views/`) for traditional PHP environments with server-side sessions, CSRF protection, and binary upload validation.
+### What You Can Do
 
-### Key Features
+- **Track Production Progress**: View your active project, dialogue coverage percentage, confirmed Circle Good Takes, and recent take media from the Production Dashboard.
+- **Import & Convert Scripts**: Upload `.docx`, `.fountain`, `.md`, or `.txt` files, or paste script text directly. StoryPad detects scenes, characters, dialogue lines, acting notes, and action/shot descriptions with a live preview before saving.
+- **Work Scene by Scene**: Filter the interactive script reader by scene, focus on dialogue lines, highlight take statuses (`Good Take`, `Review`, `Pending`), or add new lines manually during production.
+- **Log Takes & Review Media**: Record multiple takes for each dialogue line, mark Circle Good Takes, write field continuity notes, and upload or link audio and camera footage for in-browser playback.
+- **Standardize NLE File Names**: Automatically generate consistent clip names (`SC{scene}_SH{shot}_T{take}_{Keyword}_CAM-A.mp4` and `_AUD.wav`) and copy them with one click for DaVinci Resolve or Adobe Premiere Pro.
+- **Switch Workspace Themes**: Use **Editorial Paper** (light mode) for outdoor/bright-set readability or **Dark Slate** (dark mode) for low-light monitoring rooms.
+- **Collaborate with Role-Based Access**: Work across dedicated production views (Script Supervisor, Video Editor, Sound Recordist, Director/Producer) and manage team invitations and project access through the Admin Console.
 
-#### 1. Account Hub & Authentication
-- **Remembered Account Hub**: Displays non-sensitive local profile metadata (`id`, `display_name`, `email`, `initials`, `last_used_at`) in `localStorage` without ever storing passwords, tokens, or authorization roles. Includes shared-device cleanup actions.
-- **Credential Policies & Recovery**: Enforces 12 to 128 character passwords/passphrases, anti-enumeration auth error messages, email confirmation gating, password reset via Supabase recovery links, and password updates requiring re-authentication with the current password.
-- **Session & Identity Controls**: Lets crew members inspect active `auth.sessions`, revoke individual device sessions, sign out from all other devices, link or unlink OAuth identities (such as Google), and inspect their personal security audit history.
+### Supported Formats
 
-#### 2. Production Dashboard & Continuity Tracking
-- **Active Production Summary**: Shows current project metadata, scene progress, and next-action guidance computed directly from database records.
-- **Radial Continuity Gauge**: Tracks overall dialogue coverage percentage and confirmed Circle Good Takes across the active script.
-- **Media Monitor**: Lists uploaded audio and camera footage clips attached to logged takes for quick playback review.
-
-#### 3. Multi-Format Script Converter & Importer
-- **Supported Inputs**: Parses Word documents (`.docx`), Fountain (`.fountain`), Markdown (`.md`), plain text (`.txt` / `.spmd` in PHP), or pasted script text directly into `projects` and `script_lines` records.
-- **Live Conversion Preview**: Detects scenes, dialogue cues, characters, parentheticals, and action/shot lines before saving, with metadata overrides (title, project code, category, location, and frame rate).
-- **Formatting Guidance**: Detects low dialogue-to-action ratios and provides a built-in copyable and downloadable Markdown prompt template to standardize scripts before import.
-- **Hardened Parsing**: Validates `.docx` ZIP signatures, limits uploaded scripts to 10 MB and XML payloads to 5 MB, and disables external entity loading (`LIBXML_NONET` plus `DOCTYPE`/`ENTITY` rejection in `lib/ScriptParser.php`).
-
-#### 4. Interactive Script Reader & Inspector Deck
-- **Multi-Scene Navigation**: Filter by scene, add manual dialogue or action lines, and toggle 4 workspace views (`showFileCode`, `filterGoodTakeOnly`, `highlightStatus`, `focusDialogueMode`).
-- **Dual Visual Themes**: Switch between Editorial Paper (`daylight`) for outdoor/on-set readability and Dark Slate (`slate`) for low-light monitoring rooms.
-- **Take & Media Management**: Log takes per dialogue cue, mark Circle Good Takes, attach external `https://` media URLs (validated against private/localhost targets), or upload audio (`.wav`, `.mp3`, `.m4a`, `.aac`, `.ogg`, `.webm`) and video (`.mp4`, `.mov`, `.webm`, `.mkv`) up to 50 MB to the private `storypad-media` bucket using signed playback URLs (3600s TTL).
-- **Audio & Footage Players**: Built-in `<audio>` playback with channel meters and `<video>` preview with frame-by-frame stepping, timecode display, and slate HUD fallback.
-- **Deterministic NLE Auto-Naming & Sync**: Generates standardized clip names in the format `SC{scene}_SH{shot}_T{take}_{Keyword}_CAM-A.mp4` and `SC{scene}_SH{shot}_T{take}_{Keyword}_AUD.wav`, saves field continuity notes to `script_lines`, and marks projects `In Sync` for NLE handoff (DaVinci Resolve / Premiere Pro workflows).
-- **Server-Verified Production Roles**: Role switcher toggles (`scriptSupervisor`, `videoEditor`, `soundRecordist`, `directorProducer`, `autoExportMeta`) are constrained to `granted_roles` and protected by PostgreSQL triggers.
-
-#### 5. Admin Console (`/admin`)
-- **Separated Access Model**: Production job titles (such as Director or Script Supervisor) are separated from system roles (`system_owner`, `system_admin`, `production_admin`, `crew_member`, `viewer`).
-- **Trusted Server API (`/api/admin-console`)**: Verifies the actor's Supabase JWT on the server without exposing `SUPABASE_SERVICE_ROLE_KEY` to the browser and executes `SECURITY DEFINER` Postgres RPCs with sliding-window rate limiting and same-origin checks.
-- **Console Modules**:
-  - **Overview**: Account counts, active sessions, pending invitations, and security alerts.
-  - **Accounts**: Profile inspection and account status controls (`active`, `suspended`, `deactivated`).
-  - **Roles & Permissions**: Role assignment (`system_owner` restricted from self-demotion/self-escalation) and permission matrix view.
-  - **Projects & Memberships**: Assign or remove project-level roles (`owner`, `production_admin`, `editor`, `viewer`) and production titles.
-  - **Invitations**: Issue, resend, or revoke project/system role invitations with configurable expiration.
-  - **Sessions & Devices**: Monitor active sessions (with `/24` masked IP addresses) and revoke individual or user-wide sessions.
-  - **Audit Logs**: Query sanitized security event trails (`security_audit_logs`).
-  - **Security Settings**: Configure invitation expiration hours, minimum password length, session idle minutes, self-signup policy, and role-change re-authentication flags.
-
-### Architecture & Technology Stack
-
-| Layer | Technologies |
+| Category | Supported Formats |
 | :--- | :--- |
-| **Frontend** | Vanilla JavaScript (`app.js`, `admin.js`), HTML5 (`index.html`, `admin.html`), Custom CSS (`app.css`), Tailwind CSS CDN, `@supabase/supabase-js@2.119.2` |
-| **Node.js / Vercel Runtime** | Built-in Node `http` dev server (`server.js`), Vercel Serverless Functions (`api/config.js`, `api/admin-console.js`), Security Headers & Rewrites (`vercel.json`) |
-| **PHP Native Runtime (Optional)** | PHP 8+ SSR & JSON API Proxy (`index.php`, `admin.php`, `admin-login.php`, `api/*.php`, `includes/session.php`, `lib/ScriptParser.php`, `lib/SupabaseClient.php`) |
-| **Database, Auth & Storage** | Supabase Auth, PostgreSQL with Row Level Security (RLS) & `SECURITY DEFINER` RPCs, Private Supabase Storage (`storypad-media`) |
+| **Scripts** | `.docx`, `.fountain`, `.md`, `.txt` |
+| **Audio** | `.wav`, `.mp3`, `.m4a`, `.aac`, `.ogg`, `.webm` |
+| **Video** | `.mp4`, `.mov`, `.webm`, `.mkv` |
 
-### Project Structure
+### Requirements & Quick Start
 
-```text
-.
-|-- api/                        # Serverless JS handlers (config.js, admin-console.js) & PHP API endpoints
-|-- config/                     # PHP environment & Supabase configuration loader
-|-- docs/                       # Admin Console guide, Security Operations runbook, Security Audit checklist
-|-- includes/                   # PHP session lifecycle, CSRF, same-origin, and security header helpers
-|-- lib/                        # PHP Supabase REST/Auth/Storage client & DOCX/script parser
-|-- supabase/
-|   |-- migrations/             # Sequential SQL migrations (000001 to 000005)
-|   `-- verify_*.sql            # Non-destructive ROLLBACK-wrapped RLS, session, storage & RBAC checks
-|-- views/                      # PHP SSR layout, screens (login, dashboard, projects, script-reader, profile, admin), partials
-|-- index.html / index.php      # Crew workspace entry points (Static SPA / PHP SSR)
-|-- admin.html / admin.php      # Admin Console & Studio Admin entry points
-|-- app.js / admin.js / app.css # Core frontend engines and theme stylesheets
-|-- server.js                   # Local Node.js static + API development server
-|-- vercel.json                 # Vercel routing rewrites and HTTP security headers (CSP, HSTS, XFO)
-|-- .env.example                # Environment variable template
-`-- test_*.js                   # Node.js unit, feature, auth security, and Admin Console RBAC test suites
-```
-
-### Quick Start & Database Setup
-
-#### 1. Environment Configuration
-Copy `.env.example` to `.env` and fill in your Supabase project settings:
-
-```env
-STORYPAD_STUDIO_NAME="StoryPad Studio"
-SUPABASE_URL="https://your-project-ref.supabase.co"
-SUPABASE_ANON_KEY="your-supabase-anon-or-publishable-key"
-SUPABASE_PROJECT_ID="your-project-ref"
-SUPABASE_STORAGE_BUCKET="storypad-media"
-```
-
-If using the PHP Native admin portal (`admin-login.php`, `admin.php`, `api/admin.php`), also configure `SUPABASE_SERVICE_ROLE_KEY`, `STORYPAD_ADMIN_AUTH_MODE`, `STORYPAD_ADMIN_EMAILS`, and generate a bcrypt password hash for `STORYPAD_ADMIN_PASSWORD_HASH`:
-
-```bash
-php -r "echo password_hash('your-strong-password', PASSWORD_BCRYPT);"
-```
-
-Never commit `.env` or expose `SUPABASE_SERVICE_ROLE_KEY` to client-side files.
-
-#### 2. Apply Supabase Migrations & Bootstrap Owner
-Run the SQL migration scripts in order inside the **Supabase SQL Editor** (after your base schema tables `projects`, `script_lines`, `takes`, `crew_profiles`, and `notifications` exist):
-1. `supabase/migrations/20261126000001_p0_ownership_strict_rls_and_role_protection.sql`
-2. `supabase/migrations/20261126000002_p1_sessions_audit_and_identity_rpcs.sql`
-3. `supabase/migrations/20261126000003_p2_storage_and_upload_constraints.sql`
-4. `supabase/migrations/20261126000004_admin_console_rbac_invitations_audit.sql`
-5. `supabase/migrations/20261126000005_fix_projects_rls_and_script_import.sql`
-
-Register your primary owner account through the application signup flow, then grant the initial `system_owner` role once via SQL Editor:
-
-```sql
-SELECT private.bootstrap_first_system_owner('owner@yourdomain.com');
-```
-
-#### 3. Run Locally
-
-- **Node.js / Vercel Local Mode**:
-  ```bash
-  node server.js
-  ```
-  Open `http://127.0.0.1:3000/` for the crew workspace or `http://127.0.0.1:3000/admin` for the Admin Console.
-
-- **PHP Native Mode**:
-  ```bash
-  php -S 127.0.0.1:8000
-  ```
-  Open `http://127.0.0.1:8000/index.php` (or `admin-login.php` for the PHP admin portal).
-
-### Verification & Documentation
-
-Run the Node.js verification suites:
-
-```bash
-node test_storypad.js
-node test_full_features.js
-node test_auth_security.js
-node test_admin_console.js
-```
-
-Run the non-destructive database verification scripts (`BEGIN; ... ROLLBACK;`) in the Supabase SQL Editor:
-- `supabase/verify_p0_rls.sql`
-- `supabase/verify_p1_sessions_audit.sql`
-- `supabase/verify_p2_storage_policies.sql`
-- `supabase/verify_admin_console.sql`
-- `supabase/verify_projects_import_rls.sql`
-
-Additional operational documentation:
-- [Admin Console Architecture & Operations Guide](docs/ADMIN_CONSOLE.md)
-- [Security Operations & Hardening Runbook](docs/SECURITY_OPERATIONS.md)
-- [Security Audit Checklist](docs/SECURITY_AUDIT_CHECKLIST.md)
+1. **Prerequisites**: A modern web browser, a configured Supabase project, and either **Node.js** or **PHP** for local hosting.
+2. **Environment Setup**: Copy `.env.example` to `.env` and fill in your studio name and Supabase project credentials.
+3. **Run Locally**:
+   - Using Node.js:
+     ```bash
+     node server.js
+     ```
+   - Using PHP:
+     ```bash
+     php -S 127.0.0.1:8000
+     ```
 
 ---
 
@@ -164,150 +50,36 @@ Additional operational documentation:
 
 ### Gambaran Umum
 
-StoryPad adalah aplikasi web berbasis database untuk kru produksi film dan video yang digunakan untuk mencatat kontinuitas naskah, mengonversi dokumen skenario menjadi lembar kerja interaktif, mencatat take audio dan footage kamera, menghasilkan standar penamaan file untuk timeline Non-Linear Editing (NLE), serta menegakkan kontrol akses berbasis peran di setiap proyek.
+StoryPad adalah aplikasi web untuk kru produksi film dan video yang digunakan untuk mencatat kontinuitas naskah di lokasi syuting serta menyiapkan aset menuju pascaproduksi. Aplikasi ini mengonversi dokumen naskah menjadi lembar kerja interaktif per adegan, mencatat take audio dan footage kamera pada setiap dialog, serta menghasilkan penamaan file standar untuk alur kerja Non-Linear Editing (NLE).
 
-Aplikasi ini mendukung dua mode runtime dengan backend Supabase (Authentication, PostgreSQL dengan Row Level Security, dan private Storage):
-1. **Static SPA + Serverless API** (`index.html`, `admin.html`, `api/config.js`, `api/admin-console.js`) untuk deployment di Vercel maupun pengembangan lokal menggunakan server Node.js bawaan (`server.js`).
-2. **PHP Native SSR + API Proxy** (`index.php`, `admin.php`, `admin-login.php`, `api/*.php`, `lib/`, `views/`) untuk server PHP dengan sesi sisi server, proteksi CSRF, dan validasi biner unggahan media.
+### Fitur Utama untuk Pengguna
 
-### Fitur Utama
+- **Pantau Progres Produksi**: Lihat ringkasan proyek aktif, persentase cakupan dialog, jumlah Circle Good Take yang terkonfirmasi, serta daftar media take terbaru melalui Dashboard Produksi.
+- **Impor & Konversi Naskah**: Unggah berkas `.docx`, `.fountain`, `.md`, atau `.txt`, atau tempel teks naskah secara langsung. StoryPad mendeteksi batas scene, nama pemeran, dialog, arahan akting, dan deskripsi aksi/shot beserta pratinjau sebelum disimpan.
+- **Navigasi Naskah per Adegan**: Saring tampilan naskah berdasarkan scene, aktifkan mode fokus dialog, sorot status take (`Good Take`, `Review`, `Pending`), atau tambahkan baris dialog/aksi baru secara manual di lapangan.
+- **Catat Take & Tinjau Media**: Catat beberapa take untuk tiap dialog, tandai Circle Good Take, simpan catatan kontinuitas lapangan, serta unggah atau tautkan rekaman audio dan footage kamera untuk diputar langsung di browser.
+- **Standarisasi Nama File NLE**: Hasilkan kode nama file secara otomatis (`SC{scene}_SH{shot}_T{take}_{KataKunci}_CAM-A.mp4` dan `_AUD.wav`) dan salin dengan satu klik untuk DaVinci Resolve maupun Adobe Premiere Pro.
+- **Pilih Tema Tampilan**: Gunakan mode **Kertas Editorial** (terang) untuk keterbacaan di luar ruangan atau **Slate Gelap** (gelap) untuk ruang pemantauan minim cahaya.
+- **Kolaborasi Berbasis Peran**: Bekerja sesuai tampilan peran produksi (Script Supervisor, Video Editor, Sound Recordist, Director/Producer) serta kelola undangan dan akses tim melalui Admin Console.
 
-#### 1. Account Hub & Autentikasi Aman
-- **Remembered Account Hub**: Menyimpan metadata tampilan non-sensitif (`id`, `display_name`, `email`, `initials`, `last_used_at`) di `localStorage` tanpa pernah menyimpan kata sandi, token, atau role otorisasi, dilengkapi kontrol penghapusan akun pada perangkat bersama.
-- **Kebijakan Kredensial & Pemulihan**: Menerapkan panjang kata sandi 12 hingga 128 karakter, pesan error anti-enumerasi, gerbang verifikasi email, reset kata sandi melalui tautan pemulihan Supabase, serta kewajiban verifikasi ulang kata sandi aktif saat mengganti kata sandi.
-- **Manajemen Sesi & Identitas**: Memungkinkan kru melihat daftar sesi aktif (`auth.sessions`), mencabut sesi perangkat tertentu, keluar dari seluruh perangkat lain, menautkan atau melepas identitas OAuth (seperti Google), serta memeriksa log aktivitas keamanan pribadi.
+### Format yang Didukung
 
-#### 2. Dashboard Produksi & Pelacakan Kontinuitas
-- **Ringkasan Produksi Aktif**: Menampilkan metadata proyek aktif, progres adegan, dan rekomendasi langkah berikutnya yang dihitung langsung dari data database.
-- **Radial Continuity Gauge**: Menghitung persentase cakupan dialog selesai dan jumlah Circle Good Take yang terkonfirmasi pada naskah aktif.
-- **Monitor Rekaman Media**: Menampilkan daftar klip audio dan footage kamera yang telah diunggah pada tiap take untuk pemutaran cepat.
-
-#### 3. Konverter & Impor Naskah Multi-Format
-- **Format yang Didukung**: Mengonversi dokumen Word (`.docx`), Fountain (`.fountain`), Markdown (`.md`), teks biasa (`.txt` / `.spmd` pada PHP), atau teks naskah yang ditempel langsung menjadi data `projects` dan `script_lines`.
-- **Pratinjau Konversi Langsung**: Mendeteksi batas scene, baris dialog, nama pemeran, arahan akting (parenthetical), dan deskripsi aksi/shot sebelum disimpan, lengkap dengan pengisian manual judul, kode proyek, kategori, lokasi, dan frame rate.
-- **Panduan Format Naskah**: Mendeteksi rasio dialog terhadap aksi yang terlalu rendah serta menyediakan tombol salin dan unduh template prompt Markdown (`.md`) untuk merapikan naskah sebelum diimpor.
-- **Validasi Parser**: Memeriksa signature ZIP berkas `.docx`, membatasi ukuran file naskah hingga 10 MB dan XML hingga 5 MB, serta menonaktifkan entitas eksternal (`LIBXML_NONET` dan penolakan `DOCTYPE`/`ENTITY` di `lib/ScriptParser.php`).
-
-#### 4. Lembar Naskah Interaktif & Inspector Deck
-- **Navigasi Multi-Scene**: Menyaring tampilan per scene, menambah baris dialog atau aksi secara manual, dan mengatur 4 mode tampilan (`showFileCode`, `filterGoodTakeOnly`, `highlightStatus`, `focusDialogueMode`).
-- **Dua Tema Kerja**: Beralih antara Kertas Editorial (`daylight`) untuk keterbacaan di lokasi terang dan Slate Gelap (`slate`) untuk ruang pemantauan minim cahaya.
-- **Manajemen Take & Media**: Mencatat take baru per dialog, menandai Circle Good Take, menautkan URL eksternal `https://` (divalidasi agar tidak mengarah ke alamat lokal/privat), atau mengunggah file audio (`.wav`, `.mp3`, `.m4a`, `.aac`, `.ogg`, `.webm`) dan video (`.mp4`, `.mov`, `.webm`, `.mkv`) hingga 50 MB ke bucket privat `storypad-media` menggunakan signed URL (masa berlaku 3600 detik).
-- **Pemutar Audio & Footage**: Pemutar `<audio>` dengan indikator level kanal serta monitor `<video>` dengan kontrol maju/mundur per frame, tampilan timecode, dan pratinjau slate HUD saat video belum dilampirkan.
-- **Auto-Naming NLE & Sinkronisasi**: Menghasilkan kode nama file standar `SC{scene}_SH{shot}_T{take}_{KataKunci}_CAM-A.mp4` dan `SC{scene}_SH{shot}_T{take}_{KataKunci}_AUD.wav`, menyimpan catatan kontinuitas lapangan ke `script_lines`, dan menandai status proyek `In Sync` untuk alur kerja NLE (DaVinci Resolve / Premiere Pro).
-- **Role Switcher Terverifikasi Server**: Pilihan 5 peran kerja (`scriptSupervisor`, `videoEditor`, `soundRecordist`, `directorProducer`, `autoExportMeta`) dibatasi oleh `granted_roles` akun dan dilindungi trigger database.
-
-#### 5. Admin Console (`/admin`)
-- **Pemisahan Peran Sistem vs. Peran Produksi**: Jabatan produksi (seperti Director atau Script Supervisor) dipisahkan dari hak akses administratif sistem (`system_owner`, `system_admin`, `production_admin`, `crew_member`, `viewer`).
-- **API Server Terverifikasi (`/api/admin-console`)**: Memvalidasi JWT pengguna di server tanpa pernah mengirim `SUPABASE_SERVICE_ROLE_KEY` ke browser, lalu memanggil RPC Postgres `SECURITY DEFINER` dengan rate limiting dan pemeriksaan same-origin.
-- **Modul Konsol**:
-  - **Overview**: Ringkasan jumlah akun, sesi aktif, undangan tertunda, dan peringatan keamanan.
-  - **Accounts**: Pemeriksaan profil dan pengaturan status akun (`active`, `suspended`, `deactivated`).
-  - **Roles & Permissions**: Penetapan system role (dengan larangan `system_owner` mengubah perannya sendiri) dan matriks izin.
-  - **Projects & Memberships**: Pengaturan keanggotaan proyek (`owner`, `production_admin`, `editor`, `viewer`) beserta jabatan produksinya.
-  - **Invitations**: Pembuatan, pengiriman ulang, dan pencabutan undangan proyek/sistem dengan batas kedaluwarsa.
-  - **Sessions & Devices**: Pemantauan sesi aktif (dengan penyamaran IP `/24`) serta pencabutan sesi per perangkat atau seluruh sesi pengguna.
-  - **Audit Logs**: Penelusuran riwayat kejadian keamanan yang telah disanitasi (`security_audit_logs`).
-  - **Security Settings**: Pengaturan masa berlaku undangan, panjang minimum kata sandi, batas idle sesi, izin registrasi mandiri kru, dan kewajiban re-autentikasi saat mengubah peran.
-
-### Arsitektur & Stack Teknologi
-
-| Lapisan | Teknologi |
+| Kategori | Format yang Didukung |
 | :--- | :--- |
-| **Frontend** | Vanilla JavaScript (`app.js`, `admin.js`), HTML5 (`index.html`, `admin.html`), Custom CSS (`app.css`), Tailwind CSS CDN, `@supabase/supabase-js@2.119.2` |
-| **Runtime Node.js / Vercel** | Server pengembangan Node `http` bawaan (`server.js`), Vercel Serverless Functions (`api/config.js`, `api/admin-console.js`), Security Headers & Rewrites (`vercel.json`) |
-| **Runtime PHP Native (Opsional)** | PHP 8+ SSR & JSON API Proxy (`index.php`, `admin.php`, `admin-login.php`, `api/*.php`, `includes/session.php`, `lib/ScriptParser.php`, `lib/SupabaseClient.php`) |
-| **Database, Auth & Storage** | Supabase Auth, PostgreSQL dengan Row Level Security (RLS) & RPC `SECURITY DEFINER`, Private Supabase Storage (`storypad-media`) |
+| **Naskah** | `.docx`, `.fountain`, `.md`, `.txt` |
+| **Audio** | `.wav`, `.mp3`, `.m4a`, `.aac`, `.ogg`, `.webm` |
+| **Video** | `.mp4`, `.mov`, `.webm`, `.mkv` |
 
-### Struktur Direktori
+### Kebutuhan & Cara Menjalankan
 
-```text
-.
-|-- api/                        # Handler serverless JS (config.js, admin-console.js) & endpoint API PHP
-|-- config/                     # Loader konfigurasi environment & Supabase untuk PHP
-|-- docs/                       # Panduan Admin Console, runbook Security Operations, dan checklist audit
-|-- includes/                   # Helper sesi PHP, CSRF, same-origin, dan security headers
-|-- lib/                        # Klien Supabase REST/Auth/Storage & parser dokumen .docx/naskah (PHP)
-|-- supabase/
-|   |-- migrations/             # Skrip migrasi SQL berurutan (000001 hingga 000005)
-|   `-- verify_*.sql            # Skrip verifikasi non-destruktif (ROLLBACK) untuk RLS, sesi, storage, dan RBAC
-|-- views/                      # Template SSR PHP untuk layout, layar utama, panel inspektor, modal, dan admin
-|-- index.html / index.php      # Entry point workspace kru (Static SPA / PHP SSR)
-|-- admin.html / admin.php      # Entry point Admin Console & Portal Admin Studio
-|-- app.js / admin.js / app.css # Engine frontend utama dan stylesheet tema
-|-- server.js                   # Server lokal Node.js untuk file statis & API
-|-- vercel.json                 # Konfigurasi rewrite routing & HTTP security headers Vercel
-|-- .env.example                # Template variabel environment
-`-- test_*.js                   # Suite pengujian unit, fitur, keamanan auth, dan RBAC Admin Console
-```
-
-### Panduan Instalasi & Konfigurasi
-
-#### 1. Konfigurasi Environment
-Salin `.env.example` menjadi `.env` lalu isi sesuai konfigurasi proyek Supabase Anda:
-
-```env
-STORYPAD_STUDIO_NAME="StoryPad Studio"
-SUPABASE_URL="https://your-project-ref.supabase.co"
-SUPABASE_ANON_KEY="your-supabase-anon-or-publishable-key"
-SUPABASE_PROJECT_ID="your-project-ref"
-SUPABASE_STORAGE_BUCKET="storypad-media"
-```
-
-Jika menjalankan mode portal admin PHP Native (`admin-login.php`, `admin.php`, `api/admin.php`), lengkapi juga `SUPABASE_SERVICE_ROLE_KEY`, `STORYPAD_ADMIN_AUTH_MODE`, `STORYPAD_ADMIN_EMAILS`, serta buat hash bcrypt untuk `STORYPAD_ADMIN_PASSWORD_HASH`:
-
-```bash
-php -r "echo password_hash('kata-sandi-kuat-anda', PASSWORD_BCRYPT);"
-```
-
-Jangan pernah melakukan commit terhadap file `.env` atau mengirim `SUPABASE_SERVICE_ROLE_KEY` ke kode sisi klien.
-
-#### 2. Jalankan Migrasi Supabase & Bootstrap Owner
-Jalankan skrip migrasi SQL secara berurutan melalui **Supabase SQL Editor** (setelah tabel dasar `projects`, `script_lines`, `takes`, `crew_profiles`, dan `notifications` tersedia):
-1. `supabase/migrations/20261126000001_p0_ownership_strict_rls_and_role_protection.sql`
-2. `supabase/migrations/20261126000002_p1_sessions_audit_and_identity_rpcs.sql`
-3. `supabase/migrations/20261126000003_p2_storage_and_upload_constraints.sql`
-4. `supabase/migrations/20261126000004_admin_console_rbac_invitations_audit.sql`
-5. `supabase/migrations/20261126000005_fix_projects_rls_and_script_import.sql`
-
-Daftarkan akun pemilik utama melalui alur pendaftaran aplikasi, lalu jalankan fungsi bootstrap satu kali di SQL Editor untuk menetapkan `system_owner` pertama:
-
-```sql
-SELECT private.bootstrap_first_system_owner('owner@domainanda.com');
-```
-
-#### 3. Menjalankan Secara Lokal
-
-- **Mode Node.js / Vercel Lokal**:
-  ```bash
-  node server.js
-  ```
-  Buka `http://127.0.0.1:3000/` untuk workspace kru atau `http://127.0.0.1:3000/admin` untuk Admin Console.
-
-- **Mode PHP Native**:
-  ```bash
-  php -S 127.0.0.1:8000
-  ```
-  Buka `http://127.0.0.1:8000/index.php` (atau `admin-login.php` untuk portal admin PHP).
-
-### Pengujian & Dokumentasi Terkait
-
-Jalankan suite pengujian Node.js:
-
-```bash
-node test_storypad.js
-node test_full_features.js
-node test_auth_security.js
-node test_admin_console.js
-```
-
-Jalankan skrip verifikasi database non-destruktif (`BEGIN; ... ROLLBACK;`) di Supabase SQL Editor:
-- `supabase/verify_p0_rls.sql`
-- `supabase/verify_p1_sessions_audit.sql`
-- `supabase/verify_p2_storage_policies.sql`
-- `supabase/verify_admin_console.sql`
-- `supabase/verify_projects_import_rls.sql`
-
-Dokumentasi operasional tambahan:
-- [Panduan Arsitektur & Operasional Admin Console](docs/ADMIN_CONSOLE.md)
-- [Runbook Operasional & Hardening Keamanan](docs/SECURITY_OPERATIONS.md)
-- [Checklist Audit Keamanan](docs/SECURITY_AUDIT_CHECKLIST.md)
+1. **Prasyarat**: Browser web modern, proyek Supabase yang sudah dikonfigurasi, serta **Node.js** atau **PHP** untuk menjalankan server lokal.
+2. **Konfigurasi Environment**: Salin `.env.example` menjadi `.env`, lalu isi nama studio dan konfigurasi proyek Supabase Anda.
+3. **Jalankan Secara Lokal**:
+   - Menggunakan Node.js:
+     ```bash
+     node server.js
+     ```
+   - Menggunakan PHP:
+     ```bash
+     php -S 127.0.0.1:8000
+     ```
