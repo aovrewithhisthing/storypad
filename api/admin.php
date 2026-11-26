@@ -28,6 +28,11 @@ $accessToken = !empty($admin['access_token'])
     : ($serviceRoleKey !== '' ? $serviceRoleKey : null);
 
 if ($method === 'POST') {
+    if (!storypad_verify_same_origin()) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Permintaan lintas origin ditolak.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
         http_response_code(403);
@@ -45,7 +50,7 @@ if ($action === 'overview' && $method === 'GET') {
         http_response_code(502);
         echo json_encode([
             'ok' => false,
-            'error' => $boot['error'] ?? 'Gagal memuat data dari Supabase.',
+            'error' => 'Gagal memuat data dari Supabase.',
             'latency_ms' => $latencyMs,
         ], JSON_UNESCAPED_UNICODE);
         exit;
@@ -72,7 +77,6 @@ if ($action === 'health_check') {
         'php_version' => PHP_VERSION,
         'supabase_project_id' => $config['supabase']['project_id'],
         'checked_at' => date('H:i:s'),
-        'error' => $probe['error'] ?? null,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -150,7 +154,7 @@ if ($action === 'save_crew') {
     $res = $client->upsert('crew_profiles', $row, 'persona_key', $accessToken);
     if (!$res['ok']) {
         http_response_code(502);
-        echo json_encode(['ok' => false, 'error' => $res['error'] ?? 'Gagal menyimpan data kru ke Supabase.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => false, 'error' => 'Gagal menyimpan data kru ke Supabase.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -169,7 +173,7 @@ if ($action === 'delete_crew') {
     $res = $client->update('crew_profiles', ['persona_key' => 'eq.' . $personaKey], ['is_archived' => true], $accessToken);
     if (!$res['ok']) {
         http_response_code(502);
-        echo json_encode(['ok' => false, 'error' => $res['error'] ?? 'Gagal mengarsipkan kru di Supabase.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => false, 'error' => 'Gagal mengarsipkan kru di Supabase.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -225,7 +229,7 @@ if ($action === 'save_project') {
     $res = $client->upsert('projects', $row, 'id', $accessToken);
     if (!$res['ok']) {
         http_response_code(502);
-        echo json_encode(['ok' => false, 'error' => $res['error'] ?? 'Gagal menyimpan proyek ke Supabase.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => false, 'error' => 'Gagal menyimpan proyek ke Supabase.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -246,7 +250,7 @@ if ($action === 'delete_project') {
     $res = $client->update('projects', ['id' => 'eq.' . $id], ['is_archived' => true], $accessToken);
     if (!$res['ok']) {
         http_response_code(502);
-        echo json_encode(['ok' => false, 'error' => $res['error'] ?? 'Gagal mengarsipkan proyek di Supabase.'], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => false, 'error' => 'Gagal mengarsipkan proyek di Supabase.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 

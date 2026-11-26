@@ -38,10 +38,65 @@ function storypad_send_security_headers(): void
     if (headers_sent()) {
         return;
     }
+    $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+    $csp = "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; "
+        . "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
+        . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        . "font-src 'self' https://fonts.gstatic.com data:; "
+        . "img-src 'self' data: blob: https:; "
+        . "media-src 'self' blob: https:; "
+        . "connect-src 'self' https://*.supabase.co wss://*.supabase.co";
+    if ($isHttps) {
+        $csp .= '; upgrade-insecure-requests';
+        header('Strict-Transport-Security: max-age=63072000; includeSubDomains');
+    }
+
+    header('Content-Security-Policy: ' . $csp);
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('X-Frame-Options: DENY');
     header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+    header('Cross-Origin-Opener-Policy: same-origin');
+}
+
+function storypad_verify_same_origin(): bool
+{
+    $hostHeader = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+    if ($hostHeader === '') {
+        return true;
+    }
+
+    $sourceUrl = '';
+    if (!empty($_SERVER['HTTP_ORIGIN']) && is_string($_SERVER['HTTP_ORIGIN'])) {
+        $sourceUrl = trim($_SERVER['HTTP_ORIGIN']);
+    } elseif (!empty($_SERVER['HTTP_REFERER']) && is_string($_SERVER['HTTP_REFERER'])) {
+        $sourceUrl = trim($_SERVER['HTTP_REFERER']);
+    }
+
+    if ($sourceUrl === '') {
+        return true;
+    }
+
+    $parts = parse_url($sourceUrl);
+    if (!is_array($parts)) {
+        return false;
+    }
+    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+    $srcHost = strtolower((string) ($parts['host'] ?? ''));
+    if ($srcHost === '' || !in_array($scheme, ['http', 'https'], true)) {
+        return false;
+    }
+    $srcPort = isset($parts['port']) ? (int) $parts['port'] : ($scheme === 'https' ? 443 : 80);
+
+    $expectedHostParts = explode(':', $hostHeader, 2);
+    $expectedHost = $expectedHostParts[0];
+    $expectedPort = isset($expectedHostParts[1])
+        ? (int) $expectedHostParts[1]
+        : ($scheme === 'https' ? 443 : 80);
+
+    return $srcHost === $expectedHost && $srcPort === $expectedPort;
 }
 
 function storypad_csrf_token(): string

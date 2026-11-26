@@ -14,11 +14,17 @@ class ScriptParser
      *
      * @return array<int, array{text:string, style:string}>
      */
+    private const MAX_XML_BYTES = 5242880; // 5 MB
+
     public static function extractDocxBlocks(string $filePath): array
     {
         $xmlString = self::readZipEntry($filePath, 'word/document.xml');
         if ($xmlString === null || $xmlString === '') {
             throw new RuntimeException('Tidak dapat membaca isi word/document.xml dari berkas .docx.');
+        }
+
+        if (preg_match('/<!(?:DOCTYPE|ENTITY)\b/i', $xmlString) === 1) {
+            throw new RuntimeException('Konten XML .docx mengandung deklarasi DOCTYPE/ENTITY yang ditolak.');
         }
 
         $prevUseErrors = libxml_use_internal_errors(true);
@@ -100,9 +106,17 @@ class ScriptParser
         if (class_exists('ZipArchive')) {
             $zip = new ZipArchive();
             if ($zip->open($zipFile) === true) {
+                $stat = $zip->statName($entryName);
+                if (is_array($stat) && isset($stat['size']) && (int) $stat['size'] > self::MAX_XML_BYTES) {
+                    $zip->close();
+                    throw new RuntimeException('Ukuran XML naskah .docx melebihi batas maksimum 5 MB.');
+                }
                 $content = $zip->getFromName($entryName);
                 $zip->close();
                 if (is_string($content)) {
+                    if (strlen($content) > self::MAX_XML_BYTES) {
+                        throw new RuntimeException('Ukuran XML naskah .docx melebihi batas maksimum 5 MB.');
+                    }
                     return $content;
                 }
             }
@@ -145,14 +159,20 @@ class ScriptParser
                     return null;
                 }
                 $lhdr = unpack('vverNeed/vflag/vmethod/vmodTime/vmodDate/Vcrc/VcompSize/VuncompSize/vnameLen/vextraLen', substr($raw, $localPos + 4, 26));
+                if ((int) $hdr['uncompSize'] > self::MAX_XML_BYTES || (int) $lhdr['uncompSize'] > self::MAX_XML_BYTES) {
+                    throw new RuntimeException('Ukuran XML naskah .docx melebihi batas maksimum 5 MB.');
+                }
                 $dataStart = $localPos + 30 + (int) $lhdr['nameLen'] + (int) $lhdr['extraLen'];
                 $compData = substr($raw, $dataStart, (int) $hdr['compSize']);
                 if ((int) $hdr['method'] === 0) {
-                    return $compData;
+                    return strlen($compData) <= self::MAX_XML_BYTES ? $compData : null;
                 }
                 if ((int) $hdr['method'] === 8) {
-                    $inflated = @gzinflate($compData);
-                    return $inflated !== false ? $inflated : null;
+                    $inflated = @gzinflate($compData, self::MAX_XML_BYTES + 1);
+                    if ($inflated === false || strlen($inflated) > self::MAX_XML_BYTES) {
+                        return null;
+                    }
+                    return $inflated;
                 }
                 return null;
             }

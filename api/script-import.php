@@ -22,6 +22,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     exit;
 }
 
+if (!storypad_verify_same_origin()) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Permintaan lintas origin ditolak.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
     http_response_code(403);
@@ -61,6 +67,9 @@ try {
 
         if (!empty($_FILES['script_file']) && is_array($_FILES['script_file']) && ($_FILES['script_file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $tmpPath = (string) $_FILES['script_file']['tmp_name'];
+            if ($tmpPath === '' || !is_uploaded_file($tmpPath)) {
+                throw new RuntimeException('Sumber unggahan berkas naskah tidak valid.');
+            }
             $fileSize = (int) ($_FILES['script_file']['size'] ?? filesize($tmpPath));
             if ($fileSize <= 0 || $fileSize > STORYPAD_MAX_SCRIPT_BYTES) {
                 throw new RuntimeException('Ukuran berkas naskah melebihi batas maksimum 10 MB.');
@@ -73,12 +82,21 @@ try {
             }
 
             if ($ext === 'docx') {
+                $fh = @fopen($tmpPath, 'rb');
+                $sig = $fh !== false ? (string) @fread($fh, 4) : '';
+                if ($fh !== false) @fclose($fh);
+                if ($sig !== "PK\x03\x04") {
+                    throw new RuntimeException('Signature berkas .docx tidak valid.');
+                }
                 $blocks = ScriptParser::extractDocxBlocks($tmpPath);
                 $parsed = ScriptParser::parseBlocks($blocks, $overrides);
             } elseif (in_array($ext, ['txt', 'fountain', 'md', 'spmd'], true)) {
                 $raw = file_get_contents($tmpPath);
                 if ($raw === false) {
                     throw new RuntimeException('Gagal membaca berkas teks yang diunggah.');
+                }
+                if (str_contains($raw, "\0")) {
+                    throw new RuntimeException('Berkas naskah teks mengandung byte biner tidak valid.');
                 }
                 $parsed = ScriptParser::parseRawText($raw, $overrides);
             } else {

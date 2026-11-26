@@ -188,6 +188,13 @@ async function runSecurityTests() {
     'supabase/verify_p0_rls.sql',
     'supabase/migrations/20261126000002_p1_sessions_audit_and_identity_rpcs.sql',
     'supabase/verify_p1_sessions_audit.sql',
+    'supabase/migrations/20261126000003_p2_storage_and_upload_constraints.sql',
+    'supabase/verify_p2_storage_policies.sql',
+    'vercel.json',
+    'server.js',
+    'lib/ScriptParser.php',
+    'docs/SECURITY_OPERATIONS.md',
+    'docs/SECURITY_AUDIT_CHECKLIST.md',
     'test_auth_security.js'
   ];
   filesToCheck.forEach(rel => {
@@ -343,8 +350,71 @@ async function runSecurityTests() {
   console.log('13. [PASS] Change Password enforces current password re-auth & clears inputs');
 
   StoryPad.openConfirmDialog = origConfirm;
+
+  // 14. P2: Vercel production security headers & CSP verification
+  const vercelCfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'vercel.json'), 'utf8'));
+  assert.ok(Array.isArray(vercelCfg.headers) && vercelCfg.headers.length > 0, 'vercel.json must configure headers');
+  const rootHeaderRule = vercelCfg.headers.find(h => h.source === '/(.*)');
+  assert.ok(rootHeaderRule && Array.isArray(rootHeaderRule.headers), 'vercel.json missing /(.*) header rule');
+  const hdrMap = Object.fromEntries(rootHeaderRule.headers.map(h => [h.key.toLowerCase(), h.value]));
+  assert.ok(hdrMap['content-security-policy'].includes("frame-ancestors 'none'"), 'CSP must deny framing');
+  assert.ok(hdrMap['content-security-policy'].includes("object-src 'none'"), 'CSP must disable object/embed');
+  assert.ok(hdrMap['strict-transport-security'].includes('max-age='), 'HSTS header required');
+  assert.strictEqual(hdrMap['x-content-type-options'], 'nosniff');
+  assert.strictEqual(hdrMap['referrer-policy'], 'strict-origin-when-cross-origin');
+  assert.strictEqual(hdrMap['x-frame-options'], 'DENY');
+  assert.ok(hdrMap['permissions-policy'].includes('camera=()'));
+  console.log('14. [PASS] vercel.json security headers & strict CSP directives verified');
+
+  // 15. P2: PHP Same-Origin guard, POST-only admin logout, and static server.js allowlist
+  const sessionPhp = fs.readFileSync(path.join(__dirname, 'includes/session.php'), 'utf8');
+  const adminLoginPhp = fs.readFileSync(path.join(__dirname, 'admin-login.php'), 'utf8');
+  const serverJs = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  assert.ok(sessionPhp.includes('function storypad_verify_same_origin'), 'session.php must define same-origin helper');
+  assert.ok(sessionPhp.includes("Content-Security-Policy:"), 'session.php must emit CSP header');
+  assert.ok(!adminLoginPhp.includes("$_GET['action']"), 'admin-login.php must not accept GET action=logout');
+  assert.ok(adminLoginPhp.includes('storypad_verify_same_origin()'), 'admin-login.php must verify same-origin on logout POST');
+  ['api/session.php', 'api/supabase.php', 'api/media.php', 'api/script-import.php', 'api/admin.php'].forEach(apiFile => {
+    const apiSrc = fs.readFileSync(path.join(__dirname, apiFile), 'utf8');
+    assert.ok(apiSrc.includes('storypad_verify_same_origin()'), `${apiFile} missing same-origin guard`);
+  });
+  assert.ok(serverJs.includes('ALLOWED_STATIC_EXTS') && serverJs.includes('BLOCKED_PATH_PREFIXES'), 'server.js must enforce static allowlist & blocked paths');
+  assert.ok(serverJs.includes("res.end('500 Internal Server Error')") && !serverJs.includes("'500 Server Error:'"), 'server.js must not expose raw err.code on HTTP 500');
+  console.log('15. [PASS] PHP same-origin guards, POST-only admin logout, and hardened static server verified');
+
+  // 16. P2: Upload magic-byte signature validation, XXE/ZIP-bomb guards, and storage SQL constraints
+  const mediaPhp = fs.readFileSync(path.join(__dirname, 'api/media.php'), 'utf8');
+  const scriptImportPhp = fs.readFileSync(path.join(__dirname, 'api/script-import.php'), 'utf8');
+  const scriptParserPhp = fs.readFileSync(path.join(__dirname, 'lib/ScriptParser.php'), 'utf8');
+  assert.ok(mediaPhp.includes('storypad_verify_media_signature') && mediaPhp.includes('is_uploaded_file'), 'api/media.php must verify magic bytes & is_uploaded_file');
+  assert.ok(mediaPhp.includes('$allowedAudioMimes') && mediaPhp.includes('$allowedVideoMimes'), 'api/media.php must enforce strict MIME allowlists');
+  assert.ok(scriptImportPhp.includes('PK\\x03\\x04') && scriptImportPhp.includes('is_uploaded_file'), 'api/script-import.php must check DOCX ZIP magic & upload origin');
+  assert.ok(scriptParserPhp.includes('MAX_XML_BYTES') && scriptParserPhp.includes('DOCTYPE|ENTITY'), 'ScriptParser.php must cap XML size and block DOCTYPE/ENTITY');
+  console.log('16. [PASS] Upload binary signature validation, XXE/ZIP-bomb guards, and MIME allowlists verified');
+
+  // 17. P2: Safe internal screen resolution & auth redirect normalization prevent open redirects
+  assert.strictEqual(StoryPad.resolveSafeInternalScreen('projects'), 'projects');
+  assert.strictEqual(StoryPad.resolveSafeInternalScreen('https://evil.example/phish'), 'dashboard');
+  assert.strictEqual(StoryPad.resolveSafeInternalScreen('//evil.example'), 'dashboard');
+  assert.strictEqual(StoryPad.resolveSafeInternalScreen('javascript:alert(1)'), 'dashboard');
+  assert.strictEqual(StoryPad.resolveSafeInternalScreen('../admin'), 'dashboard');
+  const safeRedirect = StoryPad.getSafeAuthRedirectUrl();
+  assert.ok(safeRedirect === undefined || safeRedirect.startsWith('http://') || safeRedirect.startsWith('https://'));
+  console.log('17. [PASS] Safe internal route resolution & auth redirect origin normalization verified');
+
+  // 18. P2: Operational runbook, audited security checklist, and P2 SQL scripts verified
+  const opsDoc = fs.readFileSync(path.join(__dirname, 'docs/SECURITY_OPERATIONS.md'), 'utf8');
+  const auditDoc = fs.readFileSync(path.join(__dirname, 'docs/SECURITY_AUDIT_CHECKLIST.md'), 'utf8');
+  const p2Sql = fs.readFileSync(path.join(__dirname, 'supabase/migrations/20261126000003_p2_storage_and_upload_constraints.sql'), 'utf8');
+  const p2Verify = fs.readFileSync(path.join(__dirname, 'supabase/verify_p2_storage_policies.sql'), 'utf8');
+  assert.ok(opsDoc.includes('Backup') && opsDoc.includes('Rotation') && opsDoc.includes('Incident Response'));
+  assert.ok(auditDoc.includes('[x]') && auditDoc.includes('[ ]') && auditDoc.includes('[!]'));
+  assert.ok(p2Sql.includes('file_size_limit = 52428800') && p2Sql.includes('allowed_mime_types'));
+  assert.ok(p2Verify.includes('ROLLBACK') && p2Verify.includes('storypad-media'));
+  console.log('18. [PASS] Security operations runbook, honest audit checklist, and P2 storage SQL verified');
+
   clearInterval(StoryPad.state._clocks.clockTimer);
-  console.log('\n=== ALL 13 STORYPAD P0 & P1 SECURITY & AUTH TESTS PASSED 100%! ===');
+  console.log('\n=== ALL 18 STORYPAD P0, P1 & P2 SECURITY & AUTH TESTS PASSED 100%! ===');
 }
 
 runSecurityTests().catch(err => {

@@ -900,6 +900,23 @@ const StoryPad = {
    * NAVIGATION & ROUTING
    * ============================================================ */
 
+  resolveSafeInternalScreen(rawScreen) {
+    const clean = String(rawScreen || '').trim().toLowerCase();
+    const allowed = ['login', 'dashboard', 'projects', 'script-reader', 'profile'];
+    if (allowed.includes(clean)) return clean;
+    return 'dashboard';
+  },
+
+  getSafeAuthRedirectUrl() {
+    if (typeof window === 'undefined' || !window.location) return undefined;
+    const protocol = String(window.location.protocol || '').toLowerCase();
+    const origin = String(window.location.origin || '').trim();
+    if (!origin || !['http:', 'https:'].includes(protocol)) return undefined;
+    const rawPath = String(window.location.pathname || '/');
+    const cleanPath = rawPath.startsWith('/') && !rawPath.startsWith('//') ? rawPath.split(/[?#]/)[0] : '/';
+    return `${origin}${cleanPath}`;
+  },
+
   syncTabFromScreen(screenId) {
     if (screenId === 'dashboard') this.state.activeTab = 'home';
     else if (screenId === 'projects') this.state.activeTab = 'project-list';
@@ -909,7 +926,8 @@ const StoryPad = {
 
   navigate(screenId, tabId = null) {
     this.triggerHaptic();
-    if (screenId !== 'login' && !this.isAuthenticated()) {
+    const safeScreenId = this.resolveSafeInternalScreen(screenId);
+    if (safeScreenId !== 'login' && !this.isAuthenticated()) {
       this.state.currentScreen = 'login';
       this.closeAllModals(true);
       this.renderScreen('login');
@@ -919,23 +937,23 @@ const StoryPad = {
       return false;
     }
 
-    if (this.state.currentScreen !== screenId) {
+    if (this.state.currentScreen !== safeScreenId) {
       this.state.previousScreen = this.state.currentScreen;
     }
-    this.state.currentScreen = screenId;
+    this.state.currentScreen = safeScreenId;
     if (tabId) {
       this.state.activeTab = tabId;
     } else {
-      this.syncTabFromScreen(screenId);
+      this.syncTabFromScreen(safeScreenId);
     }
 
     this.closeAllModals(true);
-    this.renderScreen(screenId);
+    this.renderScreen(safeScreenId);
     this.updateNavbarVisibility();
     this.updateActiveTabStyles();
 
-    if (screenId !== 'login') {
-      this.syncPhpSession({ screen: screenId });
+    if (safeScreenId !== 'login') {
+      this.syncPhpSession({ screen: safeScreenId });
     }
     return true;
   },
@@ -4924,9 +4942,7 @@ const StoryPad = {
     this.setAuthFeedback(feedbackElId, 'Mendaftarkan akun kru...', 'info');
 
     try {
-      const redirectTo = (typeof window !== 'undefined' && window.location)
-        ? `${window.location.origin}${window.location.pathname}`
-        : undefined;
+      const redirectTo = this.getSafeAuthRedirectUrl();
       const authRes = await this.supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -4998,9 +5014,7 @@ const StoryPad = {
 
     if (btn) btn.disabled = true;
     try {
-      const redirectTo = (typeof window !== 'undefined' && window.location)
-        ? `${window.location.origin}${window.location.pathname}`
-        : undefined;
+      const redirectTo = this.getSafeAuthRedirectUrl();
       await this.supabase.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
       // Selalu tampilkan pesan netral anti-enumerasi
       this.setAuthFeedback(
@@ -5596,9 +5610,7 @@ const StoryPad = {
     }
 
     try {
-      const redirectTo = (typeof window !== 'undefined' && window.location)
-        ? `${window.location.origin}${window.location.pathname}`
-        : undefined;
+      const redirectTo = this.getSafeAuthRedirectUrl();
       const { data, error } = await this.supabase.auth.linkIdentity({
         provider,
         options: { redirectTo }

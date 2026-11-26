@@ -27,14 +27,42 @@ const dotEnv = loadDotEnv(path.join(__dirname, '.env'));
 const getEnv = (key, fallback = '') => process.env[key] || dotEnv[key] || fallback;
 
 const PORT = Number(getEnv('PORT', '3000')) || 3000;
+const ROOT_DIR = path.resolve(__dirname);
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp'
+};
+
+const ALLOWED_STATIC_EXTS = new Set(Object.keys(MIME_TYPES));
+const BLOCKED_PATH_PREFIXES = ['/api/', '/config/', '/includes/', '/lib/', '/supabase/', '/views/', '/docs/', '/.'];
+
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co"
+  ].join('; '),
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'DENY',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Cross-Origin-Opener-Policy': 'same-origin'
 };
 
 function buildBootScript() {
@@ -53,40 +81,65 @@ function buildBootScript() {
 }
 
 const server = http.createServer((req, res) => {
-  let reqPath = (req.url || '/').split('?')[0];
-  if (reqPath === '/') reqPath = '/index.html';
+  let reqPath;
+  try {
+    reqPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  } catch (_e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+    res.end('400 Bad Request');
+    return;
+  }
 
-  const normalized = path.normalize(reqPath).replace(/^(\.\.[/\\])+/, '');
-  const filePath = path.join(__dirname, normalized);
-  if (!filePath.startsWith(__dirname) || path.basename(filePath).startsWith('.')) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+  if (reqPath === '/') reqPath = '/index.html';
+  const lowerPath = reqPath.toLowerCase();
+
+  if (BLOCKED_PATH_PREFIXES.some(prefix => lowerPath.startsWith(prefix)) || lowerPath.includes('..')) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+    res.end('403 Forbidden');
+    return;
+  }
+
+  const normalized = path.normalize(reqPath).replace(/^([/\\])+/g, '');
+  const filePath = path.resolve(ROOT_DIR, normalized);
+  if (filePath !== ROOT_DIR && !filePath.startsWith(ROOT_DIR + path.sep)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
     res.end('403 Forbidden');
     return;
   }
 
   const ext = path.extname(filePath).toLowerCase();
+  if (
+    !ALLOWED_STATIC_EXTS.has(ext) ||
+    path.basename(filePath).startsWith('.') ||
+    lowerPath.startsWith('/test_')
+  ) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+    res.end('403 Forbidden');
+    return;
+  }
+
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
       if (err.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
         res.end('404 Not Found');
       } else {
-        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('500 Server Error: ' + err.code);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS });
+        res.end('500 Internal Server Error');
       }
       return;
     }
 
     if (reqPath === '/index.html') {
       const html = content.toString('utf8').replace('</head>', `  ${buildBootScript()}\n</head>`);
-      res.writeHead(200, { 'Content-Type': contentType });
+      res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
       res.end(html, 'utf8');
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, { 'Content-Type': contentType, ...SECURITY_HEADERS });
     res.end(content);
   });
 });

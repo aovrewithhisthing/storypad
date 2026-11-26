@@ -50,6 +50,11 @@ $auth = storypad_require_authenticated_api($client);
 $accessToken = (string) $auth['access_token'];
 
 if ($method === 'POST') {
+    if (!storypad_verify_same_origin()) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'Permintaan lintas origin ditolak.']);
+        exit;
+    }
     $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
     if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
         http_response_code(403);

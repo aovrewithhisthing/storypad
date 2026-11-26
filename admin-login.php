@@ -24,9 +24,9 @@ $errorMsg = '';
 $statusMsg = '';
 $submittedEmail = '';
 
-// Handle Logout Admin (POST dengan CSRF atau GET ?action=logout)
-if (($_GET['action'] ?? '') === 'logout' || (($_POST['action'] ?? '') === 'logout')) {
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !storypad_verify_csrf($_POST['csrf_token'] ?? null)) {
+// Handle Logout Admin (wajib metode POST dengan same-origin dan CSRF token)
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'logout') {
+    if (!storypad_verify_same_origin() || !storypad_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errorMsg = 'Token keamanan tidak valid. Muat ulang halaman lalu coba lagi.';
     } else {
         storypad_logout_admin();

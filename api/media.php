@@ -19,6 +19,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     exit;
 }
 
+if (!storypad_verify_same_origin()) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Permintaan lintas origin ditolak.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
 if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
     http_response_code(403);
@@ -55,6 +61,42 @@ function storypad_validate_external_https_url(string $url): bool
     return filter_var($url, FILTER_VALIDATE_URL) !== false;
 }
 
+function storypad_verify_media_signature(string $tmpPath, string $ext): bool
+{
+    $fp = @fopen($tmpPath, 'rb');
+    if ($fp === false) {
+        return false;
+    }
+    $head = (string) @fread($fp, 16);
+    @fclose($fp);
+    if (strlen($head) < 4) {
+        return false;
+    }
+
+    switch ($ext) {
+        case 'wav':
+            return strlen($head) >= 12 && substr($head, 0, 4) === 'RIFF' && substr($head, 8, 4) === 'WAVE';
+        case 'mp3':
+            return substr($head, 0, 3) === 'ID3'
+                || (ord($head[0]) === 0xFF && (ord($head[1]) & 0xE0) === 0xE0);
+        case 'mp4':
+        case 'm4a':
+            return strlen($head) >= 8 && substr($head, 4, 4) === 'ftyp';
+        case 'mov':
+            return strlen($head) >= 8 && in_array(substr($head, 4, 4), ['ftyp', 'moov', 'mdat', 'wide', 'free', 'skip'], true);
+        case 'ogg':
+            return substr($head, 0, 4) === 'OggS';
+        case 'webm':
+        case 'mkv':
+            return substr($head, 0, 4) === "\x1A\x45\xDF\xA3";
+        case 'aac':
+            return substr($head, 0, 3) === 'ID3'
+                || (ord($head[0]) === 0xFF && (ord($head[1]) & 0xF6) === 0xF0);
+        default:
+            return false;
+    }
+}
+
 try {
     if (str_contains($contentType, 'multipart/form-data')) {
         $rawProjectId = trim((string) ($_POST['project_id'] ?? ''));
@@ -77,6 +119,10 @@ try {
         }
 
         $tmpPath = (string) $_FILES['media_file']['tmp_name'];
+        if ($tmpPath === '' || !is_uploaded_file($tmpPath)) {
+            throw new RuntimeException('Sumber unggahan berkas tidak valid.');
+        }
+
         $origName = basename((string) ($_FILES['media_file']['name'] ?? ($mediaType === 'video' ? 'clip.mp4' : 'track.wav')));
         $fileSize = (int) ($_FILES['media_file']['size'] ?? filesize($tmpPath));
 
@@ -125,9 +171,24 @@ try {
             $mime = $mimeMap[$ext] ?? ($mediaType === 'video' ? 'video/mp4' : 'audio/wav');
         }
 
+        $allowedAudioMimes = ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/aac', 'audio/x-aac', 'audio/ogg', 'application/ogg', 'audio/webm'];
+        $allowedVideoMimes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'];
+        $allowedMimes = $mediaType === 'audio' ? $allowedAudioMimes : $allowedVideoMimes;
+        if (!in_array($mime, $allowedMimes, true)) {
+            throw new RuntimeException('MIME type berkas tidak sesuai dengan kategori media.');
+        }
+
+        if (!storypad_verify_media_signature($tmpPath, $ext)) {
+            throw new RuntimeException('Signature biner berkas media tidak valid atau rusak.');
+        }
+
         $safeBase = $standardName !== ''
             ? preg_replace('/[^a-zA-Z0-9._-]+/', '_', pathinfo($standardName, PATHINFO_FILENAME)) . '.' . $ext
             : preg_replace('/[^a-zA-Z0-9._-]+/', '_', $origName);
+        $safeBase = ltrim(str_replace('..', '_', (string) $safeBase), '.');
+        if ($safeBase === '' || $safeBase === '.' . $ext) {
+            $safeBase = ($mediaType === 'video' ? 'clip' : 'audio') . '.' . $ext;
+        }
 
         $objectPath = $projectId . '/' . $dialogueId . '_T' . str_pad((string) $takeNumber, 2, '0', STR_PAD_LEFT) . '_' . time() . '_' . $safeBase;
         $binary = file_get_contents($tmpPath);
