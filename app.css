@@ -1178,6 +1178,98 @@ textarea.sp-textarea-monitor,
   border-color: var(--primary-accent);
 }
 
+/* Account Hub & Auth Form Controls */
+.sp-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background-color: var(--panel-lowest);
+  border: 1px solid var(--border-flat);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sp-account-card:hover {
+  background-color: var(--panel-elevated);
+  border-color: var(--border-control);
+}
+
+.sp-account-card-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.sp-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sp-password-toggle {
+  position: absolute;
+  right: 2px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+}
+
+.sp-password-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--panel-elevated);
+}
+
+.sp-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 2px;
+}
+
+.sp-auth-alert-error {
+  background-color: var(--red-tint);
+  border-color: var(--red-tint-border);
+  color: var(--red-text);
+}
+
+.sp-auth-alert-success {
+  background-color: var(--good-tint);
+  border-color: var(--good-tint-border);
+  color: var(--good-text);
+}
+
+.sp-auth-alert-info {
+  background-color: var(--primary-tint);
+  border-color: var(--primary-tint-border);
+  color: var(--primary-text);
+}
+
+.role-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.role-item:disabled:hover {
+  background-color: transparent;
+}
+
 /* Tactile press feedback */
 .btn-press:active {
   transform: scale(0.98);

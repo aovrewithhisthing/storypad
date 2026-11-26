@@ -99,7 +99,7 @@ declare(strict_types=1);
     </div>
 
     <!-- ========================================== -->
-    <!-- MODAL 3: AKUN KRU PRODUKSI (DAFTAR & MASUK) -->
+    <!-- MODAL 3: KELOLA AKUN & PERANGKAT LOKAL -->
     <!-- ========================================== -->
     <div class="bottom-sheet-drawer modal-dialog" id="sheet-login-accounts" role="dialog" aria-modal="true" aria-labelledby="accounts-modal-title">
       <div class="bottom-sheet-handle"></div>
@@ -107,50 +107,50 @@ declare(strict_types=1);
         <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px]" style="color: var(--primary-text);" aria-hidden="true">badge</span>
-            <h2 id="accounts-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Akun Kru Produksi</h2>
+            <h2 id="accounts-modal-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Kelola Akun &amp; Perangkat</h2>
           </div>
           <button type="button" aria-label="Tutup daftar akun" class="sp-icon-btn" onclick="StoryPad.closeLoginAccounts()">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
 
-        <div class="flex flex-col gap-2" id="crew-accounts-list"></div>
+        <div id="modal-current-account-box" class="sp-panel-muted p-3 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="font-sans text-xs font-bold m-0 truncate" id="modal-current-account-name" style="color: var(--text-primary);">Belum masuk</p>
+            <p class="font-mono text-[11px] m-0 truncate" id="modal-current-account-email" style="color: var(--text-secondary);">Silakan masuk melalui Account Hub</p>
+          </div>
+          <button type="button" id="modal-switch-account-btn" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0" onclick="StoryPad.switchAccountViaHub()">
+            Keluar &amp; Ganti Akun
+          </button>
+        </div>
 
-        <!-- Supabase Email & Password Crew Auth + Profile Persistence -->
-        <div class="pt-3 mt-1 border-t flex flex-col gap-2.5" style="border-color: var(--border-flat);">
-          <h3 class="font-sans text-xs font-bold m-0" style="color: var(--text-primary);">Daftar Akun Kru Baru atau Masuk via Email</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="flex flex-col gap-1">
-              <label for="supa-name-input" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nama Lengkap Kru (untuk Daftar)</label>
-              <input type="text" id="supa-name-input" class="sp-input" placeholder="Masukkan nama lengkap kru" autocomplete="name">
-            </div>
-            <div class="flex flex-col gap-1">
-              <label for="supa-role-select" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Peran Utama</label>
-              <select id="supa-role-select" class="sp-input">
-                <option value="scriptSupervisor">Script Supervisor</option>
-                <option value="videoEditor">Offline Video Editor</option>
-                <option value="soundRecordist">Production Sound Mixer</option>
-                <option value="directorProducer">Director &amp; Producer</option>
-              </select>
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label for="supa-email-input" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Email Kru</label>
-            <input type="email" id="supa-email-input" class="sp-input" placeholder="nama@domain.id" autocomplete="email">
-          </div>
-          <div class="flex flex-col gap-1">
-            <label for="supa-password-input" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Kata Sandi</label>
-            <input type="password" id="supa-password-input" class="sp-input" placeholder="Minimal 6 karakter" autocomplete="current-password">
-          </div>
-          <p id="supa-auth-feedback" class="font-sans text-xs hidden m-0" role="alert"></p>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="supa-signin-btn" class="sp-btn sp-btn-primary sp-btn-compact" onclick="StoryPad.signInWithSupabaseEmail('signin')">
-              Masuk Email
-            </button>
-            <button type="button" id="supa-signup-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.signInWithSupabaseEmail('signup')">
-              Daftar &amp; Simpan Akun
-            </button>
-          </div>
+        <div class="flex flex-col gap-1.5">
+          <h3 class="font-sans text-xs font-bold m-0" style="color: var(--text-primary);">Akun yang diingat di browser ini</h3>
+          <p class="font-sans text-[11px] m-0" style="color: var(--text-secondary);">
+            Hanya menyimpan identitas non-sensitif untuk mempercepat pemilihan akun. Menghapus dari sini tidak menghapus akun di server.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2" id="crew-accounts-list"></div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL KONFIRMASI AKSI SENSITIF -->
+    <!-- ========================================== -->
+    <div class="bottom-sheet-drawer modal-dialog" id="sheet-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message">
+      <div class="bottom-sheet-handle"></div>
+      <div class="bottom-sheet-content">
+        <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
+          <h2 id="confirm-dialog-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Konfirmasi Tindakan</h2>
+          <button type="button" aria-label="Tutup dialog konfirmasi" class="sp-icon-btn" onclick="StoryPad.resolveConfirmDialog(false)">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <p id="confirm-dialog-message" class="font-sans text-xs leading-relaxed m-0" style="color: var(--text-secondary);"></p>
+        <div class="pt-2 border-t flex items-center justify-end gap-2" style="border-color: var(--border-flat);">
+          <button type="button" id="confirm-dialog-cancel" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.resolveConfirmDialog(false)">Batal</button>
+          <button type="button" id="confirm-dialog-confirm" class="sp-btn sp-btn-danger sp-btn-compact" onclick="StoryPad.resolveConfirmDialog(true)">Lanjutkan</button>
         </div>
       </div>
     </div>

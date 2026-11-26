@@ -7,6 +7,7 @@ declare(strict_types=1);
 $config = require __DIR__ . '/config/supabase.php';
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/lib/SupabaseClient.php';
+storypad_send_security_headers();
 
 $client = new SupabaseClient(
     $config['supabase']['url'],
@@ -44,9 +45,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? 'lo
     $csrf = isset($_POST['csrf_token']) && is_string($_POST['csrf_token']) ? $_POST['csrf_token'] : '';
     $submittedEmail = isset($_POST['email']) && is_string($_POST['email']) ? trim($_POST['email']) : '';
     $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
+    $rateKey = 'admin_login_' . ($_SERVER['REMOTE_ADDR'] ?? 'local');
+    $rateStatus = storypad_check_rate_limit($rateKey, 5, 900);
 
     if (!storypad_verify_csrf($csrf)) {
         $errorMsg = 'Sesi formulir kedaluwarsa. Silakan kirim ulang formulir login.';
+    } elseif (!$rateStatus['allowed']) {
+        $mins = (int) ceil($rateStatus['retry_after'] / 60);
+        $errorMsg = "Terlalu banyak percobaan login gagal. Coba lagi dalam {$mins} menit.";
     } elseif ($submittedEmail === '' || $password === '') {
         $errorMsg = 'Masukkan email admin dan kata sandi terlebih dahulu.';
     } else {
@@ -102,18 +108,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? 'lo
         }
 
         if ($authenticatedAdmin !== null) {
+            storypad_clear_rate_limit($rateKey);
             storypad_login_admin($authenticatedAdmin);
             header('Location: admin.php');
             exit;
         }
 
+        storypad_record_failed_attempt($rateKey, 900);
         $errorMsg = 'Email atau kata sandi Admin Studio tidak cocok.';
     }
 }
 
-// Probe cepat status Supabase untuk ditampilkan jujur di kolom kiri
+// Probe cepat status Supabase Auth untuk ditampilkan jujur di kolom kiri
 $probeStart = microtime(true);
-$probeRes = $client->select('projects', ['select' => 'id', 'limit' => '1']);
+$probeRes = $client->authHealth();
 $probeLatencyMs = (int) round((microtime(true) - $probeStart) * 1000);
 $supabaseReachable = (bool) ($probeRes['ok'] ?? false);
 

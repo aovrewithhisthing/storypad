@@ -7,6 +7,7 @@ declare(strict_types=1);
 $config = require __DIR__ . '/config/supabase.php';
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/lib/SupabaseClient.php';
+storypad_send_security_headers();
 
 $admin = storypad_require_admin(false);
 $session = storypad_get_session();
@@ -17,7 +18,10 @@ $client = new SupabaseClient(
     $config['supabase']['anon_key'],
     6
 );
-$accessToken = !empty($admin['access_token']) ? (string) $admin['access_token'] : null;
+$serviceRoleKey = (string) ($config['supabase']['service_role_key'] ?? '');
+$accessToken = !empty($admin['access_token'])
+    ? (string) $admin['access_token']
+    : ($serviceRoleKey !== '' ? $serviceRoleKey : null);
 
 $start = microtime(true);
 $bootstrap = $client->fetchBootstrap($accessToken);

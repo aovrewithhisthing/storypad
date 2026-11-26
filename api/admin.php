@@ -6,10 +6,12 @@ declare(strict_types=1);
  * Semua endpoint dilindungi sesi admin & CSRF token.
  */
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 $config = require __DIR__ . '/../config/supabase.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../lib/SupabaseClient.php';
+storypad_send_security_headers();
 
 $admin = storypad_require_admin(true);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -20,7 +22,10 @@ $client = new SupabaseClient(
     $config['supabase']['anon_key'],
     10
 );
-$accessToken = !empty($admin['access_token']) ? (string) $admin['access_token'] : null;
+$serviceRoleKey = (string) ($config['supabase']['service_role_key'] ?? '');
+$accessToken = !empty($admin['access_token'])
+    ? (string) $admin['access_token']
+    : ($serviceRoleKey !== '' ? $serviceRoleKey : null);
 
 if ($method === 'POST') {
     $csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';

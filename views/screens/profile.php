@@ -109,9 +109,9 @@ $uProd = $u['prodName'] ?? '-';
                     <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
                       <div>
                         <h2 class="sp-section-heading">Pengaturan Peran (Role Switcher)</h2>
-                        <p class="font-sans text-xs mt-0.5 m-0" style="color: var(--text-secondary);">Perubahan peran langsung tersimpan otomatis ke sesi perangkat dan profil kru.</p>
+                        <p class="font-sans text-xs mt-0.5 m-0" style="color: var(--text-secondary);">Hanya peran yang diotorisasi untuk akun Anda yang dapat diaktifkan dan diverifikasi server.</p>
                       </div>
-                      <span class="sp-badge sp-badge-blue">Auto-Save</span>
+                      <span class="sp-badge sp-badge-blue">Server-Verified</span>
                     </div>
 
                     <div class="rounded border divide-y overflow-hidden" style="border-color: var(--border-flat);">
@@ -122,7 +122,10 @@ $uProd = $u['prodName'] ?? '-';
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit_note</span>
                           </span>
                           <span class="flex flex-col min-w-0">
-                            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">Script Supervisor</span>
+                            <span class="font-sans text-xs font-bold truncate flex items-center gap-2" style="color: var(--text-primary);">
+                              <span>Script Supervisor</span>
+                              <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
+                            </span>
                             <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">Pencatatan adegan lapangan dan status kontinuitas</span>
                           </span>
                         </span>
@@ -138,7 +141,10 @@ $uProd = $u['prodName'] ?? '-';
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">movie_edit</span>
                           </span>
                           <span class="flex flex-col min-w-0">
-                            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">Video Editor</span>
+                            <span class="font-sans text-xs font-bold truncate flex items-center gap-2" style="color: var(--text-primary);">
+                              <span>Video Editor</span>
+                              <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
+                            </span>
                             <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">Akses sinkronisasi metadata NLE XML dan EDL</span>
                           </span>
                         </span>
@@ -154,7 +160,10 @@ $uProd = $u['prodName'] ?? '-';
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">graphic_eq</span>
                           </span>
                           <span class="flex flex-col min-w-0">
-                            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">Sound Recordist</span>
+                            <span class="font-sans text-xs font-bold truncate flex items-center gap-2" style="color: var(--text-primary);">
+                              <span>Sound Recordist</span>
+                              <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
+                            </span>
                             <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">Pengunggah trek audio rekaman lapangan ke take</span>
                           </span>
                         </span>
@@ -170,7 +179,10 @@ $uProd = $u['prodName'] ?? '-';
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
                           </span>
                           <span class="flex flex-col min-w-0">
-                            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">Director &amp; Producer View</span>
+                            <span class="font-sans text-xs font-bold truncate flex items-center gap-2" style="color: var(--text-primary);">
+                              <span>Director &amp; Producer View</span>
+                              <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
+                            </span>
                             <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">Mode tinjauan take pilihan tanpa mengubah penamaan</span>
                           </span>
                         </span>
@@ -186,7 +198,10 @@ $uProd = $u['prodName'] ?? '-';
                             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">sync_saved_locally</span>
                           </span>
                           <span class="flex flex-col min-w-0">
-                            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">Auto-Export Meta Naming</span>
+                            <span class="font-sans text-xs font-bold truncate flex items-center gap-2" style="color: var(--text-primary);">
+                              <span>Auto-Export Meta Naming</span>
+                              <span class="role-lock-badge hidden sp-badge sp-badge-neutral">Terkunci</span>
+                            </span>
                             <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">Format penamaan otomatis untuk DaVinci &amp; Premiere Pro</span>
                           </span>
                         </span>

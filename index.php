@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 $config = require __DIR__ . '/config/supabase.php';
 require_once __DIR__ . '/includes/session.php';
+storypad_send_security_headers();
 
 $session = storypad_get_session();
 $initialScreen = storypad_resolve_initial_screen($session);
@@ -22,6 +23,7 @@ $phpBoot = [
     'appVersion' => $config['app_version'],
     'phpVersion' => PHP_VERSION,
     'studioName' => $config['studio_name'] ?? 'StoryPad Studio',
+    'csrfToken' => storypad_csrf_token(),
     'initialScreen' => $initialScreen,
     'loggedIn' => (bool) ($session['logged_in'] ?? false),
     'theme' => $activeTheme,

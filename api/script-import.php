@@ -8,17 +8,37 @@ declare(strict_types=1);
  *   POST ?action=import -> Konversi & simpan langsung ke Supabase (projects + script_lines)
  */
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 $config = require __DIR__ . '/../config/supabase.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../lib/SupabaseClient.php';
 require_once __DIR__ . '/../lib/ScriptParser.php';
+storypad_send_security_headers();
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Gunakan metode POST untuk memproses naskah.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Token keamanan tidak valid.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$client = new SupabaseClient(
+    $config['supabase']['url'],
+    $config['supabase']['anon_key'],
+    15
+);
+$auth = storypad_require_authenticated_api($client);
+$accessToken = (string) $auth['access_token'];
+$userId = (string) ($auth['user']['id'] ?? '');
+
+const STORYPAD_MAX_SCRIPT_BYTES = 10485760; // 10 MB
 
 $action = isset($_GET['action']) && is_string($_GET['action']) ? trim($_GET['action']) : 'parse';
 $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
@@ -29,7 +49,7 @@ $parsed = null;
 try {
     if (str_contains($contentType, 'multipart/form-data')) {
         $overrides = [
-            'id' => trim((string) ($_POST['project_id'] ?? '')),
+            'id' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string) ($_POST['project_id'] ?? ''))) ?? '',
             'code' => trim((string) ($_POST['code'] ?? '')),
             'title' => trim((string) ($_POST['title'] ?? '')),
             'category' => trim((string) ($_POST['category'] ?? '')),
@@ -41,6 +61,10 @@ try {
 
         if (!empty($_FILES['script_file']) && is_array($_FILES['script_file']) && ($_FILES['script_file']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $tmpPath = (string) $_FILES['script_file']['tmp_name'];
+            $fileSize = (int) ($_FILES['script_file']['size'] ?? filesize($tmpPath));
+            if ($fileSize <= 0 || $fileSize > STORYPAD_MAX_SCRIPT_BYTES) {
+                throw new RuntimeException('Ukuran berkas naskah melebihi batas maksimum 10 MB.');
+            }
             $origName = basename((string) ($_FILES['script_file']['name'] ?? 'naskah.docx'));
             $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
             $overrides['source_filename'] = $origName;
@@ -71,7 +95,6 @@ try {
             throw new RuntimeException('Payload JSON tidak valid.');
         }
 
-        // Jika klien sudah mengirimkan hasil konversi siap simpan
         if (isset($payload['project'], $payload['lines']) && is_array($payload['project']) && is_array($payload['lines'])) {
             $parsed = [
                 'project' => $payload['project'],
@@ -86,7 +109,7 @@ try {
                 throw new RuntimeException('Teks naskah kosong.');
             }
             $overrides = [
-                'id' => trim((string) ($payload['project_id'] ?? '')),
+                'id' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string) ($payload['project_id'] ?? ''))) ?? '',
                 'code' => trim((string) ($payload['code'] ?? '')),
                 'title' => trim((string) ($payload['title'] ?? '')),
                 'category' => trim((string) ($payload['category'] ?? '')),
@@ -115,32 +138,28 @@ try {
     }
 
     if ($action === 'import') {
-        $admin = storypad_get_admin_session();
-        $accessToken = !empty($admin['access_token']) ? (string) $admin['access_token'] : null;
-
-        $client = new SupabaseClient(
-            $config['supabase']['url'],
-            $config['supabase']['anon_key'],
-            15
-        );
-
         $projectRow = $parsed['project'];
-        $projectId = (string) $projectRow['id'];
+        $projectId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($projectRow['id'] ?? '')) ?? '';
+        if ($projectId === '') {
+            throw new RuntimeException('ID proyek tidak valid.');
+        }
+        $projectRow['id'] = $projectId;
+        if ($userId !== '') {
+            $projectRow['owner_id'] = $userId;
+        }
 
         $projRes = $client->upsert('projects', $projectRow, 'id', $accessToken);
         if (!$projRes['ok']) {
-            throw new RuntimeException('Gagal menyimpan proyek ke Supabase: ' . ($projRes['error'] ?? 'Unknown error'));
+            throw new RuntimeException('Gagal menyimpan proyek ke database.');
         }
 
-        // Arsipkan baris lama proyek ini sebelum memuat ulang baris baru
         $client->update('script_lines', ['project_id' => 'eq.' . $projectId], ['is_archived' => true], $accessToken);
 
         $linesRes = $client->upsert('script_lines', $parsed['lines'], 'id', $accessToken);
         if (!$linesRes['ok']) {
-            throw new RuntimeException('Gagal menyimpan baris naskah ke Supabase: ' . ($linesRes['error'] ?? 'Unknown error'));
+            throw new RuntimeException('Gagal menyimpan baris naskah ke database.');
         }
 
-        // Perbarui proyek aktif di sesi PHP
         storypad_update_session(['active_project_id' => $projectId]);
 
         echo json_encode([
@@ -161,4 +180,3 @@ try {
         'error' => $e->getMessage(),
     ], JSON_UNESCAPED_UNICODE);
 }
-

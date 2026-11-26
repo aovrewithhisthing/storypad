@@ -3,13 +3,15 @@ declare(strict_types=1);
 
 /**
  * Endpoint Pengunggahan & Penautan Berkas Audio / Video Footage ke Take Produksi.
- * Menyimpan berkas fisik ke Supabase Storage bucket (storypad-media) dan memperbarui public.takes.
+ * Menyimpan berkas fisik ke Supabase Storage bucket privat (storypad-media) dan memperbarui public.takes.
  */
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 $config = require __DIR__ . '/../config/supabase.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../lib/SupabaseClient.php';
+storypad_send_security_headers();
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     http_response_code(405);
@@ -17,22 +19,48 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     exit;
 }
 
-$admin = storypad_get_admin_session();
-$accessToken = !empty($admin['access_token']) ? (string) $admin['access_token'] : null;
-$bucket = (string) ($config['supabase']['storage_bucket'] ?? 'storypad-media');
+$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!storypad_verify_csrf(is_string($csrfHeader) ? $csrfHeader : null)) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Token keamanan tidak valid.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
+$bucket = (string) ($config['supabase']['storage_bucket'] ?? 'storypad-media');
 $client = new SupabaseClient(
     $config['supabase']['url'],
     $config['supabase']['anon_key'],
     30
 );
 
+$auth = storypad_require_authenticated_api($client);
+$accessToken = (string) $auth['access_token'];
 $contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
+
+const STORYPAD_MAX_MEDIA_BYTES = 52428800; // 50 MB
+
+function storypad_validate_external_https_url(string $url): bool
+{
+    $parts = parse_url($url);
+    if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https') {
+        return false;
+    }
+    $host = strtolower((string) ($parts['host'] ?? ''));
+    if ($host === '' || $host === 'localhost' || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
+        return false;
+    }
+    if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+    }
+    return filter_var($url, FILTER_VALIDATE_URL) !== false;
+}
 
 try {
     if (str_contains($contentType, 'multipart/form-data')) {
-        $projectId = trim((string) ($_POST['project_id'] ?? ''));
-        $dialogueId = trim((string) ($_POST['dialogue_id'] ?? ''));
+        $rawProjectId = trim((string) ($_POST['project_id'] ?? ''));
+        $rawDialogueId = trim((string) ($_POST['dialogue_id'] ?? ''));
+        $projectId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawProjectId) ?? '';
+        $dialogueId = preg_replace('/[^a-zA-Z0-9_-]/', '', $rawDialogueId) ?? '';
         $takeNumber = max(1, (int) ($_POST['take_number'] ?? 1));
         $mediaType = strtolower(trim((string) ($_POST['media_type'] ?? 'audio')));
         $standardName = trim((string) ($_POST['standardized_filename'] ?? ''));
@@ -41,18 +69,20 @@ try {
             : null;
 
         if ($projectId === '' || $dialogueId === '' || !in_array($mediaType, ['audio', 'video'], true)) {
-            throw new RuntimeException('Parameter project_id, dialogue_id, dan media_type (audio/video) wajib diisi.');
+            throw new RuntimeException('Parameter project_id, dialogue_id, dan media_type (audio/video) tidak valid.');
         }
 
         if (empty($_FILES['media_file']) || !is_array($_FILES['media_file']) || ($_FILES['media_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            $errCode = (int) ($_FILES['media_file']['error'] ?? UPLOAD_ERR_NO_FILE);
-            throw new RuntimeException('Berkas media gagal diterima server (kode upload: ' . $errCode . ').');
+            throw new RuntimeException('Berkas media gagal diterima server.');
         }
 
         $tmpPath = (string) $_FILES['media_file']['tmp_name'];
         $origName = basename((string) ($_FILES['media_file']['name'] ?? ($mediaType === 'video' ? 'clip.mp4' : 'track.wav')));
         $fileSize = (int) ($_FILES['media_file']['size'] ?? filesize($tmpPath));
-        $mime = trim((string) ($_FILES['media_file']['type'] ?? ''));
+
+        if ($fileSize <= 0 || $fileSize > STORYPAD_MAX_MEDIA_BYTES) {
+            throw new RuntimeException('Ukuran berkas melebihi batas maksimum 50 MB.');
+        }
 
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
         $allowedAudioExt = ['wav', 'mp3', 'm4a', 'aac', 'ogg', 'webm'];
@@ -63,6 +93,21 @@ try {
         }
         if ($mediaType === 'video' && !in_array($ext, $allowedVideoExt, true)) {
             throw new RuntimeException('Format footage tidak didukung. Gunakan .mp4, .mov, atau .webm.');
+        }
+
+        $detectedMime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $detectedMime = (string) (@finfo_file($finfo, $tmpPath) ?: '');
+                @finfo_close($finfo);
+            }
+        }
+        $mime = $detectedMime !== '' ? strtolower($detectedMime) : strtolower(trim((string) ($_FILES['media_file']['type'] ?? '')));
+
+        $forbiddenMimes = ['text/html', 'text/javascript', 'application/javascript', 'application/x-httpd-php', 'image/svg+xml'];
+        if (in_array($mime, $forbiddenMimes, true)) {
+            throw new RuntimeException('Tipe konten berkas ditolak demi keamanan.');
         }
 
         if ($mime === '' || $mime === 'application/octet-stream') {
@@ -92,10 +137,12 @@ try {
 
         $uploadRes = $client->uploadStorageObject($bucket, $objectPath, $binary, $mime, $accessToken);
         if (!$uploadRes['ok']) {
-            throw new RuntimeException('Gagal mengunggah ke Supabase Storage: ' . ($uploadRes['error'] ?? 'Unknown error'));
+            throw new RuntimeException('Gagal mengunggah berkas ke penyimpanan produksi.');
         }
 
-        $publicUrl = $client->publicStorageUrl($bucket, $objectPath);
+        $storageRef = 'storage://' . $bucket . '/' . $objectPath;
+        $signedRes = $client->createSignedStorageUrl($bucket, $objectPath, 3600, $accessToken);
+        $signedUrl = !empty($signedRes['signed_url']) ? (string) $signedRes['signed_url'] : $storageRef;
 
         $takePatch = [
             'dialogue_id' => $dialogueId,
@@ -108,12 +155,12 @@ try {
         ];
 
         if ($mediaType === 'audio') {
-            $takePatch['audio_url'] = $publicUrl;
+            $takePatch['audio_url'] = $storageRef;
             $takePatch['audio_filename'] = $safeBase;
             $takePatch['audio_mime'] = $mime;
             $takePatch['audio_size_bytes'] = $fileSize;
         } else {
-            $takePatch['video_url'] = $publicUrl;
+            $takePatch['video_url'] = $storageRef;
             $takePatch['video_filename'] = $safeBase;
             $takePatch['video_mime'] = $mime;
             $takePatch['video_size_bytes'] = $fileSize;
@@ -124,13 +171,14 @@ try {
 
         $dbRes = $client->upsert('takes', $takePatch, 'dialogue_id,take_number', $accessToken);
         if (!$dbRes['ok']) {
-            throw new RuntimeException('Berkas terunggah tetapi gagal memperbarui tabel takes: ' . ($dbRes['error'] ?? 'Unknown error'));
+            throw new RuntimeException('Berkas terunggah tetapi gagal memperbarui data take.');
         }
 
         echo json_encode([
             'ok' => true,
             'media_type' => $mediaType,
-            'url' => $publicUrl,
+            'url' => $signedUrl,
+            'storage_ref' => $storageRef,
             'filename' => $safeBase,
             'mime' => $mime,
             'size_bytes' => $fileSize,
@@ -147,8 +195,8 @@ try {
     }
 
     $action = trim((string) ($payload['action'] ?? 'attach_url'));
-    $projectId = trim((string) ($payload['project_id'] ?? ''));
-    $dialogueId = trim((string) ($payload['dialogue_id'] ?? ''));
+    $projectId = preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string) ($payload['project_id'] ?? ''))) ?? '';
+    $dialogueId = preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string) ($payload['dialogue_id'] ?? ''))) ?? '';
     $takeNumber = max(1, (int) ($payload['take_number'] ?? 1));
     $mediaType = strtolower(trim((string) ($payload['media_type'] ?? 'audio')));
 
@@ -165,21 +213,25 @@ try {
             'take_number' => 'eq.' . $takeNumber,
         ], $patch, $accessToken);
         if (!$res['ok']) {
-            throw new RuntimeException($res['error'] ?? 'Gagal menghapus tautan media.');
+            throw new RuntimeException('Gagal menghapus tautan media.');
         }
         echo json_encode(['ok' => true, 'cleared' => $mediaType], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
+    if ($projectId === '') {
+        throw new RuntimeException('project_id wajib diisi.');
+    }
+
     $url = trim((string) ($payload['url'] ?? ''));
-    if ($url === '' || !preg_match('/^https?:\/\//i', $url)) {
-        throw new RuntimeException('Masukkan URL media http:// atau https:// yang valid.');
+    if ($url === '' || !storypad_validate_external_https_url($url)) {
+        throw new RuntimeException('Masukkan URL media https:// eksternal yang valid.');
     }
     $filename = trim((string) ($payload['filename'] ?? basename(parse_url($url, PHP_URL_PATH) ?: ($mediaType === 'video' ? 'footage.mp4' : 'audio.wav'))));
 
     $upsertRow = [
         'dialogue_id' => $dialogueId,
-        'project_id' => $projectId !== '' ? $projectId : 'proj-default',
+        'project_id' => $projectId,
         'take_number' => $takeNumber,
         'label' => trim((string) ($payload['label'] ?? ('Take ' . str_pad((string) $takeNumber, 2, '0', STR_PAD_LEFT) . ' | CAM-A / BOOM'))),
         'tc' => trim((string) ($payload['tc'] ?? '00:00 SMPTE')),
@@ -196,7 +248,7 @@ try {
 
     $res = $client->upsert('takes', $upsertRow, 'dialogue_id,take_number', $accessToken);
     if (!$res['ok']) {
-        throw new RuntimeException($res['error'] ?? 'Gagal menautkan URL media ke take.');
+        throw new RuntimeException('Gagal menautkan URL media ke take.');
     }
 
     echo json_encode([
@@ -213,4 +265,3 @@ try {
         'error' => $e->getMessage(),
     ], JSON_UNESCAPED_UNICODE);
 }
-

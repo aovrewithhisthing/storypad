@@ -180,13 +180,14 @@ async function runTests() {
   assert.strictEqual(StoryPad.state.importModal.lastParsed.summary.dialogueCount, 1);
   StoryPad.closeScriptImportModal();
 
-  StoryPad.loginQuickSession();
-  assert.strictEqual(StoryPad.state.currentUser.studio, 'StoryPad Studio');
+  const unauthBlocked = StoryPad.navigate('dashboard', 'home');
+  assert.strictEqual(unauthBlocked, false, 'Unauthenticated navigation to dashboard must be blocked');
+  assert.strictEqual(StoryPad.state.currentScreen, 'login');
   StoryPad.setTheme('slate');
   assert.strictEqual(StoryPad.state.theme, 'slate');
   StoryPad.setTheme('daylight');
   assert.strictEqual(StoryPad.state.theme, 'daylight');
-  console.log('8. [PASS] Add Line, Script Converter Preview, Quick Session, and Theme switches verified');
+  console.log('8. [PASS] Add Line, Script Converter Preview, Auth Gate, and Theme switches verified');
 
   clearInterval(StoryPad.state._clocks.clockTimer);
   console.log('\n=== ALL 8 EXTENDED FEATURE SUITE TESTS PASSED 100%! ===');

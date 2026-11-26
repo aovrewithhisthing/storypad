@@ -89,6 +89,25 @@ class SupabaseClient
         return $this->url . '/storage/v1/object/public/' . rawurlencode($bucket) . '/' . implode('/', $encodedSegments);
     }
 
+    public function createSignedStorageUrl(string $bucket, string $objectPath, int $expiresIn = 3600, ?string $accessToken = null): array
+    {
+        $encodedSegments = array_map('rawurlencode', explode('/', ltrim($objectPath, '/')));
+        $endpoint = '/storage/v1/object/sign/' . rawurlencode($bucket) . '/' . implode('/', $encodedSegments);
+        $res = $this->request('POST', $endpoint, ['expiresIn' => max(60, $expiresIn)], $accessToken);
+        if (!$res['ok'] || !is_array($res['data'])) {
+            return $res;
+        }
+        $signedPath = (string) ($res['data']['signedURL'] ?? $res['data']['signedUrl'] ?? '');
+        if ($signedPath !== '' && !str_starts_with($signedPath, 'http://') && !str_starts_with($signedPath, 'https://')) {
+            if (!str_starts_with($signedPath, '/storage/v1')) {
+                $signedPath = '/storage/v1' . (str_starts_with($signedPath, '/') ? '' : '/') . $signedPath;
+            }
+            $signedPath = $this->url . $signedPath;
+        }
+        $res['signed_url'] = $signedPath;
+        return $res;
+    }
+
     /* ============================================================
      * GOTRUE AUTH HELPER
      * ============================================================ */
@@ -99,6 +118,19 @@ class SupabaseClient
             'email' => $email,
             'password' => $password,
         ]);
+    }
+
+    public function getUser(string $accessToken): array
+    {
+        if (trim($accessToken) === '') {
+            return ['ok' => false, 'status' => 401, 'data' => null, 'error' => 'Missing access token'];
+        }
+        return $this->request('GET', '/auth/v1/user', null, $accessToken);
+    }
+
+    public function authHealth(): array
+    {
+        return $this->request('GET', '/auth/v1/health');
     }
 
     /* ============================================================

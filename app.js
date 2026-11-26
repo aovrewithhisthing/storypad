@@ -17,6 +17,9 @@ const StoryPad = {
   _noteSyncTimer: null,
   _previewDebounceTimer: null,
   _supabaseLoadListenerAdded: false,
+  _signedUrlCache: {},
+  _confirmResolver: null,
+  REMEMBERED_STORAGE_KEY: 'storypad_remembered_accounts_v1',
 
   state: {
     currentScreen: 'login', // 'login' | 'dashboard' | 'projects' | 'script-reader' | 'profile'
@@ -30,8 +33,13 @@ const StoryPad = {
     projectSearchQuery: '',
     activePersonaKey: '',
     supabaseConnected: false,
-    supabaseLoading: true,
+    supabaseLoading: false,
     supabaseUser: null,
+    supabaseSession: null,
+    authView: 'credentials', // 'hub' | 'selected' | 'credentials' | 'forgot' | 'recovery'
+    authMode: 'signin',      // 'signin' | 'signup'
+    selectedRememberedId: '',
+    rememberedAccounts: [],
     studioName: 'StoryPad Studio',
 
     // Active Crew Session (neutral until crew logs in)
@@ -57,7 +65,16 @@ const StoryPad = {
     activeDialogueId: '',
     activeTakeNumber: 1,
 
-    // Role Switcher configuration (5 roles)
+    // Server-authorized role capabilities vs active UI mode
+    grantedRoles: {
+      scriptSupervisor: true,
+      videoEditor: true,
+      soundRecordist: false,
+      directorProducer: false,
+      autoExportMeta: true
+    },
+
+    // Role Switcher configuration (5 roles, constrained to grantedRoles)
     roles: {
       scriptSupervisor: true,
       videoEditor: true,
@@ -114,15 +131,19 @@ const StoryPad = {
   init() {
     this.hydratePhpBoot();
     this.loadPersistedSettings();
+    this.loadRememberedAccounts();
     this.applyTheme(this.state.theme);
     this.bindEvents();
     this.bindMediaElementEvents();
 
-    const startScreen = (this.phpBoot && this.phpBoot.initialScreen) ? this.phpBoot.initialScreen : 'login';
+    const startScreen = (this.phpBoot && this.phpBoot.loggedIn && this.phpBoot.initialScreen && this.phpBoot.initialScreen !== 'login')
+      ? this.phpBoot.initialScreen
+      : 'login';
     this.state.currentScreen = startScreen;
     this.syncTabFromScreen(startScreen);
 
-    this.renderLoginCrewList();
+    this.renderAccountHub();
+    this.openAuthView(this.state.rememberedAccounts.length > 0 ? 'hub' : 'credentials', 'signin');
     this.renderCrewAccountsList();
     this.renderProjectsScreen();
     this.updateDashboardData();
@@ -137,9 +158,69 @@ const StoryPad = {
 
     this.initSupabase();
 
-    if (this.phpBoot && this.phpBoot.openImportOnLoad) {
+    if (this.phpBoot && this.phpBoot.openImportOnLoad && this.phpBoot.loggedIn) {
       setTimeout(() => this.openScriptImportModal(), 250);
     }
+  },
+
+  isAuthenticated() {
+    return Boolean(this.state.supabaseUser && this.state.supabaseSession && this.state.supabaseSession.access_token);
+  },
+
+  getCsrfToken() {
+    return (this.phpBoot && typeof this.phpBoot.csrfToken === 'string') ? this.phpBoot.csrfToken : '';
+  },
+
+  getAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    const csrf = this.getCsrfToken();
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    const token = this.state.supabaseSession && this.state.supabaseSession.access_token;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  },
+
+  clearSensitiveSessionData() {
+    if (this._realtimeChannel && this.supabase && typeof this.supabase.removeChannel === 'function') {
+      try { this.supabase.removeChannel(this._realtimeChannel); } catch (_e) {}
+    }
+    this._realtimeChannel = null;
+    this._signedUrlCache = {};
+    this.state.supabaseUser = null;
+    this.state.supabaseSession = null;
+    this.state.activePersonaKey = '';
+    this.state.activeProjectId = '';
+    this.state.activeDialogueId = '';
+    this.state.notifications = [];
+    this.state.scriptNotes = {};
+    this.db.crewProfiles = [];
+    this.db.projects = [];
+    this.db.scriptDataProjects = {};
+    this.db.scriptData = null;
+    this.state.currentUser = {
+      name: 'Kru Produksi',
+      initials: 'KP',
+      roleTitle: 'Script Supervisor & Continuity',
+      idBadge: 'SP-01',
+      studio: this.state.studioName,
+      prodName: '-',
+      email: ''
+    };
+    this.state.grantedRoles = {
+      scriptSupervisor: false,
+      videoEditor: false,
+      soundRecordist: false,
+      directorProducer: false,
+      autoExportMeta: true
+    };
+    this.state.roles = { ...this.state.grantedRoles };
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('storypad_user');
+        window.localStorage.removeItem('storypad_persona_key');
+        window.localStorage.removeItem('storypad_roles');
+      }
+    } catch (_e) {}
   },
 
   hydratePhpBoot() {
@@ -166,13 +247,13 @@ const StoryPad = {
     if (boot.theme === 'daylight' || boot.theme === 'slate') {
       this.state.theme = boot.theme;
     }
-    if (boot.activeProjectId) {
+    if (boot.loggedIn && boot.activeProjectId) {
       this.state.activeProjectId = boot.activeProjectId;
     }
-    if (typeof boot.personaKey === 'string') {
+    if (boot.loggedIn && typeof boot.personaKey === 'string') {
       this.state.activePersonaKey = boot.personaKey;
     }
-    if (boot.user && typeof boot.user === 'object') {
+    if (boot.loggedIn && boot.user && typeof boot.user === 'object') {
       this.state.currentUser = {
         ...this.state.currentUser,
         ...boot.user
@@ -181,22 +262,22 @@ const StoryPad = {
   },
 
   syncPhpSession(patch) {
-    if (!this.phpBoot || !this.phpBoot.phpEnabled || typeof fetch !== 'function') return;
+    if (!this.phpBoot || !this.phpBoot.phpEnabled || typeof fetch !== 'function') return Promise.resolve(null);
     const endpoint = (this.phpBoot.endpoints && this.phpBoot.endpoints.session) || 'api/session.php';
-    fetch(endpoint, {
+    return fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(patch)
-    }).catch(() => {});
+    }).then(r => r.json()).then(d => {
+      if (d && d.csrf_token && this.phpBoot) {
+        this.phpBoot.csrfToken = d.csrf_token;
+      }
+      return d;
+    }).catch(() => null);
   },
 
   initSupabase() {
     if (typeof window === 'undefined') return;
-
-    // Jika PHP backend aktif, ambil bootstrap awal via endpoint lokal sambil menunggu SDK JS siap
-    if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
-      this.fetchBootstrapViaPhp();
-    }
 
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
       if (!this._supabaseLoadListenerAdded && typeof window.addEventListener === 'function') {
@@ -237,35 +318,70 @@ const StoryPad = {
     }
     try {
       this.supabase = window.supabase.createClient(this.supabaseConfig.url, this.supabaseConfig.anonKey);
-      this.updateSupabaseStatusBadge('Menghubungkan...', 'neutral');
+      this.updateSupabaseStatusBadge('Supabase Siap', 'good');
 
-      this.supabase.auth.getSession().then(({ data }) => {
+      this.supabase.auth.getSession().then(async ({ data }) => {
         if (data && data.session && data.session.user) {
+          this.state.supabaseSession = data.session;
           this.applyAuthenticatedSupabaseUser(data.session.user);
+          await this.syncPhpSession({ action: 'sync_auth' });
+          await this.syncFromSupabase();
+          this.subscribeRealtime();
+          if (this.state.currentScreen === 'login' && this.state.authView !== 'recovery') {
+            const nextScreen = (this.phpBoot && this.phpBoot.initialScreen && this.phpBoot.initialScreen !== 'login')
+              ? this.phpBoot.initialScreen
+              : 'dashboard';
+            this.navigate(nextScreen);
+          }
+        } else {
+          this.clearSensitiveSessionData();
+          if (this.state.currentScreen !== 'login') {
+            this.navigate('login');
+          }
         }
       }).catch(() => {});
 
-      this.supabase.auth.onAuthStateChange((_event, session) => {
-        if (session && session.user) {
+      this.supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' && session && session.user) {
+          this.state.supabaseSession = session;
           this.applyAuthenticatedSupabaseUser(session.user);
+          this.navigate('login');
+          this.openAuthView('recovery');
+          return;
+        }
+
+        if (session && session.user) {
+          const prevUid = this.state.supabaseUser ? this.state.supabaseUser.id : '';
+          this.state.supabaseSession = session;
+          this.applyAuthenticatedSupabaseUser(session.user);
+          if (prevUid !== session.user.id) {
+            this.syncFromSupabase();
+            this.subscribeRealtime();
+          }
         } else {
-          this.state.supabaseUser = null;
+          this.clearSensitiveSessionData();
+          this.renderAccountHub();
+          this.renderProjectsScreen();
+          this.updateDashboardData();
+          this.updateProgressGauge();
+          this.renderProfileRoles();
+          if (this.state.currentScreen !== 'login') {
+            this.navigate('login');
+          }
         }
       });
-
-      this.syncFromSupabase();
-      this.subscribeRealtime();
     } catch (e) {
-      this.updateSupabaseStatusBadge('Mode Lokal', 'amber');
+      this.updateSupabaseStatusBadge('Mode Offline', 'amber');
     }
   },
 
   async fetchBootstrapViaPhp() {
+    if (!this.isAuthenticated()) return;
     try {
       const endpoint = (this.phpBoot && this.phpBoot.endpoints && this.phpBoot.endpoints.supabase)
         ? `${this.phpBoot.endpoints.supabase}?action=bootstrap`
         : 'api/supabase.php?action=bootstrap';
-      const res = await fetch(endpoint);
+      const res = await fetch(endpoint, { headers: this.getAuthHeaders() });
       const json = await res.json();
       if (res.ok && json && json.ok && json.data) {
         this.applyBootstrapPayload(
@@ -504,6 +620,7 @@ const StoryPad = {
 
     // Crew Profiles (selalu sinkron penuh, termasuk saat kosong)
     this.db.crewProfiles = crewRows.map(c => ({
+      userId: c.user_id || null,
       personaKey: c.persona_key,
       fullName: c.full_name,
       initials: c.initials,
@@ -512,16 +629,41 @@ const StoryPad = {
       studio: c.studio,
       prodName: c.prod_name,
       email: c.email,
+      grantedRoles: c.granted_roles || c.roles || { scriptSupervisor: true, videoEditor: false, soundRecordist: false, directorProducer: false, autoExportMeta: true },
       roles: c.roles || { scriptSupervisor: true, videoEditor: false, soundRecordist: false, directorProducer: false, autoExportMeta: true }
     }));
 
-    if (this.state.activePersonaKey) {
-      const activeCrew = this.db.crewProfiles.find(c => c.personaKey === this.state.activePersonaKey);
-      if (activeCrew && activeCrew.roles) {
-        this.state.roles = { ...this.state.roles, ...activeCrew.roles };
-      } else if (!this.state.supabaseUser) {
-        // Bersihkan kunci persona lama yang sudah tidak ada di database
-        this.state.activePersonaKey = '';
+    if (this.state.supabaseUser) {
+      const myProfile = this.db.crewProfiles.find(c => c.userId === this.state.supabaseUser.id)
+        || this.db.crewProfiles.find(c => String(c.email || '').toLowerCase() === String(this.state.supabaseUser.email || '').toLowerCase());
+      if (myProfile) {
+        this.state.activePersonaKey = myProfile.personaKey;
+        this.state.currentUser = {
+          ...this.state.currentUser,
+          name: myProfile.fullName || this.state.currentUser.name,
+          initials: myProfile.initials || this.state.currentUser.initials,
+          roleTitle: myProfile.roleTitle || this.state.currentUser.roleTitle,
+          idBadge: myProfile.idBadge || this.state.currentUser.idBadge,
+          studio: myProfile.studio || this.state.studioName,
+          email: myProfile.email || this.state.currentUser.email
+        };
+        const granted = {
+          scriptSupervisor: false,
+          videoEditor: false,
+          soundRecordist: false,
+          directorProducer: false,
+          autoExportMeta: true,
+          ...(myProfile.grantedRoles || {})
+        };
+        this.state.grantedRoles = granted;
+        const active = myProfile.roles || {};
+        this.state.roles = {
+          scriptSupervisor: Boolean(active.scriptSupervisor && granted.scriptSupervisor),
+          videoEditor: Boolean(active.videoEditor && granted.videoEditor),
+          soundRecordist: Boolean(active.soundRecordist && granted.soundRecordist),
+          directorProducer: Boolean(active.directorProducer && granted.directorProducer),
+          autoExportMeta: Boolean(active.autoExportMeta && granted.autoExportMeta)
+        };
       }
     }
 
@@ -539,10 +681,10 @@ const StoryPad = {
 
     const loginCountEl = document.getElementById('login-projects-count');
     if (loginCountEl) {
-      loginCountEl.textContent = `${this.db.projects.length} Naskah`;
+      loginCountEl.textContent = this.isAuthenticated() ? `${this.db.projects.length} Naskah` : 'Terproteksi';
     }
 
-    this.renderLoginCrewList();
+    this.renderAccountHub();
     this.renderCrewAccountsList();
     this.renderProjectsScreen();
     this.updateDashboardData();
@@ -554,7 +696,7 @@ const StoryPad = {
   },
 
   subscribeRealtime() {
-    if (!this.supabase || this._realtimeChannel) return;
+    if (!this.supabase || this._realtimeChannel || !this.isAuthenticated()) return;
     const scheduleSync = () => {
       clearTimeout(this._syncDebounceTimer);
       this._syncDebounceTimer = setTimeout(() => {
@@ -579,36 +721,16 @@ const StoryPad = {
   loadPersistedSettings() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const savedView = localStorage.getItem('storypad_view_settings');
+        const savedView = window.localStorage.getItem('storypad_view_settings');
         if (savedView) {
           this.state.viewSettings = { ...this.state.viewSettings, ...JSON.parse(savedView) };
         }
-        const savedRoles = localStorage.getItem('storypad_roles');
-        if (savedRoles) {
-          this.state.roles = { ...this.state.roles, ...JSON.parse(savedRoles) };
-        }
-        const savedUser = localStorage.getItem('storypad_user');
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          const legacyEmails = ['aulia@lifelikepictures.com', 'dimas.edit@lifelikepictures.com', 'sound.rama@lifelikepictures.com'];
-          const hasLegacyDemo = parsedUser && (
-            legacyEmails.includes(String(parsedUser.email || '').toLowerCase()) ||
-            /kelompok/i.test(String(parsedUser.studio || '')) ||
-            /kelompok/i.test(String(parsedUser.name || '')) ||
-            /^K10-/i.test(String(parsedUser.idBadge || ''))
-          );
-          if (hasLegacyDemo) {
-            localStorage.removeItem('storypad_user');
-            localStorage.removeItem('storypad_persona_key');
-          } else if (parsedUser && typeof parsedUser === 'object') {
-            this.state.currentUser = { ...this.state.currentUser, ...parsedUser };
-          }
-        }
-        const savedPersona = localStorage.getItem('storypad_persona_key');
-        if (savedPersona && !['scriptSupervisor', 'videoEditor', 'soundRecordist'].includes(savedPersona)) {
-          this.state.activePersonaKey = savedPersona;
-        }
-        const savedTheme = localStorage.getItem('storypad_theme');
+        // Bersihkan key lama agar localStorage tidak pernah menjadi sumber otoritas identitas atau role
+        window.localStorage.removeItem('storypad_roles');
+        window.localStorage.removeItem('storypad_user');
+        window.localStorage.removeItem('storypad_persona_key');
+
+        const savedTheme = window.localStorage.getItem('storypad_theme');
         if (savedTheme === 'daylight' || savedTheme === 'slate') {
           this.state.theme = savedTheme;
         }
@@ -619,11 +741,8 @@ const StoryPad = {
   savePersistedSettings() {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('storypad_view_settings', JSON.stringify(this.state.viewSettings));
-        localStorage.setItem('storypad_roles', JSON.stringify(this.state.roles));
-        localStorage.setItem('storypad_user', JSON.stringify(this.state.currentUser));
-        localStorage.setItem('storypad_persona_key', this.state.activePersonaKey || '');
-        localStorage.setItem('storypad_theme', this.state.theme);
+        window.localStorage.setItem('storypad_view_settings', JSON.stringify(this.state.viewSettings));
+        window.localStorage.setItem('storypad_theme', this.state.theme);
       }
     } catch (e) {}
   },
@@ -768,6 +887,16 @@ const StoryPad = {
 
   navigate(screenId, tabId = null) {
     this.triggerHaptic();
+    if (screenId !== 'login' && !this.isAuthenticated()) {
+      this.state.currentScreen = 'login';
+      this.closeAllModals(true);
+      this.renderScreen('login');
+      this.updateNavbarVisibility();
+      this.updateActiveTabStyles();
+      this.showToast('Silakan masuk terlebih dahulu untuk membuka workspace');
+      return false;
+    }
+
     if (this.state.currentScreen !== screenId) {
       this.state.previousScreen = this.state.currentScreen;
     }
@@ -786,6 +915,7 @@ const StoryPad = {
     if (screenId !== 'login') {
       this.syncPhpSession({ screen: screenId });
     }
+    return true;
   },
 
   goBack() {
@@ -799,6 +929,10 @@ const StoryPad = {
 
   openProject(projectId) {
     this.triggerHaptic();
+    if (!this.isAuthenticated()) {
+      this.navigate('login');
+      return false;
+    }
     if (!projectId || !this.db.scriptDataProjects[projectId]) {
       if (this.db.projects.length === 0) {
         this.openScriptImportModal();
@@ -825,7 +959,7 @@ const StoryPad = {
       this.state.currentUser.prodName = proj.title;
     }
 
-    this.syncPhpSession({ active_project_id: projectId, user: this.state.currentUser });
+    this.syncPhpSession({ active_project_id: projectId });
     this.updateProgressGauge();
     this.updateDashboardData();
     this.navigate('script-reader', 'script-reader');
@@ -862,7 +996,7 @@ const StoryPad = {
     }
 
     if (screenId === 'login') {
-      this.renderLoginCrewList();
+      this.renderAccountHub();
     } else if (screenId === 'dashboard') {
       this.updateDashboardData();
       this.updateProgressGauge();
@@ -1280,7 +1414,7 @@ const StoryPad = {
     } else if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
       fetch('api/supabase.php?action=archive_project', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ project_id: projectId })
       }).catch(() => {});
     }
@@ -1865,6 +1999,73 @@ const StoryPad = {
     }
   },
 
+  parseStorageRef(rawUrl) {
+    const val = String(rawUrl || '').trim();
+    if (!val) return null;
+    if (val.startsWith('storage://')) {
+      const rest = val.slice('storage://'.length);
+      const slash = rest.indexOf('/');
+      if (slash > 0 && slash < rest.length - 1) {
+        return { bucket: rest.slice(0, slash), objectPath: rest.slice(slash + 1) };
+      }
+      return null;
+    }
+    const m = val.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/([^?#]+)/i);
+    if (m) {
+      return {
+        bucket: decodeURIComponent(m[1]),
+        objectPath: decodeURIComponent(m[2])
+      };
+    }
+    return null;
+  },
+
+  isSafeExternalMediaUrl(rawUrl) {
+    try {
+      const parsed = new URL(String(rawUrl || '').trim());
+      if (parsed.protocol !== 'https:') return false;
+      const host = (parsed.hostname || '').toLowerCase();
+      if (!host || host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal')) return false;
+      if (host === '::1' || host === '[::1]') return false;
+      if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host) || /^0\./.test(host)) {
+        return false;
+      }
+      const m172 = host.match(/^172\.(\d+)\./);
+      if (m172 && Number(m172[1]) >= 16 && Number(m172[1]) <= 31) return false;
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  },
+
+  async resolveMediaSignedUrl(rawUrl) {
+    const val = String(rawUrl || '').trim();
+    if (!val) return '';
+    if (val.startsWith('blob:')) return val;
+    const ref = this.parseStorageRef(val);
+    if (!ref) {
+      return this.isSafeExternalMediaUrl(val) ? val : '';
+    }
+    const cacheKey = `${ref.bucket}/${ref.objectPath}`;
+    const cached = this._signedUrlCache[cacheKey];
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.url;
+    }
+    if (this.supabase && this.supabase.storage) {
+      try {
+        const { data, error } = await this.supabase.storage.from(ref.bucket).createSignedUrl(ref.objectPath, 3600);
+        if (!error && data && data.signedUrl) {
+          this._signedUrlCache[cacheKey] = {
+            url: data.signedUrl,
+            expiresAt: Date.now() + 50 * 60 * 1000
+          };
+          return data.signedUrl;
+        }
+      } catch (_e) {}
+    }
+    return val.startsWith('https://') ? val : '';
+  },
+
   syncPanelMediaBindings(take) {
     const audioEl = document.getElementById('panel-real-audio');
     const audioBadge = document.getElementById('panel-audio-source-badge');
@@ -1883,8 +2084,17 @@ const StoryPad = {
       }
       if (clearAudioBtn) clearAudioBtn.classList.remove('hidden');
       if (audioEl && audioEl.getAttribute('data-bound-url') !== take.audioUrl) {
-        audioEl.src = take.audioUrl;
         audioEl.setAttribute('data-bound-url', take.audioUrl);
+        if (take.audioSignedUrl) {
+          audioEl.src = take.audioSignedUrl;
+        } else {
+          this.resolveMediaSignedUrl(take.audioUrl).then(resolved => {
+            if (resolved && audioEl.getAttribute('data-bound-url') === take.audioUrl) {
+              take.audioSignedUrl = resolved;
+              audioEl.src = resolved;
+            }
+          });
+        }
       }
       if (totalTcEl) {
         totalTcEl.textContent = take.durationSeconds ? this.formatSecondsToTc(take.durationSeconds, this.getNumericFps()) : '00:00:00:00';
@@ -1923,8 +2133,17 @@ const StoryPad = {
       if (videoEl) {
         videoEl.classList.remove('hidden');
         if (videoEl.getAttribute('data-bound-url') !== take.videoUrl) {
-          videoEl.src = take.videoUrl;
           videoEl.setAttribute('data-bound-url', take.videoUrl);
+          if (take.videoSignedUrl) {
+            videoEl.src = take.videoSignedUrl;
+          } else {
+            this.resolveMediaSignedUrl(take.videoUrl).then(resolved => {
+              if (resolved && videoEl.getAttribute('data-bound-url') === take.videoUrl) {
+                take.videoSignedUrl = resolved;
+                videoEl.src = resolved;
+              }
+            });
+          }
         }
       }
       if (slatePlaceholder) slatePlaceholder.classList.add('hidden');
@@ -2343,12 +2562,18 @@ const StoryPad = {
     setStatus(`Mengukur durasi & mengunggah ${standardizedName}...`, true);
 
     try {
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error('Ukuran berkas melebihi batas maksimum 50 MB.');
+      }
       const durationSeconds = await this.probeFileDuration(file, mediaType);
       const bucket = this.supabaseConfig.storageBucket || 'storypad-media';
+      const safeProjectId = String(this.state.activeProjectId || 'proj').replace(/[^a-zA-Z0-9_-]/g, '') || 'proj';
+      const safeDialogueId = String(dialogue.id || 'dlg').replace(/[^a-zA-Z0-9_-]/g, '') || 'dlg';
       const takePad = String(take.number).padStart(2, '0');
-      const objectPath = `${this.state.activeProjectId}/${dialogue.id}_T${takePad}_${Date.now()}_${standardizedName}`;
+      const objectPath = `${safeProjectId}/${safeDialogueId}_T${takePad}_${Date.now()}_${standardizedName}`;
 
-      let publicUrl = '';
+      let storedRef = '';
+      let signedPlaybackUrl = '';
 
       if (this.supabase && this.supabase.storage) {
         const upRes = await this.supabase.storage.from(bucket).upload(objectPath, file, {
@@ -2358,8 +2583,8 @@ const StoryPad = {
         if (upRes.error) {
           throw new Error(upRes.error.message || 'Gagal mengunggah berkas ke Supabase Storage');
         }
-        const pubData = this.supabase.storage.from(bucket).getPublicUrl(objectPath);
-        publicUrl = pubData && pubData.data ? pubData.data.publicUrl : '';
+        storedRef = `storage://${bucket}/${objectPath}`;
+        signedPlaybackUrl = await this.resolveMediaSignedUrl(storedRef);
 
         const dbPatch = {
           dialogue_id: dialogue.id,
@@ -2373,12 +2598,12 @@ const StoryPad = {
           is_archived: false
         };
         if (mediaType === 'audio') {
-          dbPatch.audio_url = publicUrl;
+          dbPatch.audio_url = storedRef;
           dbPatch.audio_filename = standardizedName;
           dbPatch.audio_mime = file.type || 'audio/wav';
           dbPatch.audio_size_bytes = file.size;
         } else {
-          dbPatch.video_url = publicUrl;
+          dbPatch.video_url = storedRef;
           dbPatch.video_filename = standardizedName;
           dbPatch.video_mime = file.type || 'video/mp4';
           dbPatch.video_size_bytes = file.size;
@@ -2400,23 +2625,31 @@ const StoryPad = {
         form.append('status_label', take.statusLabel);
         if (durationSeconds) form.append('duration_seconds', String(durationSeconds));
 
-        const res = await fetch('api/media.php', { method: 'POST', body: form });
+        const res = await fetch('api/media.php', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+          body: form
+        });
         const json = await res.json();
         if (!res.ok || !json.ok) {
           throw new Error(json.error || 'Gagal mengunggah media via server PHP');
         }
-        publicUrl = json.url;
+        storedRef = json.storage_ref || json.url;
+        signedPlaybackUrl = json.url;
       } else if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
-        publicUrl = URL.createObjectURL(file);
+        storedRef = URL.createObjectURL(file);
+        signedPlaybackUrl = storedRef;
       }
 
       if (mediaType === 'audio') {
-        take.audioUrl = publicUrl;
+        take.audioUrl = storedRef;
+        take.audioSignedUrl = signedPlaybackUrl;
         take.audioFilename = standardizedName;
         take.audioMime = file.type;
         take.audioSizeBytes = file.size;
       } else {
-        take.videoUrl = publicUrl;
+        take.videoUrl = storedRef;
+        take.videoSignedUrl = signedPlaybackUrl;
         take.videoFilename = standardizedName;
         take.videoMime = file.type;
         take.videoSizeBytes = file.size;
@@ -2441,24 +2674,26 @@ const StoryPad = {
     this.triggerHaptic();
     const input = document.getElementById(mediaType === 'video' ? 'input-video-url' : 'input-audio-url');
     const url = input ? input.value.trim() : '';
-    if (!url || !/^https?:\/\//i.test(url)) {
-      this.showToast('Masukkan URL http:// atau https:// yang valid');
-      return;
+    if (!url || !this.isSafeExternalMediaUrl(url)) {
+      this.showToast('Masukkan URL https:// eksternal yang valid');
+      return false;
     }
 
     const dialogue = this.getActiveDialogueObject();
-    if (!dialogue) return;
+    if (!dialogue) return false;
     const take = this.ensureActiveTakeExists();
-    if (!take) return;
+    if (!take) return false;
 
     const naming = this.generateFileNames(dialogue.id, take.number);
     const filename = mediaType === 'video' ? naming.videoName : naming.audioName;
 
     if (mediaType === 'audio') {
       take.audioUrl = url;
+      take.audioSignedUrl = url;
       take.audioFilename = filename;
     } else {
       take.videoUrl = url;
+      take.videoSignedUrl = url;
       take.videoFilename = filename;
     }
 
@@ -2475,6 +2710,7 @@ const StoryPad = {
         : { video_url: url, video_filename: filename };
       await this.supabase.from('takes').update(patch).eq('dialogue_id', dialogue.id).eq('take_number', take.number).catch(() => {});
     }
+    return true;
   },
 
   async clearTakeMedia(mediaType = 'audio') {
@@ -2540,11 +2776,25 @@ const StoryPad = {
     if (playIcon) playIcon.textContent = 'pause';
 
     if (audioEl && typeof audioEl.play === 'function') {
-      if (audioEl.getAttribute('data-bound-url') !== take.audioUrl) {
-        audioEl.src = take.audioUrl;
-        audioEl.setAttribute('data-bound-url', take.audioUrl);
+      const targetRef = take.audioUrl;
+      if (audioEl.getAttribute('data-bound-url') !== targetRef) {
+        audioEl.setAttribute('data-bound-url', targetRef);
+        const direct = take.audioSignedUrl || (String(targetRef).startsWith('https://') || String(targetRef).startsWith('blob:') ? targetRef : '');
+        if (direct) {
+          audioEl.src = direct;
+          audioEl.play().catch(() => {});
+        } else {
+          this.resolveMediaSignedUrl(targetRef).then(resolved => {
+            if (resolved && audioEl.getAttribute('data-bound-url') === targetRef) {
+              take.audioSignedUrl = resolved;
+              audioEl.src = resolved;
+              if (this.state.audio.isPlaying) audioEl.play().catch(() => {});
+            }
+          });
+        }
+      } else {
+        audioEl.play().catch(() => {});
       }
-      audioEl.play().catch(() => {});
     }
 
     const container = document.getElementById(waveformContainerId);
@@ -2790,6 +3040,8 @@ const StoryPad = {
       if (this.supabase && this.state.activeProjectId) {
         this.supabase.from('projects').update({ sync_status: 'In Sync' }).eq('id', this.state.activeProjectId).then(() => {});
         this.supabase.from('notifications').insert({
+          user_id: this.state.supabaseUser ? this.state.supabaseUser.id : undefined,
+          project_id: this.state.activeProjectId,
           title: 'NLE Bridge: Ekspor Metadata',
           message: `Paket ${naming.videoName} disinkronkan oleh ${this.state.currentUser.name}.`,
           time_label: 'Baru saja',
@@ -3512,6 +3764,9 @@ const StoryPad = {
       }
 
       const projectRow = parsed.project;
+      if (this.state.supabaseUser && this.state.supabaseUser.id) {
+        projectRow.owner_id = this.state.supabaseUser.id;
+      }
       const dbLines = parsed.lines;
 
       if (this.supabase) {
@@ -3523,6 +3778,8 @@ const StoryPad = {
         if (lRes.error) throw new Error(lRes.error.message);
 
         await this.supabase.from('notifications').insert({
+          user_id: this.state.supabaseUser ? this.state.supabaseUser.id : undefined,
+          project_id: projectRow.id,
           title: 'Naskah Baru Diimpor',
           message: `Naskah "${projectRow.title}" (${parsed.summary.sceneCount} Scene, ${parsed.summary.dialogueCount} Dialog) berhasil dikonversi ke database.`,
           time_label: 'Baru saja',
@@ -3537,7 +3794,7 @@ const StoryPad = {
       } else if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
         const res = await fetch('api/script-import.php?action=import', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(parsed)
         });
         const json = await res.json();
@@ -3752,10 +4009,18 @@ const StoryPad = {
     Object.keys(this.state.roles).forEach(key => {
       const row = document.querySelector(`[data-role-key="${key}"]`);
       if (row) {
+        const isGranted = !!this.state.grantedRoles[key];
         const toggleBtn = row.querySelector('.toggle-box');
-        const isChecked = !!this.state.roles[key];
+        const lockBadge = row.querySelector('.role-lock-badge');
+        const isChecked = !!(this.state.roles[key] && isGranted);
+
+        row.disabled = !isGranted;
         if (typeof row.setAttribute === 'function') {
           row.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
+          row.setAttribute('aria-disabled', isGranted ? 'false' : 'true');
+        }
+        if (lockBadge && lockBadge.classList) {
+          lockBadge.classList.toggle('hidden', isGranted);
         }
         if (toggleBtn) {
           if (typeof toggleBtn.setAttribute === 'function') {
@@ -3838,41 +4103,44 @@ const StoryPad = {
     }
   },
 
-  toggleRole(roleKey, btnElement) {
+  async toggleRole(roleKey, btnElement) {
     this.triggerHaptic();
-    this.state.roles[roleKey] = !this.state.roles[roleKey];
-    this.savePersistedSettings();
-    const isChecked = this.state.roles[roleKey];
+    if (!this.state.grantedRoles || !this.state.grantedRoles[roleKey]) {
+      this.showToast('Peran ini terkunci dan tidak diotorisasi untuk akun Anda');
+      return false;
+    }
 
-    const row = btnElement && typeof btnElement.closest === 'function' ? btnElement.closest('.role-item') : null;
-    if (row && typeof row.setAttribute === 'function') {
-      row.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
-    }
-    if (btnElement && typeof btnElement.setAttribute === 'function') {
-      btnElement.setAttribute('data-checked', isChecked ? 'true' : 'false');
-    }
-    if (isChecked) {
-      if (btnElement) btnElement.className = 'toggle-box w-6 h-6 rounded bg-[#2563EB] flex items-center justify-center shrink-0 text-white transition-colors';
-      if (row) row.classList.remove('opacity-70');
-      this.showToast(`Mode ${roleKey} diaktifkan`);
-    } else {
-      if (btnElement) {
-        btnElement.className = 'toggle-box w-6 h-6 rounded border flex items-center justify-center shrink-0 text-transparent transition-colors';
-        if (btnElement.style) {
-          btnElement.style.backgroundColor = 'var(--panel-lowest)';
-          btnElement.style.borderColor = 'var(--border-control)';
-        }
-      }
-      if (row) row.classList.add('opacity-70');
-      this.showToast(`Mode ${roleKey} dinonaktifkan`);
-    }
+    const prevValue = !!this.state.roles[roleKey];
+    const nextValue = !prevValue;
+    this.state.roles[roleKey] = nextValue;
+    this.renderProfileRoles();
     this.updateRolePermissionIndicators();
 
-    if (this.supabase && this.state.activePersonaKey) {
-      this.supabase.from('crew_profiles').update({
-        roles: this.state.roles
-      }).eq('persona_key', this.state.activePersonaKey).then(() => {});
+    if (this.supabase && this.state.supabaseUser) {
+      try {
+        const { error } = await this.supabase
+          .from('crew_profiles')
+          .update({ roles: this.state.roles })
+          .eq('user_id', this.state.supabaseUser.id);
+
+        if (error) {
+          this.state.roles[roleKey] = prevValue;
+          this.renderProfileRoles();
+          this.updateRolePermissionIndicators();
+          this.showToast('Perubahan peran ditolak oleh otorisasi server');
+          return false;
+        }
+      } catch (_e) {
+        this.state.roles[roleKey] = prevValue;
+        this.renderProfileRoles();
+        this.updateRolePermissionIndicators();
+        this.showToast('Gagal menyinkronkan peran ke server');
+        return false;
+      }
     }
+
+    this.showToast(nextValue ? `Mode ${roleKey} diaktifkan` : `Mode ${roleKey} dinonaktifkan`);
+    return true;
   },
 
   toggleProjectSearch() {
@@ -4042,12 +4310,377 @@ const StoryPad = {
   },
 
   /* ============================================================
-   * CREW AUTHENTICATION & DYNAMIC CREW LISTS (ZERO DUMMY CREW)
+   * ACCOUNT HUB, REMEMBERED ACCOUNTS & SECURE AUTHENTICATION
    * ============================================================ */
+
+  sanitizeRememberedAccount(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const email = String(raw.email || '').trim().toLowerCase();
+    const id = String(raw.id || '').trim();
+    if (!email || !email.includes('@') || !id) return null;
+    const displayName = String(raw.display_name || raw.fullName || email.split('@')[0] || 'Kru Produksi').trim().slice(0, 80);
+    const initials = String(raw.initials || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'KP').slice(0, 3);
+    const lastUsedAt = String(raw.last_used_at || new Date().toISOString());
+    // Strictly non-sensitive metadata only (no password, no token, no roles)
+    return {
+      id,
+      display_name: displayName,
+      email,
+      initials,
+      last_used_at: lastUsedAt
+    };
+  },
+
+  loadRememberedAccounts() {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        this.state.rememberedAccounts = [];
+        return [];
+      }
+      const raw = window.localStorage.getItem(this.REMEMBERED_STORAGE_KEY);
+      if (!raw) {
+        this.state.rememberedAccounts = [];
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        this.state.rememberedAccounts = [];
+        return [];
+      }
+      const clean = parsed
+        .map(item => this.sanitizeRememberedAccount(item))
+        .filter(Boolean)
+        .sort((a, b) => String(b.last_used_at).localeCompare(String(a.last_used_at)));
+      this.state.rememberedAccounts = clean;
+      return clean;
+    } catch (_e) {
+      this.state.rememberedAccounts = [];
+      return [];
+    }
+  },
+
+  saveRememberedAccountsList(list) {
+    const clean = (Array.isArray(list) ? list : [])
+      .map(item => this.sanitizeRememberedAccount(item))
+      .filter(Boolean)
+      .slice(0, 8);
+    this.state.rememberedAccounts = clean;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(this.REMEMBERED_STORAGE_KEY, JSON.stringify(clean));
+      }
+    } catch (_e) {}
+    return clean;
+  },
+
+  rememberAccountFromUser(user) {
+    if (!user || !user.id || !user.email) return null;
+    const displayName = (user.user_metadata && user.user_metadata.full_name)
+      ? String(user.user_metadata.full_name).trim()
+      : (this.state.currentUser.name || String(user.email).split('@')[0]);
+    const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'KP';
+    const entry = this.sanitizeRememberedAccount({
+      id: user.id,
+      display_name: displayName,
+      email: user.email,
+      initials,
+      last_used_at: new Date().toISOString()
+    });
+    if (!entry) return null;
+    const existing = this.loadRememberedAccounts().filter(a => a.id !== entry.id && a.email !== entry.email);
+    this.saveRememberedAccountsList([entry, ...existing]);
+    this.renderAccountHub();
+    this.renderCrewAccountsList();
+    return entry;
+  },
+
+  async removeRememberedAccount(id, askConfirm = true) {
+    const acc = this.state.rememberedAccounts.find(a => a.id === id);
+    if (!acc) return false;
+    if (askConfirm) {
+      const ok = await this.openConfirmDialog({
+        title: 'Hapus akun dari perangkat ini?',
+        message: `Akun ${acc.display_name} (${acc.email}) akan dihapus dari daftar lokal browser ini. Akun dan data produksi Anda di server tidak akan terhapus.`,
+        confirmLabel: 'Hapus dari Perangkat',
+        dangerous: true
+      });
+      if (!ok) return false;
+    }
+
+    const next = this.state.rememberedAccounts.filter(a => a.id !== id);
+    this.saveRememberedAccountsList(next);
+    if (this.state.selectedRememberedId === id) {
+      this.state.selectedRememberedId = '';
+    }
+    this.renderAccountHub();
+    this.renderCrewAccountsList();
+    if (this.state.currentScreen === 'login' && (this.state.authView === 'hub' || this.state.authView === 'selected')) {
+      this.openAuthView(next.length > 0 ? 'hub' : 'credentials', 'signin');
+    }
+    this.showToast('Akun dihapus dari daftar perangkat ini');
+    return true;
+  },
+
+  formatLastUsedLabel(iso) {
+    if (!iso) return 'Pernah digunakan';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return 'Pernah digunakan';
+    const diffMs = Math.max(0, Date.now() - d.getTime());
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 2) return 'Baru saja digunakan';
+    if (mins < 60) return `${mins} menit lalu`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} jam lalu`;
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  },
+
+  openConfirmDialog({ title = 'Konfirmasi Tindakan', message = '', confirmLabel = 'Lanjutkan', dangerous = true } = {}) {
+    const sheet = document.getElementById('sheet-confirm-dialog');
+    const overlay = document.getElementById('sheet-overlay');
+    const titleEl = document.getElementById('confirm-dialog-title');
+    const msgEl = document.getElementById('confirm-dialog-message');
+    const confirmBtn = document.getElementById('confirm-dialog-confirm');
+
+    if (!sheet || !overlay || typeof sheet.classList === 'undefined') {
+      return Promise.resolve(true);
+    }
+
+    if (this._confirmResolver) {
+      this._confirmResolver(false);
+      this._confirmResolver = null;
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (confirmBtn) {
+      confirmBtn.textContent = confirmLabel;
+      confirmBtn.className = dangerous
+        ? 'sp-btn sp-btn-danger sp-btn-compact'
+        : 'sp-btn sp-btn-primary sp-btn-compact';
+    }
+
+    overlay.classList.add('active');
+    sheet.classList.add('open');
+    sheet.style.transform = '';
+
+    return new Promise((resolve) => {
+      this._confirmResolver = resolve;
+    });
+  },
+
+  resolveConfirmDialog(confirmed) {
+    const sheet = document.getElementById('sheet-confirm-dialog');
+    const overlay = document.getElementById('sheet-overlay');
+    if (sheet) {
+      sheet.classList.remove('open');
+      sheet.style.transform = '';
+    }
+    const anyOtherOpen = ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts', 'sheet-import-script', 'sheet-add-line']
+      .some(id => {
+        const el = document.getElementById(id);
+        return el && el.classList && el.classList.contains('open');
+      });
+    if (overlay && !anyOtherOpen) {
+      overlay.classList.remove('active');
+    }
+    if (this._confirmResolver) {
+      const fn = this._confirmResolver;
+      this._confirmResolver = null;
+      fn(Boolean(confirmed));
+    }
+  },
+
+  openAuthView(viewName = 'hub', mode = null) {
+    const allowedViews = ['hub', 'selected', 'credentials', 'forgot', 'recovery'];
+    let target = allowedViews.includes(viewName) ? viewName : 'credentials';
+    if (target === 'hub' && this.state.rememberedAccounts.length === 0) {
+      target = 'credentials';
+    }
+    this.state.authView = target;
+
+    allowedViews.forEach(v => {
+      const el = document.getElementById(`auth-view-${v}`);
+      if (!el || !el.classList) return;
+      if (v === target) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      } else {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+    });
+
+    if (mode === 'signin' || mode === 'signup') {
+      this.setAuthMode(mode);
+    }
+
+    const backHubBtn = document.getElementById('cred-back-hub-btn');
+    if (backHubBtn && backHubBtn.classList) {
+      backHubBtn.classList.toggle('hidden', this.state.rememberedAccounts.length === 0);
+    }
+
+    ['selected-auth-feedback', 'cred-auth-feedback', 'forgot-auth-feedback', 'recovery-auth-feedback'].forEach(id => {
+      const fb = document.getElementById(id);
+      if (fb && fb.classList) fb.classList.add('hidden');
+    });
+  },
+
+  setAuthMode(mode = 'signin') {
+    const nextMode = mode === 'signup' ? 'signup' : 'signin';
+    this.state.authMode = nextMode;
+
+    const signinTab = document.getElementById('auth-tab-signin');
+    const signupTab = document.getElementById('auth-tab-signup');
+    const signupFields = document.getElementById('credentials-signup-fields');
+    const passHint = document.getElementById('cred-password-hint');
+    const passInput = document.getElementById('cred-password-input');
+    const submitLabel = document.getElementById('cred-submit-label');
+    const forgotBtn = document.getElementById('cred-forgot-btn');
+    const heading = document.getElementById('cred-heading');
+    const subheading = document.getElementById('cred-subheading');
+
+    if (signinTab) {
+      signinTab.classList.toggle('sp-btn-primary', nextMode === 'signin');
+      signinTab.classList.toggle('sp-btn-secondary', nextMode !== 'signin');
+      signinTab.setAttribute('aria-selected', nextMode === 'signin' ? 'true' : 'false');
+    }
+    if (signupTab) {
+      signupTab.classList.toggle('sp-btn-primary', nextMode === 'signup');
+      signupTab.classList.toggle('sp-btn-secondary', nextMode !== 'signup');
+      signupTab.setAttribute('aria-selected', nextMode === 'signup' ? 'true' : 'false');
+    }
+    if (signupFields) signupFields.classList.toggle('hidden', nextMode !== 'signup');
+    if (passHint) passHint.classList.toggle('hidden', nextMode !== 'signup');
+    if (forgotBtn) forgotBtn.classList.toggle('hidden', nextMode === 'signup');
+    if (passInput) {
+      passInput.setAttribute('autocomplete', nextMode === 'signup' ? 'new-password' : 'current-password');
+      passInput.placeholder = nextMode === 'signup' ? 'Minimal 12 karakter (frasa sandi)' : 'Masukkan kata sandi';
+    }
+    if (submitLabel) {
+      submitLabel.textContent = nextMode === 'signup' ? 'Daftar Akun Kru Baru' : 'Masuk ke Sesi Produksi';
+    }
+    if (heading) {
+      heading.textContent = nextMode === 'signup' ? 'Buat Akun Kru Baru' : 'Masuk ke Sesi Produksi';
+    }
+    if (subheading) {
+      subheading.textContent = nextMode === 'signup'
+        ? 'Gunakan email aktif dan kata sandi kuat minimal 12 karakter.'
+        : 'Masuk dengan akun kru terdaftar untuk mengakses naskah produksi.';
+    }
+  },
+
+  togglePasswordVisibility(inputId, btnEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    if (btnEl) {
+      btnEl.setAttribute('aria-pressed', show ? 'true' : 'false');
+      btnEl.setAttribute('aria-label', show ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+      const icon = btnEl.querySelector('.material-symbols-outlined');
+      if (icon) icon.textContent = show ? 'visibility_off' : 'visibility';
+    }
+  },
+
+  setAuthFeedback(elId, msg, kind = 'error') {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!msg) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.classList.remove('hidden', 'sp-auth-alert-error', 'sp-auth-alert-success', 'sp-auth-alert-info');
+    if (kind === 'success') el.classList.add('sp-auth-alert-success');
+    else if (kind === 'info') el.classList.add('sp-auth-alert-info');
+    else el.classList.add('sp-auth-alert-error');
+  },
+
+  validateNewPassword(password) {
+    const pw = String(password || '');
+    if (pw.length < 12) {
+      return 'Kata sandi baru wajib minimal 12 karakter. Disarankan menggunakan frasa sandi.';
+    }
+    if (pw.length > 128) {
+      return 'Kata sandi maksimal 128 karakter.';
+    }
+    return '';
+  },
+
+  selectRememberedAccount(id) {
+    const acc = this.state.rememberedAccounts.find(a => a.id === id);
+    if (!acc) return false;
+    this.state.selectedRememberedId = acc.id;
+
+    const avatarEl = document.getElementById('selected-account-avatar');
+    const nameEl = document.getElementById('selected-account-name');
+    const emailEl = document.getElementById('selected-account-email');
+    const passEl = document.getElementById('selected-password-input');
+    const rememberEl = document.getElementById('selected-remember-checkbox');
+
+    if (avatarEl) avatarEl.textContent = acc.initials;
+    if (nameEl) nameEl.textContent = acc.display_name;
+    if (emailEl) emailEl.textContent = acc.email;
+    if (passEl) passEl.value = '';
+    if (rememberEl) rememberEl.checked = true;
+
+    this.openAuthView('selected');
+    if (passEl && typeof passEl.focus === 'function') passEl.focus();
+    return true;
+  },
+
+  renderAccountHub() {
+    const container = document.getElementById('account-hub-list');
+    if (!container) return;
+
+    if (this.state.rememberedAccounts.length === 0) {
+      container.innerHTML = `
+        <div class="sp-panel-muted p-3.5 text-xs" style="color: var(--text-secondary);">
+          Belum ada akun yang diingat di browser ini.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.state.rememberedAccounts.map(acc => `
+      <div class="sp-account-card">
+        <button type="button" class="sp-account-card-select" onclick="StoryPad.selectRememberedAccount('${this.escapeHtml(acc.id)}')">
+          <span class="w-10 h-10 rounded bg-[#2563EB] text-white font-sans text-xs font-bold flex items-center justify-center shrink-0">${this.escapeHtml(acc.initials)}</span>
+          <span class="flex flex-col min-w-0 flex-1">
+            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">${this.escapeHtml(acc.display_name)}</span>
+            <span class="font-mono text-[11px] truncate" style="color: var(--text-secondary);">${this.escapeHtml(acc.email)}</span>
+            <span class="font-sans text-[10px]" style="color: var(--text-muted);">${this.escapeHtml(this.formatLastUsedLabel(acc.last_used_at))}</span>
+          </span>
+          <span class="material-symbols-outlined text-[18px] shrink-0" style="color: var(--primary-text);" aria-hidden="true">chevron_right</span>
+        </button>
+        <button type="button" class="sp-icon-btn shrink-0" title="Hapus dari perangkat ini" aria-label="Hapus ${this.escapeHtml(acc.display_name)} dari perangkat ini" onclick="StoryPad.removeRememberedAccount('${this.escapeHtml(acc.id)}')">
+          <span class="material-symbols-outlined text-[17px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+    `).join('');
+  },
+
+  renderLoginCrewList() {
+    this.renderAccountHub();
+  },
 
   openLoginAccounts() {
     this.triggerHaptic();
     this.renderCrewAccountsList();
+    const nameEl = document.getElementById('modal-current-account-name');
+    const emailEl = document.getElementById('modal-current-account-email');
+    const switchBtn = document.getElementById('modal-switch-account-btn');
+    if (this.isAuthenticated()) {
+      if (nameEl) nameEl.textContent = this.state.currentUser.name || 'Kru Produksi';
+      if (emailEl) emailEl.textContent = this.state.currentUser.email || '-';
+      if (switchBtn) switchBtn.classList.remove('hidden');
+    } else {
+      if (nameEl) nameEl.textContent = 'Belum masuk';
+      if (emailEl) emailEl.textContent = 'Pilih atau masuk melalui Account Hub';
+      if (switchBtn) switchBtn.classList.add('hidden');
+    }
+
     const sheet = document.getElementById('sheet-login-accounts');
     const overlay = document.getElementById('sheet-overlay');
     if (sheet && overlay) {
@@ -4070,7 +4703,10 @@ const StoryPad = {
 
   closeAllModals(silent = false) {
     if (!silent) this.triggerHaptic();
-    ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts', 'sheet-import-script', 'sheet-add-line'].forEach(id => {
+    if (this._confirmResolver) {
+      this.resolveConfirmDialog(false);
+    }
+    ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts', 'sheet-import-script', 'sheet-add-line', 'sheet-confirm-dialog'].forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         el.classList.remove('open');
@@ -4083,325 +4719,329 @@ const StoryPad = {
     this.stopFootagePlayback();
   },
 
-  renderLoginCrewList() {
-    const container = document.getElementById('login-crew-quicklist');
-    if (!container) return;
-
-    if (this.db.crewProfiles.length === 0) {
-      container.innerHTML = `
-        <div class="sp-panel-muted p-3.5 flex flex-col gap-1">
-          <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">Belum ada profil kru tersimpan</span>
-          <span class="font-sans text-[11px] leading-relaxed" style="color: var(--text-secondary);">
-            Daftarkan akun kru baru melalui tombol di bawah atau tambahkan daftar kru tim ${this.escapeHtml(this.state.studioName)} melalui Panel Admin.
-          </span>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = this.db.crewProfiles.map(c => `
-      <button type="button" class="sp-crew-btn w-full p-3 rounded border text-left flex items-center justify-between gap-3" onclick="StoryPad.loginAs('${this.escapeHtml(c.personaKey)}')">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="w-9 h-9 rounded bg-[#2563EB] text-white font-sans text-xs font-bold flex items-center justify-center shrink-0">${this.escapeHtml(c.initials)}</span>
-          <span class="flex flex-col min-w-0">
-            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">${this.escapeHtml(c.fullName)}</span>
-            <span class="font-sans text-[11px] truncate" style="color: var(--text-secondary);">${this.escapeHtml(c.roleTitle)}</span>
-          </span>
-        </span>
-        <span class="sp-badge sp-badge-blue shrink-0">Masuk</span>
-      </button>
-    `).join('');
-  },
-
   renderCrewAccountsList() {
     const listEl = document.getElementById('crew-accounts-list');
     if (!listEl) return;
 
-    if (this.db.crewProfiles.length === 0) {
+    if (this.state.rememberedAccounts.length === 0) {
       listEl.innerHTML = `
         <div class="sp-panel-muted p-3 text-xs" style="color: var(--text-secondary);">
-          Belum ada profil kru terdaftar di database. Isi formulir di bawah untuk mendaftarkan akun kru pertama Anda.
+          Tidak ada akun yang diingat di browser ini.
         </div>
       `;
       return;
     }
 
-    listEl.innerHTML = this.db.crewProfiles.map(c => `
-      <button type="button" class="sp-crew-btn w-full text-left flex items-center justify-between p-3 rounded border" onclick="StoryPad.loginAs('${this.escapeHtml(c.personaKey)}')">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="w-10 h-10 rounded bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0">${this.escapeHtml(c.initials)}</span>
-          <span class="flex flex-col min-w-0">
-            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">${this.escapeHtml(c.fullName)}</span>
-            <span class="font-sans text-[11px] truncate" style="color: var(--primary-text);">${this.escapeHtml(c.roleTitle)}</span>
-            <span class="font-mono text-[10px] truncate" style="color: var(--text-muted);">${this.escapeHtml(c.email)}</span>
-          </span>
-        </span>
-        <span class="material-symbols-outlined text-[18px] shrink-0" style="color: var(--primary-text);" aria-hidden="true">chevron_right</span>
-      </button>
+    listEl.innerHTML = this.state.rememberedAccounts.map(acc => `
+      <div class="sp-account-card">
+        <div class="flex items-center gap-3 min-w-0 flex-1 px-2 py-1.5">
+          <span class="w-9 h-9 rounded bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs shrink-0">${this.escapeHtml(acc.initials)}</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-sans text-xs font-bold truncate" style="color: var(--text-primary);">${this.escapeHtml(acc.display_name)}</span>
+            <span class="font-mono text-[11px] truncate" style="color: var(--text-secondary);">${this.escapeHtml(acc.email)}</span>
+            <span class="font-sans text-[10px]" style="color: var(--text-muted);">${this.escapeHtml(this.formatLastUsedLabel(acc.last_used_at))}</span>
+          </div>
+        </div>
+        <button type="button" class="sp-btn sp-btn-danger sp-btn-compact shrink-0" onclick="StoryPad.removeRememberedAccount('${this.escapeHtml(acc.id)}')">
+          Hapus
+        </button>
+      </div>
     `).join('');
   },
 
-  loginQuickSession() {
-    this.triggerHaptic();
-    const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
-    this.state.activePersonaKey = '';
-    this.state.currentUser = {
-      name: `Kru ${this.state.studioName}`,
-      initials: 'SP',
-      roleTitle: 'Script Supervisor & Continuity',
-      idBadge: 'SP-01',
-      studio: this.state.studioName,
-      prodName: activeProj ? activeProj.title : '-',
-      email: ''
-    };
-    this.state.roles = {
-      scriptSupervisor: true,
-      videoEditor: true,
-      soundRecordist: true,
-      directorProducer: false,
-      autoExportMeta: true
-    };
-    this.savePersistedSettings();
-    this.syncPhpSession({
-      logged_in: true,
-      screen: 'dashboard',
-      persona_key: '',
-      active_project_id: this.state.activeProjectId,
-      user: this.state.currentUser
-    });
-    this.renderProfileRoles();
-    this.closeLoginAccounts();
-    this.navigate('dashboard', 'home');
-    this.showToast(`Sesi lapangan ${this.state.studioName} aktif`);
+  loginAs() {
+    // Autentikasi wajib melalui kredensial Supabase yang valid
+    this.showToast('Pilih akun dan masukkan kata sandi untuk masuk');
+    return false;
   },
 
-  loginAs(personaKey) {
-    this.triggerHaptic();
-    const profile = this.db.crewProfiles.find(c => c.personaKey === personaKey);
-    if (!profile) {
-      this.loginQuickSession();
+  async switchAccountViaHub() {
+    this.closeLoginAccounts();
+    await this.handleLogout();
+  },
+
+  async submitSelectedAccountLogin() {
+    const acc = this.state.rememberedAccounts.find(a => a.id === this.state.selectedRememberedId);
+    const passEl = document.getElementById('selected-password-input');
+    const remEl = document.getElementById('selected-remember-checkbox');
+    if (!acc) {
+      this.openAuthView('hub');
       return;
     }
-
-    const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
-    const prodName = activeProj ? activeProj.title : (profile.prodName || '-');
-
-    this.state.activePersonaKey = profile.personaKey;
-    this.state.currentUser = {
-      name: profile.fullName,
-      initials: profile.initials,
-      roleTitle: profile.roleTitle,
-      idBadge: profile.idBadge,
-      studio: profile.studio || this.state.studioName,
-      prodName,
-      email: profile.email
-    };
-    this.state.roles = {
-      scriptSupervisor: false,
-      videoEditor: false,
-      soundRecordist: false,
-      directorProducer: false,
-      autoExportMeta: true,
-      ...(profile.roles || {})
-    };
-
-    this.savePersistedSettings();
-    this.syncPhpSession({
-      logged_in: true,
-      screen: 'dashboard',
-      persona_key: profile.personaKey,
-      active_project_id: this.state.activeProjectId,
-      user: this.state.currentUser
-    });
-    this.renderProfileRoles();
-    this.closeLoginAccounts();
-    this.navigate('dashboard', 'home');
-    this.showToast(`Masuk sebagai ${this.state.currentUser.name}`);
+    const password = passEl ? passEl.value : '';
+    const remember = remEl ? !!remEl.checked : false;
+    await this.signInWithCredentials(acc.email, password, remember, 'selected-auth-feedback', 'selected-signin-btn');
+    if (passEl) passEl.value = '';
   },
 
-  async signInWithSupabaseEmail(mode = 'signin') {
-    this.triggerHaptic();
-    const nameEl = document.getElementById('supa-name-input');
-    const roleEl = document.getElementById('supa-role-select');
-    const emailEl = document.getElementById('supa-email-input');
-    const passEl = document.getElementById('supa-password-input');
-    const fbEl = document.getElementById('supa-auth-feedback');
+  async submitCredentialsAuth() {
+    const nameEl = document.getElementById('cred-name-input');
+    const roleEl = document.getElementById('cred-role-select');
+    const emailEl = document.getElementById('cred-email-input');
+    const passEl = document.getElementById('cred-password-input');
+    const remEl = document.getElementById('cred-remember-checkbox');
+
     const email = emailEl ? emailEl.value.trim() : '';
     const password = passEl ? passEl.value : '';
+    const remember = remEl ? !!remEl.checked : false;
 
-    const setFeedback = (msg, isError = false) => {
-      if (!fbEl) return;
-      fbEl.textContent = msg;
-      fbEl.classList.remove('hidden');
-      fbEl.style.color = isError ? 'var(--red-text)' : 'var(--good-text)';
-    };
+    if (this.state.authMode === 'signup') {
+      const name = nameEl ? nameEl.value.trim() : '';
+      const roleKey = roleEl ? roleEl.value : 'scriptSupervisor';
+      await this.signUpWithCredentials(name, roleKey, email, password, remember, 'cred-auth-feedback', 'cred-submit-btn');
+    } else {
+      await this.signInWithCredentials(email, password, remember, 'cred-auth-feedback', 'cred-submit-btn');
+    }
+    if (passEl) passEl.value = '';
+  },
 
-    if (!email || !email.includes('@') || !password || password.length < 6) {
-      setFeedback('Masukkan email valid dan kata sandi minimal 6 karakter.', true);
-      return;
+  async signInWithCredentials(email, password, rememberDevice, feedbackElId, btnId) {
+    this.triggerHaptic();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanPass = String(password || '');
+
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanPass) {
+      this.setAuthFeedback(feedbackElId, 'Masukkan email dan kata sandi Anda terlebih dahulu.', 'error');
+      return false;
     }
 
+    if (!this.supabase) this.initSupabase();
     if (!this.supabase) {
-      this.initSupabase();
+      this.setAuthFeedback(feedbackElId, 'Layanan autentikasi belum siap. Periksa konfigurasi environment.', 'error');
+      return false;
     }
 
-    if (!this.supabase) {
-      if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
-        setFeedback('Konfigurasi Supabase (.env) belum termuat. Restart server atau buka lewat index.php / server.js.', true);
-      } else {
-        setFeedback('Klien Supabase belum siap. Coba beberapa detik lagi.', true);
-      }
-      return;
-    }
-
-    setFeedback(mode === 'signup' ? 'Menyimpan akun kru ke Supabase...' : 'Memeriksa kredensial...', false);
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = true;
+    this.setAuthFeedback(feedbackElId, 'Memverifikasi kredensial...', 'info');
 
     try {
-      const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
-      const prodTitle = activeProj ? activeProj.title : '-';
-
-      if (mode === 'signup') {
-        const rawName = nameEl && nameEl.value.trim() ? nameEl.value.trim() : email.split('@')[0];
-        const roleKey = roleEl && roleEl.value ? roleEl.value : 'scriptSupervisor';
-        const roleMap = {
-          scriptSupervisor: 'Script Supervisor & Continuity',
-          videoEditor: 'Offline Video Editor',
-          soundRecordist: 'Production Sound Mixer',
-          directorProducer: 'Director & Producer'
-        };
-        const roleTitle = roleMap[roleKey] || 'Script Supervisor & Continuity';
-        const initials = rawName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'KP';
-        const personaKey = 'crew_' + email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        const idBadge = 'SP-' + String(Math.floor(100 + (Date.now() % 900)));
-        const rolesObj = {
-          scriptSupervisor: roleKey === 'scriptSupervisor',
-          videoEditor: roleKey === 'videoEditor',
-          soundRecordist: roleKey === 'soundRecordist',
-          directorProducer: roleKey === 'directorProducer',
-          autoExportMeta: true
-        };
-
-        const authRes = await this.supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: rawName,
-              persona_key: personaKey,
-              role_key: roleKey,
-              studio: this.state.studioName,
-              prod_name: prodTitle,
-              id_badge: idBadge
-            }
-          }
-        });
-
-        if (authRes.error) {
-          setFeedback(authRes.error.message, true);
-          return;
-        }
-
-        const profileRow = {
-          user_id: authRes.data && authRes.data.user ? authRes.data.user.id : null,
-          persona_key: personaKey,
-          full_name: rawName,
-          initials,
-          role_title: roleTitle,
-          id_badge: idBadge,
-          studio: this.state.studioName,
-          prod_name: prodTitle,
-          email,
-          roles: rolesObj,
-          is_archived: false
-        };
-
-        await this.supabase.from('crew_profiles').upsert(profileRow, { onConflict: 'persona_key' });
-
-        const localProfile = {
-          personaKey,
-          fullName: rawName,
-          initials,
-          roleTitle,
-          idBadge,
-          studio: this.state.studioName,
-          prodName: prodTitle,
-          email,
-          roles: rolesObj
-        };
-        const existingIdx = this.db.crewProfiles.findIndex(c => c.personaKey === personaKey || c.email.toLowerCase() === email.toLowerCase());
-        if (existingIdx >= 0) this.db.crewProfiles[existingIdx] = localProfile;
-        else this.db.crewProfiles.push(localProfile);
-
-        this.renderLoginCrewList();
-        this.renderCrewAccountsList();
-
-        if (authRes.data && authRes.data.session) {
-          this.state.supabaseUser = authRes.data.user;
-          this.loginAs(personaKey);
-          this.showToast(`Akun ${rawName} disimpan ke Supabase`);
-        } else {
-          this.loginAs(personaKey);
-          this.showToast(`Profil kru ${rawName} aktif`);
-        }
-        return;
+      const result = await this.supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPass });
+      if (result.error || !result.data || !result.data.session || !result.data.user) {
+        // Pesan generik agar tidak membocorkan status pendaftaran email
+        this.setAuthFeedback(feedbackElId, 'Email atau kata sandi tidak sesuai. Periksa kembali atau gunakan Lupa kata sandi.', 'error');
+        return false;
       }
 
-      const result = await this.supabase.auth.signInWithPassword({ email, password });
-      if (result.error) {
-        setFeedback(result.error.message, true);
-        return;
-      }
+      this.state.supabaseSession = result.data.session;
+      this.applyAuthenticatedSupabaseUser(result.data.user);
 
-      if (result.data && result.data.user) {
-        this.state.supabaseUser = result.data.user;
-        const { data: matchedRows } = await this.supabase.from('crew_profiles').select('*').eq('is_archived', false).ilike('email', email).limit(1);
-        if (matchedRows && matchedRows.length > 0) {
-          const m = matchedRows[0];
-          const mapped = {
-            personaKey: m.persona_key,
-            fullName: m.full_name,
-            initials: m.initials,
-            roleTitle: m.role_title,
-            idBadge: m.id_badge,
-            studio: m.studio || this.state.studioName,
-            prodName: m.prod_name || prodTitle,
-            email: m.email,
-            roles: m.roles || {}
-          };
-          const idx = this.db.crewProfiles.findIndex(c => c.personaKey === mapped.personaKey);
-          if (idx >= 0) this.db.crewProfiles[idx] = mapped;
-          else this.db.crewProfiles.push(mapped);
-          this.renderLoginCrewList();
-          this.renderCrewAccountsList();
-          this.loginAs(mapped.personaKey);
-        } else {
-          this.applyAuthenticatedSupabaseUser(result.data.user);
-          this.syncPhpSession({ logged_in: true, screen: 'dashboard', user: this.state.currentUser });
-          this.closeLoginAccounts();
-          this.navigate('dashboard', 'home');
-          this.showToast(`Masuk via Supabase: ${email}`);
+      if (rememberDevice) {
+        this.rememberAccountFromUser(result.data.user);
+      } else {
+        const filtered = this.state.rememberedAccounts.filter(a => a.id !== result.data.user.id && a.email !== cleanEmail);
+        if (filtered.length !== this.state.rememberedAccounts.length) {
+          this.saveRememberedAccountsList(filtered);
         }
       }
-    } catch (err) {
-      setFeedback('Gagal menghubungi layanan autentikasi Supabase.', true);
+
+      await this.syncPhpSession({ action: 'sync_auth' });
+      await this.syncFromSupabase();
+      this.subscribeRealtime();
+      this.setAuthFeedback(feedbackElId, '', 'info');
+      this.navigate('dashboard', 'home');
+      this.showToast(`Masuk sebagai ${this.state.currentUser.name}`);
+      return true;
+    } catch (_err) {
+      this.setAuthFeedback(feedbackElId, 'Tidak dapat menghubungi layanan autentikasi. Coba lagi.', 'error');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
     }
   },
 
-  handleLogout() {
+  async signUpWithCredentials(rawName, roleKey, email, password, rememberDevice, feedbackElId, btnId) {
+    this.triggerHaptic();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const displayName = String(rawName || '').trim();
+
+    if (!displayName || displayName.length < 2) {
+      this.setAuthFeedback(feedbackElId, 'Masukkan nama lengkap kru (minimal 2 karakter).', 'error');
+      return false;
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      this.setAuthFeedback(feedbackElId, 'Masukkan alamat email yang valid.', 'error');
+      return false;
+    }
+
+    const pwErr = this.validateNewPassword(password);
+    if (pwErr) {
+      this.setAuthFeedback(feedbackElId, pwErr, 'error');
+      return false;
+    }
+
+    if (!this.supabase) this.initSupabase();
+    if (!this.supabase) {
+      this.setAuthFeedback(feedbackElId, 'Layanan autentikasi belum siap. Periksa konfigurasi environment.', 'error');
+      return false;
+    }
+
+    const safeRoleKey = ['scriptSupervisor', 'videoEditor', 'soundRecordist'].includes(roleKey)
+      ? roleKey
+      : 'scriptSupervisor';
+
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = true;
+    this.setAuthFeedback(feedbackElId, 'Mendaftarkan akun kru...', 'info');
+
+    try {
+      const redirectTo = (typeof window !== 'undefined' && window.location)
+        ? `${window.location.origin}${window.location.pathname}`
+        : undefined;
+      const authRes = await this.supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: {
+            full_name: displayName,
+            role_key: safeRoleKey
+          }
+        }
+      });
+
+      if (authRes.error) {
+        // Hindari membocorkan apakah email sudah terdaftar jika bukan kebijakan password
+        const msg = /password|weak|leaked/i.test(authRes.error.message || '')
+          ? 'Kata sandi belum memenuhi kebijakan keamanan. Gunakan frasa sandi yang lebih kuat.'
+          : 'Pendaftaran tidak dapat diselesaikan. Periksa data Anda atau coba masuk.';
+        this.setAuthFeedback(feedbackElId, msg, 'error');
+        return false;
+      }
+
+      if (authRes.data && authRes.data.session && authRes.data.user) {
+        this.state.supabaseSession = authRes.data.session;
+        this.applyAuthenticatedSupabaseUser(authRes.data.user);
+        if (rememberDevice) {
+          this.rememberAccountFromUser(authRes.data.user);
+        }
+        await this.syncPhpSession({ action: 'sync_auth' });
+        await this.syncFromSupabase();
+        this.subscribeRealtime();
+        this.setAuthFeedback(feedbackElId, '', 'info');
+        this.navigate('dashboard', 'home');
+        this.showToast(`Akun ${displayName} aktif`);
+        return true;
+      }
+
+      // Wajib tunggu konfirmasi email sebelum mengakses workspace
+      this.setAuthFeedback(
+        feedbackElId,
+        'Pendaftaran diterima. Periksa kotak masuk email Anda untuk memverifikasi akun sebelum masuk.',
+        'success'
+      );
+      return true;
+    } catch (_err) {
+      this.setAuthFeedback(feedbackElId, 'Gagal menghubungi layanan autentikasi.', 'error');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async submitForgotPassword() {
+    this.triggerHaptic();
+    const emailEl = document.getElementById('forgot-email-input');
+    const btn = document.getElementById('forgot-submit-btn');
+    const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
+
+    if (!email || !email.includes('@')) {
+      this.setAuthFeedback('forgot-auth-feedback', 'Masukkan alamat email yang valid.', 'error');
+      return false;
+    }
+
+    if (!this.supabase) this.initSupabase();
+    if (!this.supabase) {
+      this.setAuthFeedback('forgot-auth-feedback', 'Layanan autentikasi belum siap.', 'error');
+      return false;
+    }
+
+    if (btn) btn.disabled = true;
+    try {
+      const redirectTo = (typeof window !== 'undefined' && window.location)
+        ? `${window.location.origin}${window.location.pathname}`
+        : undefined;
+      await this.supabase.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
+      // Selalu tampilkan pesan netral anti-enumerasi
+      this.setAuthFeedback(
+        'forgot-auth-feedback',
+        'Jika email tersebut terdaftar di StoryPad, tautan atur ulang kata sandi telah dikirim ke kotak masuk Anda.',
+        'success'
+      );
+      return true;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async submitPasswordRecovery() {
+    this.triggerHaptic();
+    const p1El = document.getElementById('recovery-password-input');
+    const p2El = document.getElementById('recovery-password-confirm');
+    const btn = document.getElementById('recovery-submit-btn');
+    const p1 = p1El ? p1El.value : '';
+    const p2 = p2El ? p2El.value : '';
+
+    const pwErr = this.validateNewPassword(p1);
+    if (pwErr) {
+      this.setAuthFeedback('recovery-auth-feedback', pwErr, 'error');
+      return false;
+    }
+    if (p1 !== p2) {
+      this.setAuthFeedback('recovery-auth-feedback', 'Konfirmasi kata sandi tidak cocok.', 'error');
+      return false;
+    }
+
+    if (!this.supabase) {
+      this.setAuthFeedback('recovery-auth-feedback', 'Sesi pemulihan tidak tersedia.', 'error');
+      return false;
+    }
+
+    if (btn) btn.disabled = true;
+    try {
+      const { error } = await this.supabase.auth.updateUser({ password: p1 });
+      if (error) {
+        this.setAuthFeedback('recovery-auth-feedback', 'Gagal memperbarui kata sandi. Pastikan tautan pemulihan masih berlaku.', 'error');
+        return false;
+      }
+      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+      if (p1El) p1El.value = '';
+      if (p2El) p2El.value = '';
+      this.setAuthFeedback('recovery-auth-feedback', 'Kata sandi diperbarui. Mengarahkan ke workspace...', 'success');
+      await this.syncPhpSession({ action: 'sync_auth' });
+      await this.syncFromSupabase();
+      this.subscribeRealtime();
+      this.navigate('dashboard', 'home');
+      return true;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async handleLogout() {
     this.triggerHaptic();
     const btn = document.getElementById('logout-btn');
     if (btn) btn.disabled = true;
 
-    if (this.supabase) {
-      this.supabase.auth.signOut().catch(() => {});
-    }
-    this.syncPhpSession({ action: 'logout' });
-
-    setTimeout(() => {
+    try {
+      if (this.supabase) {
+        await this.supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+      }
+      await this.syncPhpSession({ action: 'logout' });
+    } finally {
+      this.clearSensitiveSessionData();
+      this.loadRememberedAccounts();
+      this.renderAccountHub();
+      this.renderCrewAccountsList();
+      this.renderProjectsScreen();
+      this.updateDashboardData();
+      this.updateProgressGauge();
+      this.renderProfileRoles();
       if (btn) btn.disabled = false;
       this.navigate('login');
-      this.showToast('Keluar dari sesi produksi');
-    }, 350);
+      this.openAuthView(this.state.rememberedAccounts.length > 0 ? 'hub' : 'credentials', 'signin');
+      this.showToast('Sesi produksi di perangkat ini ditutup');
+    }
   },
 
   /* ============================================================
@@ -4455,7 +5095,7 @@ const StoryPad = {
       }, { passive: true });
     });
 
-    ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts', 'sheet-import-script', 'sheet-add-line'].forEach(id => {
+    ['sheet-view-settings', 'sheet-audio-panel', 'sheet-notifications', 'sheet-login-accounts', 'sheet-import-script', 'sheet-add-line', 'sheet-confirm-dialog'].forEach(id => {
       this.setupSwipeableSheet(id);
     });
 
