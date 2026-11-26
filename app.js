@@ -3506,7 +3506,8 @@ const StoryPad = {
 
     const title = String(overrides.title || detectedTitle || 'Naskah Baru').trim();
     const slugBase = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'naskah';
-    const projectId = String(overrides.id || '').trim() || `proj-${slugBase.slice(0, 20)}-${String(Date.now()).slice(-4)}`;
+    const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const projectId = String(overrides.id || '').trim() || `proj-${slugBase.slice(0, 20)}-${uniqueSuffix}`;
     const codePrefix = title.toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 4) || 'SCRP';
     const code = String(overrides.code || '').trim().toUpperCase() || `${codePrefix}-01`;
     const category = String(overrides.category || detectedCategory || 'Film Pendek').trim();
@@ -3535,7 +3536,7 @@ const StoryPad = {
     const dbLines = lines.map(ln => {
       const row = ln.type === 'action'
         ? {
-          id: `${slugBase}-s${ln.sceneNumber}-a${String(actionIdx++).padStart(2, '0')}`,
+          id: `${projectId}-s${ln.sceneNumber}-a${String(actionIdx++).padStart(2, '0')}`,
           project_id: projectId,
           line_type: 'action',
           sort_order: sortOrder,
@@ -3556,7 +3557,7 @@ const StoryPad = {
         : (() => {
           charactersSet.add(ln.character);
           return {
-            id: `${slugBase}-s${ln.sceneNumber}-d${String(dlgIdx++).padStart(2, '0')}`,
+            id: `${projectId}-s${ln.sceneNumber}-d${String(dlgIdx++).padStart(2, '0')}`,
             project_id: projectId,
             line_type: 'dialogue',
             sort_order: sortOrder,
@@ -3932,39 +3933,61 @@ const StoryPad = {
         throw new Error('Tidak ada baris naskah yang dapat disimpan.');
       }
 
+      const targetProjectId = String((this.state.importModal && this.state.importModal.targetProjectId) || '').trim();
+      const isExistingProject = Boolean(targetProjectId);
       const projectRow = parsed.project;
-      if (this.state.supabaseUser && this.state.supabaseUser.id) {
+      if (!isExistingProject && this.state.supabaseUser && this.state.supabaseUser.id) {
         projectRow.owner_id = this.state.supabaseUser.id;
       }
       const dbLines = parsed.lines;
 
       if (this.supabase) {
-        const pRes = await this.supabase.from('projects').upsert(projectRow, { onConflict: 'id' });
+        if (!this.isAuthenticated()) {
+          throw new Error('Sesi autentikasi tidak aktif. Silakan masuk kembali sebelum menyimpan naskah.');
+        }
+
+        let pRes;
+        if (isExistingProject) {
+          const updatePayload = { ...projectRow };
+          delete updatePayload.id;
+          delete updatePayload.owner_id;
+          pRes = await this.supabase.from('projects').update(updatePayload).eq('id', projectRow.id);
+        } else {
+          pRes = await this.supabase.from('projects').insert(projectRow);
+        }
         if (pRes.error) throw new Error(pRes.error.message);
 
-        await this.supabase.from('script_lines').update({ is_archived: true }).eq('project_id', projectRow.id);
-        const lRes = await this.supabase.from('script_lines').upsert(dbLines, { onConflict: 'id' });
-        if (lRes.error) throw new Error(lRes.error.message);
+        if (isExistingProject) {
+          const archRes = await this.supabase.from('script_lines').update({ is_archived: true }).eq('project_id', projectRow.id);
+          if (archRes.error) throw new Error(archRes.error.message);
+          const lRes = await this.supabase.from('script_lines').upsert(dbLines, { onConflict: 'id' });
+          if (lRes.error) throw new Error(lRes.error.message);
+        } else {
+          const lRes = await this.supabase.from('script_lines').insert(dbLines);
+          if (lRes.error) throw new Error(lRes.error.message);
+        }
 
-        await this.supabase.from('notifications').insert({
-          user_id: this.state.supabaseUser ? this.state.supabaseUser.id : undefined,
-          project_id: projectRow.id,
-          title: 'Naskah Baru Diimpor',
-          message: `Naskah "${projectRow.title}" (${parsed.summary.sceneCount} Scene, ${parsed.summary.dialogueCount} Dialog) berhasil dikonversi ke database.`,
-          time_label: 'Baru saja',
-          notif_type: 'script',
-          priority: 'important',
-          unread: true,
-          dismissed: false,
-          is_archived: false
-        }).catch(() => { });
+        try {
+          await this.supabase.from('notifications').insert({
+            user_id: this.state.supabaseUser ? this.state.supabaseUser.id : undefined,
+            project_id: projectRow.id,
+            title: isExistingProject ? 'Naskah Proyek Diperbarui' : 'Naskah Baru Diimpor',
+            message: `Naskah "${projectRow.title}" (${parsed.summary.sceneCount} Scene, ${parsed.summary.dialogueCount} Dialog) berhasil dikonversi ke database.`,
+            time_label: 'Baru saja',
+            notif_type: 'script',
+            priority: 'important',
+            unread: true,
+            dismissed: false,
+            is_archived: false
+          });
+        } catch (_notifErr) { }
 
         await this.syncFromSupabase();
       } else if (this.phpBoot && this.phpBoot.phpEnabled && typeof fetch === 'function') {
         const res = await fetch('api/script-import.php?action=import', {
           method: 'POST',
           headers: this.getAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify(parsed)
+          body: JSON.stringify({ ...parsed, is_update: isExistingProject })
         });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || 'Gagal menyimpan naskah melalui server PHP');
@@ -5076,10 +5099,13 @@ const StoryPad = {
       });
 
       if (authRes.error) {
-        // Hindari membocorkan apakah email sudah terdaftar jika bukan kebijakan password
-        const msg = /password|weak|leaked/i.test(authRes.error.message || '')
-          ? 'Kata sandi belum memenuhi kebijakan keamanan. Gunakan frasa sandi yang lebih kuat.'
-          : 'Pendaftaran tidak dapat diselesaikan. Periksa data Anda atau coba masuk.';
+        const rawErrMsg = String(authRes.error.message || '');
+        let msg = 'Pendaftaran tidak dapat diselesaikan. Periksa data Anda atau coba masuk.';
+        if (/password|weak|leaked/i.test(rawErrMsg)) {
+          msg = 'Kata sandi belum memenuhi kebijakan keamanan. Gunakan frasa sandi yang lebih kuat.';
+        } else if (authRes.error.status === 429 || /rate limit|too many|only request this after/i.test(rawErrMsg)) {
+          msg = 'Batas pengiriman email verifikasi tercapai. Tunggu beberapa saat atau buka tautan konfirmasi sebelumnya di kotak masuk Anda, lalu coba masuk.';
+        }
         this.setAuthFeedback(feedbackElId, msg, 'error');
         return false;
       }

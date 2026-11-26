@@ -190,6 +190,8 @@ async function runSecurityTests() {
     'supabase/verify_p1_sessions_audit.sql',
     'supabase/migrations/20261126000003_p2_storage_and_upload_constraints.sql',
     'supabase/verify_p2_storage_policies.sql',
+    'supabase/migrations/20261126000005_fix_projects_rls_and_script_import.sql',
+    'supabase/verify_projects_import_rls.sql',
     'vercel.json',
     'server.js',
     'lib/ScriptParser.php',
@@ -413,8 +415,98 @@ async function runSecurityTests() {
   assert.ok(p2Verify.includes('ROLLBACK') && p2Verify.includes('storypad-media'));
   console.log('18. [PASS] Security operations runbook, honest audit checklist, and P2 storage SQL verified');
 
+  // 19. Projects RLS fix migration, script import insert/update split, unique line IDs, and 429 signup clarity
+  const fixSql = fs.readFileSync(path.join(__dirname, 'supabase/migrations/20261126000005_fix_projects_rls_and_script_import.sql'), 'utf8');
+  assert.ok(fixSql.includes('projects_auth_select') && fixSql.includes('owner_id = (select auth.uid())'));
+  assert.ok(fixSql.includes('private.is_account_active((select auth.uid()))'));
+
+  const opLog = [];
+  const makeQueryChain = (table, op, payload) => {
+    const entry = { table, op, payload, filters: {} };
+    opLog.push(entry);
+    const chain = {
+      eq(col, val) {
+        entry.filters[col] = val;
+        return chain;
+      },
+      order() { return chain; },
+      then(resolve, reject) {
+        return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+      }
+    };
+    return chain;
+  };
+
+  const origSupabase = StoryPad.supabase;
+  const origSync = StoryPad.syncFromSupabase;
+  const origOpenProj = StoryPad.openProject;
+  const origCloseModal = StoryPad.closeScriptImportModal;
+  StoryPad.syncFromSupabase = async () => {};
+  StoryPad.openProject = () => {};
+  StoryPad.closeScriptImportModal = () => {};
+  StoryPad.supabase = {
+    from(table) {
+      return {
+        insert(payload) { return makeQueryChain(table, 'insert', payload); },
+        upsert(payload, opts) { return makeQueryChain(table, 'upsert', { payload, opts }); },
+        update(payload) { return makeQueryChain(table, 'update', payload); },
+        select() { return makeQueryChain(table, 'select', null); }
+      };
+    },
+    auth: {
+      signUp: async () => ({
+        data: { user: null, session: null },
+        error: { status: 429, message: 'email rate limit exceeded' }
+      })
+    }
+  };
+
+  // Same-title scripts must produce distinct project IDs and distinct project-scoped line IDs
+  const parsedA = StoryPad.parseScriptText('NASKAH SAMA\nSCENE 1 - SET\nRAKA\n"Satu"', {});
+  const parsedB = StoryPad.parseScriptText('NASKAH SAMA\nSCENE 1 - SET\nRAKA\n"Satu"', {});
+  assert.notStrictEqual(parsedA.project.id, parsedB.project.id, 'Concurrent same-title projects must have distinct IDs');
+  assert.notStrictEqual(parsedA.lines[0].id, parsedB.lines[0].id, 'Script line IDs must be scoped by project ID');
+  assert.ok(parsedA.lines[0].id.startsWith(`${parsedA.project.id}-`), 'Line ID must start with project ID');
+
+  // New project import must call insert() (never upsert()) on projects & script_lines
+  StoryPad.state.importModal.sourceTab = 'text';
+  StoryPad.state.importModal.targetProjectId = '';
+  getOrCreateElement('import-raw-textarea').value = 'PROYEK UJI\nSCENE 1 - SET\nRAKA\n"Halo dunia!"';
+  getOrCreateElement('import-proj-title').value = 'Proyek Uji Baru';
+  getOrCreateElement('import-proj-code').value = 'UJI-01';
+  getOrCreateElement('import-proj-category').value = 'Film Pendek';
+  getOrCreateElement('import-proj-location').value = 'Studio';
+  await StoryPad.submitScriptImport();
+
+  const projInsert = opLog.find(o => o.table === 'projects' && o.op === 'insert');
+  const projUpsert = opLog.find(o => o.table === 'projects' && o.op === 'upsert');
+  const linesInsert = opLog.find(o => o.table === 'script_lines' && o.op === 'insert');
+  assert.ok(projInsert, 'New script import must use projects.insert() to avoid ON CONFLICT RLS catch-22');
+  assert.strictEqual(projUpsert, undefined, 'New script import must not call projects.upsert()');
+  assert.strictEqual(projInsert.payload.owner_id, StoryPad.state.supabaseUser.id);
+  assert.ok(linesInsert, 'New script import must use script_lines.insert()');
+
+  // Existing project re-import must use update() without overwriting owner_id
+  opLog.length = 0;
+  StoryPad.state.importModal.targetProjectId = 'proj-existing-123';
+  await StoryPad.submitScriptImport();
+  const projUpdate = opLog.find(o => o.table === 'projects' && o.op === 'update');
+  assert.ok(projUpdate && projUpdate.filters.id === 'proj-existing-123', 'Existing project re-import must update by project id');
+  assert.strictEqual('owner_id' in projUpdate.payload, false, 'Existing project update must not reassign owner_id');
+
+  // 429 rate-limit signup error surfaces actionable Indonesian message
+  const signupOk = await StoryPad.signUpWithCredentials('Kru Test', 'scriptSupervisor', 'kru@storypad.test', 'frasa sandi aman sekali', false, 'cred-auth-feedback', 'cred-submit-btn');
+  assert.strictEqual(signupOk, false);
+  assert.ok(getOrCreateElement('cred-auth-feedback').textContent.includes('Batas pengiriman email verifikasi tercapai'), '429 rate-limit error must explain email limit clearly');
+
+  StoryPad.supabase = origSupabase;
+  StoryPad.syncFromSupabase = origSync;
+  StoryPad.openProject = origOpenProj;
+  StoryPad.closeScriptImportModal = origCloseModal;
+  console.log('19. [PASS] Projects RLS migration, insert/update import split, scoped line IDs, and 429 signup message verified');
+
   clearInterval(StoryPad.state._clocks.clockTimer);
-  console.log('\n=== ALL 18 STORYPAD P0, P1 & P2 SECURITY & AUTH TESTS PASSED 100%! ===');
+  console.log('\n=== ALL 19 STORYPAD P0, P1 & P2 SECURITY & AUTH TESTS PASSED 100%! ===');
 }
 
 runSecurityTests().catch(err => {

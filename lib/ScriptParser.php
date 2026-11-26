@@ -425,7 +425,8 @@ class ScriptParser
 
         $projectId = trim((string) ($overrides['id'] ?? ''));
         if ($projectId === '') {
-            $projectId = 'proj-' . substr($slugBase, 0, 20) . '-' . substr((string) time(), -4);
+            $uniqueSuffix = base_convert((string) time(), 10, 36) . '-' . bin2hex(random_bytes(2));
+            $projectId = 'proj-' . substr($slugBase, 0, 20) . '-' . $uniqueSuffix;
         }
 
         $code = trim((string) ($overrides['code'] ?? ''));
@@ -476,7 +477,7 @@ class ScriptParser
         foreach ($lines as $ln) {
             $sn = $ln['scene_number'];
             if ($ln['type'] === 'action') {
-                $lineId = $slugBase . '-s' . $sn . '-a' . str_pad((string) $actionIdx, 2, '0', STR_PAD_LEFT);
+                $lineId = $projectId . '-s' . $sn . '-a' . str_pad((string) $actionIdx, 2, '0', STR_PAD_LEFT);
                 $actionIdx++;
                 $dbLines[] = [
                     'id' => $lineId,
@@ -498,7 +499,7 @@ class ScriptParser
                     'is_archived' => false,
                 ];
             } else {
-                $lineId = $slugBase . '-s' . $sn . '-d' . str_pad((string) $dlgIdx, 2, '0', STR_PAD_LEFT);
+                $lineId = $projectId . '-s' . $sn . '-d' . str_pad((string) $dlgIdx, 2, '0', STR_PAD_LEFT);
                 $dlgIdx++;
                 $dialogueCount++;
                 $charactersSet[$ln['character']] = true;

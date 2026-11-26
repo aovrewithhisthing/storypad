@@ -120,6 +120,7 @@ try {
                 'summary' => $payload['summary'] ?? [
                     'line_count' => count($payload['lines']),
                 ],
+                'is_update' => !empty($payload['is_update']),
             ];
         } else {
             $rawText = trim((string) ($payload['raw_text'] ?? ''));
@@ -138,6 +139,7 @@ try {
                 'source_filename' => trim((string) ($payload['source_filename'] ?? '')),
             ];
             $parsed = ScriptParser::parseRawText($rawText, $overrides);
+            $parsed['is_update'] = ($overrides['id'] !== '');
         }
     }
 
@@ -162,18 +164,31 @@ try {
             throw new RuntimeException('ID proyek tidak valid.');
         }
         $projectRow['id'] = $projectId;
-        if ($userId !== '') {
-            $projectRow['owner_id'] = $userId;
-        }
+        $isUpdate = !empty($overrides['id']) || !empty($parsed['is_update']);
 
-        $projRes = $client->upsert('projects', $projectRow, 'id', $accessToken);
+        if ($isUpdate) {
+            $updatePayload = $projectRow;
+            unset($updatePayload['id'], $updatePayload['owner_id']);
+            $projRes = $client->update('projects', ['id' => 'eq.' . $projectId], $updatePayload, $accessToken);
+        } else {
+            if ($userId !== '') {
+                $projectRow['owner_id'] = $userId;
+            }
+            $projRes = $client->insert('projects', $projectRow, $accessToken);
+        }
         if (!$projRes['ok']) {
             throw new RuntimeException('Gagal menyimpan proyek ke database.');
         }
 
-        $client->update('script_lines', ['project_id' => 'eq.' . $projectId], ['is_archived' => true], $accessToken);
-
-        $linesRes = $client->upsert('script_lines', $parsed['lines'], 'id', $accessToken);
+        if ($isUpdate) {
+            $archRes = $client->update('script_lines', ['project_id' => 'eq.' . $projectId], ['is_archived' => true], $accessToken);
+            if (!$archRes['ok']) {
+                throw new RuntimeException('Gagal mengarsipkan baris naskah lama.');
+            }
+            $linesRes = $client->upsert('script_lines', $parsed['lines'], 'id', $accessToken);
+        } else {
+            $linesRes = $client->insert('script_lines', $parsed['lines'], $accessToken);
+        }
         if (!$linesRes['ok']) {
             throw new RuntimeException('Gagal menyimpan baris naskah ke database.');
         }
