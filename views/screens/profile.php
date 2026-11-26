@@ -101,6 +101,80 @@ $uProd = $u['prodName'] ?? '-';
                       </button>
                     </div>
                   </article>
+
+                  <!-- Account Management Card (Device & Remembered Accounts) -->
+                  <article id="profile-account-management" class="sp-panel p-5 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <h2 class="sp-section-heading m-0">Manajemen Akun Perangkat</h2>
+                      <span id="profile-remember-status-badge" class="sp-badge sp-badge-neutral">Tidak Disimpan</span>
+                    </div>
+                    <p class="font-sans text-xs m-0" style="color: var(--text-secondary);">
+                      Akun tersimpan hanya menyimpan email, nama, dan peran di perangkat ini. Kata sandi dan token tidak pernah disimpan.
+                    </p>
+                    <div class="sp-panel-muted p-3 flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="font-sans text-xs font-bold" style="color: var(--text-primary);">Daftar Cepat di Perangkat Ini</div>
+                        <div id="profile-remembered-count" class="font-mono text-[11px]" style="color: var(--text-secondary);">0 akun tersimpan</div>
+                      </div>
+                      <button type="button" id="profile-remember-current-btn" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0" onclick="StoryPad.toggleRememberCurrentAccount()">
+                        Simpan Akun
+                      </button>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.openLoginAccountsSheet()">
+                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">manage_accounts</span>
+                        <span>Kelola Daftar Akun</span>
+                      </button>
+                      <button type="button" id="profile-clear-remembered-btn" class="sp-btn sp-btn-danger-ghost sp-btn-compact" onclick="StoryPad.clearAllRememberedAccounts()">
+                        Hapus Semua dari Perangkat
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Change Password with Re-authentication Card -->
+                  <article id="profile-change-password-card" class="sp-panel p-5 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <h2 class="sp-section-heading m-0">Ubah Kata Sandi</h2>
+                      <span class="sp-badge sp-badge-primary">Re-Auth Wajib</span>
+                    </div>
+                    <p class="font-sans text-xs m-0" style="color: var(--text-secondary);">
+                      Verifikasi kata sandi saat ini sebelum menetapkan kata sandi baru (minimal 12 karakter).
+                    </p>
+                    <form id="profile-pw-form" class="flex flex-col gap-3" onsubmit="event.preventDefault(); StoryPad.submitChangePassword();">
+                      <div class="flex flex-col gap-1">
+                        <label for="profile-pw-current" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Kata Sandi Saat Ini</label>
+                        <div class="sp-password-wrap">
+                          <input id="profile-pw-current" type="password" autocomplete="current-password" minlength="1" maxlength="128" placeholder="Masukkan kata sandi aktif" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi saat ini" onclick="StoryPad.togglePasswordVisibility('profile-pw-current', this)">
+                            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label for="profile-pw-next" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Kata Sandi Baru</label>
+                        <div class="sp-password-wrap">
+                          <input id="profile-pw-next" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Minimal 12 karakter" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan kata sandi baru" onclick="StoryPad.togglePasswordVisibility('profile-pw-next', this)">
+                            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label for="profile-pw-confirm" class="font-sans text-xs font-bold" style="color: var(--text-primary);">Konfirmasi Kata Sandi Baru</label>
+                        <div class="sp-password-wrap">
+                          <input id="profile-pw-confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Ulangi kata sandi baru" required class="w-full px-3 py-2.5 pr-11 font-mono text-xs sp-input">
+                          <button type="button" class="sp-password-toggle" aria-label="Tampilkan konfirmasi kata sandi baru" onclick="StoryPad.togglePasswordVisibility('profile-pw-confirm', this)">
+                            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">visibility</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div id="profile-pw-feedback" class="hidden" role="alert"></div>
+                      <button type="submit" id="profile-pw-submit" class="sp-btn sp-btn-primary w-full justify-center">
+                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">lock_reset</span>
+                        <span>Perbarui Kata Sandi</span>
+                      </button>
+                    </form>
+                  </article>
                 </div>
 
                 <!-- Right Column: Role Permissions & Technical Specs -->
@@ -209,6 +283,74 @@ $uProd = $u['prodName'] ?? '-';
                           <span class="material-symbols-outlined text-[16px] font-bold" aria-hidden="true">check</span>
                         </span>
                       </button>
+                    </div>
+                  </article>
+
+                  <!-- Active Sessions Manager -->
+                  <article id="profile-session-manager" class="sp-panel p-5 flex flex-col gap-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 class="sp-section-heading m-0">Sesi Aktif</h2>
+                        <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                          Perangkat dan sesi server yang sedang memiliki akses ke akun Anda.
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="button" id="profile-sessions-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadActiveSessions()">
+                          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
+                          <span>Muat Ulang</span>
+                        </button>
+                        <button type="button" id="profile-sessions-logout-others-btn" class="sp-btn sp-btn-danger-ghost sp-btn-compact" onclick="StoryPad.logoutOtherSessions()">
+                          Keluar Perangkat Lain
+                        </button>
+                      </div>
+                    </div>
+                    <div id="profile-sessions-list" class="flex flex-col gap-2">
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat sesi aktif...</p>
+                    </div>
+                  </article>
+
+                  <!-- Linked Identities -->
+                  <article id="profile-linked-identities" class="sp-panel p-5 flex flex-col gap-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 class="sp-section-heading m-0">Identitas Tertaut</h2>
+                        <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                          Metode masuk resmi untuk akun ini. Akun terpisah tidak pernah digabung otomatis.
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="button" id="profile-identities-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadLinkedIdentities()">
+                          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
+                          <span>Periksa</span>
+                        </button>
+                        <button type="button" id="profile-link-google-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.linkAdditionalIdentity('google')">
+                          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add_link</span>
+                          <span>Tautkan Google</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div id="profile-identities-list" class="flex flex-col gap-2">
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat identitas tertaut...</p>
+                    </div>
+                  </article>
+
+                  <!-- Security Audit Log -->
+                  <article id="profile-audit-log" class="sp-panel p-5 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <div>
+                        <h2 class="sp-section-heading m-0">Log Aktivitas Keamanan</h2>
+                        <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                          Riwayat autentikasi, perubahan peran, kata sandi, dan sesi akun ini.
+                        </p>
+                      </div>
+                      <button type="button" id="profile-audit-refresh-btn" class="sp-btn sp-btn-secondary sp-btn-compact" onclick="StoryPad.loadAuditLogs()">
+                        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">refresh</span>
+                        <span>Muat Ulang</span>
+                      </button>
+                    </div>
+                    <div id="profile-audit-list" class="flex flex-col gap-2">
+                      <p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat log keamanan...</p>
                     </div>
                   </article>
 

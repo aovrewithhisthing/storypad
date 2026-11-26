@@ -1325,6 +1325,40 @@ textarea.sp-textarea-monitor,
   line-height: 1.45;
 }
 
+.sp-session-row,
+.sp-identity-row,
+.sp-audit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+}
+
+.sp-session-row.is-current {
+  border-color: var(--primary-tint-border);
+  background-color: var(--primary-tint);
+}
+
+@media (max-width: 640px) {
+  .sp-session-row,
+  .sp-identity-row,
+  .sp-audit-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sp-session-row .sp-btn,
+  .sp-identity-row .sp-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
 

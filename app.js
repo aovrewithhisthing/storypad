@@ -40,6 +40,17 @@ const StoryPad = {
     authMode: 'signin',      // 'signin' | 'signup'
     selectedRememberedId: '',
     rememberedAccounts: [],
+    sessions: [],
+    sessionsLoading: false,
+    sessionsError: '',
+    sessionsBackendMissing: false,
+    linkedIdentities: [],
+    identitiesLoading: false,
+    identitiesError: '',
+    auditLogs: [],
+    auditLogsLoading: false,
+    auditLogsError: '',
+    auditBackendMissing: false,
     studioName: 'StoryPad Studio',
 
     // Active Crew Session (neutral until crew logs in)
@@ -193,6 +204,17 @@ const StoryPad = {
     this.state.activeDialogueId = '';
     this.state.notifications = [];
     this.state.scriptNotes = {};
+    this.state.sessions = [];
+    this.state.sessionsLoading = false;
+    this.state.sessionsError = '';
+    this.state.sessionsBackendMissing = false;
+    this.state.linkedIdentities = [];
+    this.state.identitiesLoading = false;
+    this.state.identitiesError = '';
+    this.state.auditLogs = [];
+    this.state.auditLogsLoading = false;
+    this.state.auditLogsError = '';
+    this.state.auditBackendMissing = false;
     this.db.crewProfiles = [];
     this.db.projects = [];
     this.db.scriptDataProjects = {};
@@ -1007,6 +1029,15 @@ const StoryPad = {
       this.renderPanelContent();
     } else if (screenId === 'profile') {
       this.renderProfileRoles();
+      this.renderAccountManagement();
+      this.renderSessionManager();
+      this.renderLinkedIdentities();
+      this.renderAuditLog();
+      if (this.isAuthenticated()) {
+        this.loadActiveSessions();
+        this.loadLinkedIdentities();
+        this.loadAuditLogs();
+      }
     }
   },
 
@@ -4106,6 +4137,7 @@ const StoryPad = {
   async toggleRole(roleKey, btnElement) {
     this.triggerHaptic();
     if (!this.state.grantedRoles || !this.state.grantedRoles[roleKey]) {
+      this.logSecurityEvent('role_mode_blocked', 'blocked', { role_key: roleKey });
       this.showToast('Peran ini terkunci dan tidak diotorisasi untuk akun Anda');
       return false;
     }
@@ -4127,6 +4159,7 @@ const StoryPad = {
           this.state.roles[roleKey] = prevValue;
           this.renderProfileRoles();
           this.updateRolePermissionIndicators();
+          this.logSecurityEvent('role_mode_rejected', 'failure', { role_key: roleKey });
           this.showToast('Perubahan peran ditolak oleh otorisasi server');
           return false;
         }
@@ -4139,6 +4172,7 @@ const StoryPad = {
       }
     }
 
+    this.logSecurityEvent('role_mode_changed', 'success', { role_key: roleKey, enabled: nextValue });
     this.showToast(nextValue ? `Mode ${roleKey} diaktifkan` : `Mode ${roleKey} dinonaktifkan`);
     return true;
   },
@@ -4414,8 +4448,12 @@ const StoryPad = {
     }
     this.renderAccountHub();
     this.renderCrewAccountsList();
+    this.renderAccountManagement();
     if (this.state.currentScreen === 'login' && (this.state.authView === 'hub' || this.state.authView === 'selected')) {
       this.openAuthView(next.length > 0 ? 'hub' : 'credentials', 'signin');
+    }
+    if (this.isAuthenticated()) {
+      this.logSecurityEvent('remembered_account_removed', 'success', { email: acc.email });
     }
     this.showToast('Akun dihapus dari daftar perangkat ini');
     return true;
@@ -4838,6 +4876,7 @@ const StoryPad = {
       await this.syncPhpSession({ action: 'sync_auth' });
       await this.syncFromSupabase();
       this.subscribeRealtime();
+      this.logSecurityEvent('login_success', 'success', { method: 'password', remembered: !!rememberDevice });
       this.setAuthFeedback(feedbackElId, '', 'info');
       this.navigate('dashboard', 'home');
       this.showToast(`Masuk sebagai ${this.state.currentUser.name}`);
@@ -4918,6 +4957,7 @@ const StoryPad = {
         await this.syncPhpSession({ action: 'sync_auth' });
         await this.syncFromSupabase();
         this.subscribeRealtime();
+        this.logSecurityEvent('signup_completed', 'success', { role_key: safeRoleKey });
         this.setAuthFeedback(feedbackElId, '', 'info');
         this.navigate('dashboard', 'home');
         this.showToast(`Akun ${displayName} aktif`);
@@ -5005,6 +5045,7 @@ const StoryPad = {
         return false;
       }
       await this.supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+      this.logSecurityEvent('password_updated', 'success', { source: 'recovery' });
       if (p1El) p1El.value = '';
       if (p2El) p2El.value = '';
       this.setAuthFeedback('recovery-auth-feedback', 'Kata sandi diperbarui. Mengarahkan ke workspace...', 'success');
@@ -5025,6 +5066,9 @@ const StoryPad = {
 
     try {
       if (this.supabase) {
+        if (this.isAuthenticated()) {
+          await this.logSecurityEvent('logout_local', 'success', { scope: 'local' });
+        }
         await this.supabase.auth.signOut({ scope: 'local' }).catch(() => {});
       }
       await this.syncPhpSession({ action: 'logout' });
@@ -5042,6 +5086,711 @@ const StoryPad = {
       this.openAuthView(this.state.rememberedAccounts.length > 0 ? 'hub' : 'credentials', 'signin');
       this.showToast('Sesi produksi di perangkat ini ditutup');
     }
+  },
+
+  /* ============================================================
+   * P1 ACCOUNT MANAGEMENT, SESSIONS, LINKED IDENTITIES & AUDIT LOG
+   * ============================================================ */
+
+  parseUserAgentSummary(ua) {
+    const raw = String(ua || '').trim();
+    if (!raw) return 'Perangkat Web Tidak Dikenal';
+
+    let browser = 'Peramban Web';
+    if (/Edg\//i.test(raw)) browser = 'Edge';
+    else if (/OPR\/|Opera/i.test(raw)) browser = 'Opera';
+    else if (/Chrome\//i.test(raw) && !/Chromium/i.test(raw)) browser = 'Chrome';
+    else if (/Firefox\//i.test(raw)) browser = 'Firefox';
+    else if (/Safari\//i.test(raw) && !/Chrome|Chromium/i.test(raw)) browser = 'Safari';
+
+    let os = 'Sistem Lain';
+    if (/iPhone|iPad|iPod/i.test(raw)) os = /iPad/i.test(raw) ? 'iPadOS' : 'iOS';
+    else if (/Android/i.test(raw)) os = 'Android';
+    else if (/Windows NT/i.test(raw)) os = 'Windows';
+    else if (/Macintosh|Mac OS X/i.test(raw)) os = 'macOS';
+    else if (/Linux/i.test(raw)) os = 'Linux';
+
+    return `${browser} di ${os}`;
+  },
+
+  sanitizeAuditMetadata(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const sensitiveRe = /(password|passphrase|secret|token|authorization|cookie|credential|hmac|jwt)/i;
+    const out = {};
+    Object.keys(raw).slice(0, 12).forEach(key => {
+      const cleanKey = String(key || '').trim().slice(0, 48);
+      if (!cleanKey || sensitiveRe.test(cleanKey)) return;
+      const val = raw[key];
+      if (val === null || val === undefined) return;
+      if (typeof val === 'boolean' || typeof val === 'number') {
+        out[cleanKey] = val;
+      } else if (typeof val === 'string') {
+        out[cleanKey] = val.slice(0, 160);
+      }
+    });
+    return out;
+  },
+
+  isMissingP1BackendError(err) {
+    if (!err) return false;
+    const code = String(err.code || '').trim();
+    const msg = String(err.message || err.details || '');
+    return (
+      code === 'PGRST202' ||
+      code === 'PGRST205' ||
+      code === '42P01' ||
+      code === '42883' ||
+      /does not exist|could not find the (function|table)/i.test(msg)
+    );
+  },
+
+  async logSecurityEvent(eventType, status = 'success', metadata = {}) {
+    if (!this.supabase || typeof this.supabase.rpc !== 'function' || !this.isAuthenticated()) {
+      return false;
+    }
+    const cleanType = String(eventType || '').trim().toLowerCase().replace(/[^a-z0-9_.:-]/g, '_').slice(0, 80);
+    if (cleanType.length < 2) return false;
+    const cleanStatus = ['success', 'failure', 'blocked'].includes(status) ? status : 'success';
+    const safeMeta = this.sanitizeAuditMetadata(metadata);
+
+    try {
+      const { error } = await this.supabase.rpc('log_security_event', {
+        p_event_type: cleanType,
+        p_status: cleanStatus,
+        p_metadata: safeMeta
+      });
+      return !error;
+    } catch (_err) {
+      return false;
+    }
+  },
+
+  renderAccountManagement() {
+    const badgeEl = document.getElementById('profile-remember-status-badge');
+    const countEl = document.getElementById('profile-remembered-count');
+    const toggleBtn = document.getElementById('profile-remember-current-btn');
+    const clearBtn = document.getElementById('profile-clear-remembered-btn');
+
+    const accounts = Array.isArray(this.state.rememberedAccounts) ? this.state.rememberedAccounts : [];
+    const activeEmail = String((this.state.supabaseUser && this.state.supabaseUser.email) || this.state.currentUser.email || '').trim().toLowerCase();
+    const activeId = (this.state.supabaseUser && this.state.supabaseUser.id) || '';
+    const isCurrentSaved = !!(activeEmail && accounts.some(a => (activeId && a.id === activeId) || a.email === activeEmail));
+
+    if (badgeEl) {
+      badgeEl.textContent = isCurrentSaved ? 'Tersimpan Lokal' : 'Tidak Disimpan';
+      badgeEl.className = isCurrentSaved ? 'sp-badge sp-badge-primary' : 'sp-badge sp-badge-neutral';
+    }
+    if (countEl) {
+      countEl.textContent = `${accounts.length} akun tersimpan di browser ini`;
+    }
+    if (toggleBtn) {
+      toggleBtn.textContent = isCurrentSaved ? 'Hapus Akun Ini' : 'Simpan Akun';
+      toggleBtn.disabled = !this.isAuthenticated();
+    }
+    if (clearBtn) {
+      clearBtn.disabled = accounts.length === 0;
+    }
+  },
+
+  async toggleRememberCurrentAccount() {
+    this.triggerHaptic();
+    if (!this.isAuthenticated() || !this.state.supabaseUser) {
+      this.showToast('Masuk terlebih dahulu untuk mengelola akun tersimpan');
+      return false;
+    }
+    const user = this.state.supabaseUser;
+    const email = String(user.email || '').trim().toLowerCase();
+    const existing = this.state.rememberedAccounts.find(a => a.id === user.id || a.email === email);
+    if (existing) {
+      const removed = await this.removeRememberedAccount(existing.id, true);
+      this.renderAccountManagement();
+      return removed;
+    }
+    this.rememberAccountFromUser(user);
+    this.renderAccountManagement();
+    await this.logSecurityEvent('remembered_account_added', 'success', { email });
+    this.showToast('Akun ditambahkan ke daftar cepat perangkat ini');
+    return true;
+  },
+
+  async clearAllRememberedAccounts() {
+    this.triggerHaptic();
+    const list = this.state.rememberedAccounts || [];
+    if (list.length === 0) return false;
+
+    const ok = await this.openConfirmDialog({
+      title: 'Hapus semua akun dari perangkat ini?',
+      message: `${list.length} akun tersimpan akan dihapus dari daftar lokal browser ini. Akun dan data produksi Anda di server tetap aman.`,
+      confirmLabel: 'Hapus Semua',
+      dangerous: true
+    });
+    if (!ok) return false;
+
+    const count = list.length;
+    this.saveRememberedAccountsList([]);
+    this.state.selectedRememberedId = '';
+    this.renderAccountHub();
+    this.renderCrewAccountsList();
+    this.renderAccountManagement();
+    if (this.isAuthenticated()) {
+      await this.logSecurityEvent('remembered_accounts_cleared', 'success', { cleared_count: count });
+      if (this.state.currentScreen === 'profile') {
+        this.loadAuditLogs();
+      }
+    }
+    this.showToast('Semua akun lokal dihapus dari perangkat ini');
+    return true;
+  },
+
+  async submitChangePassword() {
+    this.triggerHaptic();
+    const curEl = document.getElementById('profile-pw-current');
+    const nextEl = document.getElementById('profile-pw-next');
+    const confEl = document.getElementById('profile-pw-confirm');
+    const btn = document.getElementById('profile-pw-submit');
+
+    const currentPw = curEl ? curEl.value : '';
+    const nextPw = nextEl ? nextEl.value : '';
+    const confirmPw = confEl ? confEl.value : '';
+
+    if (!currentPw) {
+      this.setAuthFeedback('profile-pw-feedback', 'Masukkan kata sandi Anda saat ini untuk verifikasi ulang.', 'error');
+      return false;
+    }
+
+    const pwErr = this.validateNewPassword(nextPw);
+    if (pwErr) {
+      this.setAuthFeedback('profile-pw-feedback', pwErr, 'error');
+      return false;
+    }
+    if (nextPw !== confirmPw) {
+      this.setAuthFeedback('profile-pw-feedback', 'Konfirmasi kata sandi baru tidak cocok.', 'error');
+      return false;
+    }
+    if (currentPw === nextPw) {
+      this.setAuthFeedback('profile-pw-feedback', 'Kata sandi baru harus berbeda dari kata sandi saat ini.', 'error');
+      return false;
+    }
+
+    if (!this.supabase || !this.isAuthenticated() || !this.state.supabaseUser || !this.state.supabaseUser.email) {
+      this.setAuthFeedback('profile-pw-feedback', 'Sesi autentikasi aktif diperlukan untuk mengubah kata sandi.', 'error');
+      return false;
+    }
+
+    if (btn) btn.disabled = true;
+    this.setAuthFeedback('profile-pw-feedback', 'Memverifikasi kata sandi saat ini...', 'info');
+
+    try {
+      const email = String(this.state.supabaseUser.email).trim().toLowerCase();
+      const reauth = await this.supabase.auth.signInWithPassword({ email, password: currentPw });
+      if (reauth.error || !reauth.data || !reauth.data.session) {
+        await this.logSecurityEvent('password_change_reauth_failed', 'failure', { reason: 'invalid_current_password' });
+        this.setAuthFeedback('profile-pw-feedback', 'Kata sandi saat ini salah. Perubahan dibatalkan.', 'error');
+        return false;
+      }
+
+      const upd = await this.supabase.auth.updateUser({ password: nextPw });
+      if (upd.error) {
+        const weak = /password|weak|leaked/i.test(upd.error.message || '');
+        this.setAuthFeedback(
+          'profile-pw-feedback',
+          weak
+            ? 'Kata sandi baru belum memenuhi kebijakan keamanan server.'
+            : 'Gagal memperbarui kata sandi. Coba lagi.',
+          'error'
+        );
+        return false;
+      }
+
+      this.state.supabaseSession = reauth.data.session;
+      await this.supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+      await this.logSecurityEvent('password_changed', 'success', { sessions_others_revoked: true });
+
+      if (curEl) curEl.value = '';
+      if (nextEl) nextEl.value = '';
+      if (confEl) confEl.value = '';
+
+      this.setAuthFeedback('profile-pw-feedback', 'Kata sandi diperbarui. Sesi perangkat lain telah dikeluarkan.', 'success');
+      this.showToast('Kata sandi berhasil diperbarui');
+      this.loadActiveSessions();
+      this.loadAuditLogs();
+      return true;
+    } catch (_err) {
+      this.setAuthFeedback('profile-pw-feedback', 'Terjadi kesalahan saat menghubungi layanan autentikasi.', 'error');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async loadActiveSessions() {
+    this.state.sessionsLoading = true;
+    this.state.sessionsError = '';
+    this.state.sessionsBackendMissing = false;
+    this.renderSessionManager();
+
+    if (!this.supabase || typeof this.supabase.rpc !== 'function' || !this.isAuthenticated()) {
+      this.state.sessionsLoading = false;
+      this.state.sessions = [];
+      this.renderSessionManager();
+      return [];
+    }
+
+    try {
+      const { data, error } = await this.supabase.rpc('get_my_sessions');
+      if (error) {
+        if (this.isMissingP1BackendError(error)) {
+          this.state.sessionsBackendMissing = true;
+          this.state.sessionsError = 'Migrasi database P1 (get_my_sessions) belum dijalankan di Supabase.';
+        } else {
+          this.state.sessionsError = 'Gagal memuat daftar sesi aktif dari server.';
+        }
+        this.state.sessions = [];
+      } else {
+        this.state.sessions = Array.isArray(data) ? data : [];
+      }
+    } catch (_err) {
+      this.state.sessions = [];
+      this.state.sessionsError = 'Tidak dapat terhubung ke server untuk memuat sesi.';
+    } finally {
+      this.state.sessionsLoading = false;
+      this.renderSessionManager();
+    }
+    return this.state.sessions;
+  },
+
+  renderSessionManager() {
+    const container = document.getElementById('profile-sessions-list');
+    const logoutOthersBtn = document.getElementById('profile-sessions-logout-others-btn');
+    if (!container) return;
+
+    const authed = this.isAuthenticated();
+    if (logoutOthersBtn) {
+      const otherCount = (this.state.sessions || []).filter(s => !s.is_current).length;
+      logoutOthersBtn.disabled = !authed || this.state.sessionsLoading || (this.state.sessions.length > 0 && otherCount === 0);
+    }
+
+    if (!authed) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Masuk ke akun untuk melihat dan mengelola sesi aktif.</p>';
+      return;
+    }
+    if (this.state.sessionsLoading) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat sesi aktif dari server...</p>';
+      return;
+    }
+    if (this.state.sessionsError) {
+      container.innerHTML = `<div class="sp-auth-alert sp-auth-alert-${this.state.sessionsBackendMissing ? 'info' : 'error'}">${this.escapeHtml(this.state.sessionsError)}</div>`;
+      return;
+    }
+    const sessions = this.state.sessions || [];
+    if (sessions.length === 0) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Belum ada sesi aktif yang tercatat.</p>';
+      return;
+    }
+
+    container.innerHTML = sessions.map(s => {
+      const sid = String(s.session_id || '');
+      const deviceSummary = this.parseUserAgentSummary(s.user_agent);
+      const ipText = String(s.ip_masked || 'IP tidak tercatat');
+      const activityIso = s.refreshed_at || s.updated_at || s.created_at;
+      const activityText = this.formatLastUsedLabel(activityIso);
+      const isCurrent = !!s.is_current;
+      const aalBadge = String(s.aal || 'aal1').toUpperCase();
+
+      return `
+        <div class="sp-session-row ${isCurrent ? 'is-current' : ''}">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">${this.escapeHtml(deviceSummary)}</span>
+              ${isCurrent
+                ? '<span class="sp-badge sp-badge-primary">Sesi Saat Ini</span>'
+                : '<span class="sp-badge sp-badge-neutral">Perangkat Lain</span>'}
+              <span class="sp-badge sp-badge-neutral">${this.escapeHtml(aalBadge)}</span>
+            </div>
+            <div class="font-mono text-[11px] mt-1" style="color: var(--text-secondary);">
+              ${this.escapeHtml(ipText)} | ${this.escapeHtml(activityText)} | ID ${this.escapeHtml(sid.slice(0, 8))}
+            </div>
+          </div>
+          ${isCurrent
+            ? '<span class="font-mono text-[10px] font-bold shrink-0" style="color: var(--primary-text);">Aktif</span>'
+            : `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.revokeSession('${this.escapeHtml(sid)}')">Cabut Sesi</button>`
+          }
+        </div>
+      `;
+    }).join('');
+  },
+
+  async revokeSession(sessionId) {
+    this.triggerHaptic();
+    const target = (this.state.sessions || []).find(s => s.session_id === sessionId);
+    if (!target || target.is_current) {
+      this.showToast('Gunakan tombol Keluar untuk menutup sesi di perangkat ini');
+      return false;
+    }
+
+    const deviceLabel = this.parseUserAgentSummary(target.user_agent);
+    const ok = await this.openConfirmDialog({
+      title: 'Cabut akses perangkat lain?',
+      message: `Sesi "${deviceLabel}" (${target.ip_masked || 'IP tidak tercatat'}) akan diputus dari server. Perangkat tersebut harus masuk kembali.`,
+      confirmLabel: 'Cabut Sesi',
+      dangerous: true
+    });
+    if (!ok) return false;
+
+    if (!this.supabase || typeof this.supabase.rpc !== 'function') {
+      this.showToast('Layanan sesi tidak tersedia');
+      return false;
+    }
+
+    try {
+      const { data, error } = await this.supabase.rpc('revoke_my_session', { p_session_id: sessionId });
+      if (error || data !== true) {
+        this.showToast('Gagal mencabut sesi di server. Tidak ada perubahan dilakukan.');
+        return false;
+      }
+
+      this.state.sessions = (this.state.sessions || []).filter(s => s.session_id !== sessionId);
+      this.renderSessionManager();
+      this.loadAuditLogs();
+      this.showToast('Sesi perangkat lain berhasil dicabut');
+      return true;
+    } catch (_err) {
+      this.showToast('Gagal menghubungi server untuk mencabut sesi');
+      return false;
+    }
+  },
+
+  async logoutOtherSessions() {
+    this.triggerHaptic();
+    if (!this.supabase || !this.isAuthenticated()) {
+      this.showToast('Masuk terlebih dahulu untuk mengelola sesi');
+      return false;
+    }
+
+    const ok = await this.openConfirmDialog({
+      title: 'Keluar dari semua perangkat lain?',
+      message: 'Semua sesi aktif selain perangkat ini akan diputus oleh server. Sesi Anda di perangkat ini tetap aktif.',
+      confirmLabel: 'Keluar Perangkat Lain',
+      dangerous: true
+    });
+    if (!ok) return false;
+
+    const btn = document.getElementById('profile-sessions-logout-others-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+      const { error } = await this.supabase.auth.signOut({ scope: 'others' });
+      if (error) {
+        this.showToast('Server gagal mengeluarkan perangkat lain');
+        return false;
+      }
+      await this.logSecurityEvent('sessions_revoked_others', 'success', { scope: 'others' });
+      this.showToast('Semua perangkat lain telah dikeluarkan');
+      await this.loadActiveSessions();
+      await this.loadAuditLogs();
+      return true;
+    } catch (_err) {
+      this.showToast('Tidak dapat menghubungi layanan sesi');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  async loadLinkedIdentities() {
+    this.state.identitiesLoading = true;
+    this.state.identitiesError = '';
+    this.renderLinkedIdentities();
+
+    if (!this.supabase || !this.supabase.auth || typeof this.supabase.auth.getUserIdentities !== 'function' || !this.isAuthenticated()) {
+      this.state.identitiesLoading = false;
+      this.state.linkedIdentities = [];
+      this.renderLinkedIdentities();
+      return [];
+    }
+
+    try {
+      const { data, error } = await this.supabase.auth.getUserIdentities();
+      if (error) {
+        this.state.linkedIdentities = [];
+        this.state.identitiesError = 'Gagal memuat identitas tertaut dari server.';
+      } else {
+        this.state.linkedIdentities = (data && Array.isArray(data.identities)) ? data.identities : [];
+      }
+    } catch (_err) {
+      this.state.linkedIdentities = [];
+      this.state.identitiesError = 'Tidak dapat terhubung ke layanan identitas.';
+    } finally {
+      this.state.identitiesLoading = false;
+      this.renderLinkedIdentities();
+    }
+    return this.state.linkedIdentities;
+  },
+
+  renderLinkedIdentities() {
+    const container = document.getElementById('profile-identities-list');
+    const linkGoogleBtn = document.getElementById('profile-link-google-btn');
+    if (!container) return;
+
+    const authed = this.isAuthenticated();
+    const list = this.state.linkedIdentities || [];
+    const hasGoogle = list.some(i => String(i.provider || '').toLowerCase() === 'google');
+
+    if (linkGoogleBtn) {
+      linkGoogleBtn.disabled = !authed || this.state.identitiesLoading || hasGoogle;
+      linkGoogleBtn.textContent = hasGoogle ? 'Google Sudah Tertaut' : 'Tautkan Google';
+    }
+
+    if (!authed) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Masuk ke akun untuk melihat identitas tertaut.</p>';
+      return;
+    }
+    if (this.state.identitiesLoading) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat identitas tertaut...</p>';
+      return;
+    }
+    if (this.state.identitiesError) {
+      container.innerHTML = `<div class="sp-auth-alert sp-auth-alert-error">${this.escapeHtml(this.state.identitiesError)}</div>`;
+      return;
+    }
+    if (list.length === 0) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Tidak ada identitas tertaut yang dilaporkan server.</p>';
+      return;
+    }
+
+    const canUnlink = list.length > 1;
+    container.innerHTML = list.map(identity => {
+      const providerRaw = String(identity.provider || 'email').toLowerCase();
+      const providerLabel = providerRaw === 'email'
+        ? 'Email & Kata Sandi'
+        : providerRaw.charAt(0).toUpperCase() + providerRaw.slice(1);
+      const idEmail = (identity.identity_data && identity.identity_data.email) || this.state.currentUser.email || identity.id || '-';
+      const idKey = String(identity.identity_id || identity.id || '');
+
+      return `
+        <div class="sp-identity-row">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">${this.escapeHtml(providerLabel)}</span>
+              <span class="sp-badge sp-badge-primary">Terverifikasi</span>
+              ${!canUnlink ? '<span class="sp-badge sp-badge-neutral">Utama (Dilindungi)</span>' : ''}
+            </div>
+            <div class="font-mono text-[11px] mt-1 truncate" style="color: var(--text-secondary);">
+              ${this.escapeHtml(String(idEmail))}
+            </div>
+          </div>
+          ${canUnlink
+            ? `<button type="button" class="sp-btn sp-btn-danger-ghost sp-btn-compact shrink-0" onclick="StoryPad.unlinkUserIdentity('${this.escapeHtml(idKey)}')">Putuskan Tautan</button>`
+            : '<span class="font-mono text-[10px] shrink-0" style="color: var(--text-secondary);">Minimal 1 metode masuk</span>'
+          }
+        </div>
+      `;
+    }).join('');
+  },
+
+  async linkAdditionalIdentity(provider = 'google') {
+    this.triggerHaptic();
+    if (!this.supabase || !this.supabase.auth || !this.isAuthenticated()) {
+      this.showToast('Masuk terlebih dahulu sebelum menautkan identitas');
+      return false;
+    }
+
+    try {
+      const redirectTo = (typeof window !== 'undefined' && window.location)
+        ? `${window.location.origin}${window.location.pathname}`
+        : undefined;
+      const { data, error } = await this.supabase.auth.linkIdentity({
+        provider,
+        options: { redirectTo }
+      });
+
+      if (error) {
+        const msg = String(error.message || '');
+        if (/already|exists|conflict/i.test(msg)) {
+          await this.logSecurityEvent('identity_link_conflict', 'blocked', { provider });
+          this.showToast('Identitas tersebut sudah tertaut ke akun lain. Penautan diblokir demi keamanan.');
+        } else if (/manual linking|disabled/i.test(msg)) {
+          this.showToast('Manual Identity Linking belum diaktifkan pada proyek Supabase.');
+        } else {
+          this.showToast(`Gagal memulai penautan ${provider}.`);
+        }
+        return false;
+      }
+
+      await this.logSecurityEvent('identity_link_initiated', 'success', { provider });
+      if (data && data.url && typeof window !== 'undefined' && window.location) {
+        window.location.assign(data.url);
+      } else {
+        await this.loadLinkedIdentities();
+      }
+      return true;
+    } catch (_err) {
+      this.showToast('Tidak dapat memulai penautan identitas');
+      return false;
+    }
+  },
+
+  async unlinkUserIdentity(identityKey) {
+    this.triggerHaptic();
+    const list = this.state.linkedIdentities || [];
+    if (list.length <= 1) {
+      this.showToast('Minimal satu metode masuk harus tetap tertaut ke akun Anda');
+      return false;
+    }
+
+    const target = list.find(i => String(i.identity_id || i.id) === String(identityKey));
+    if (!target) {
+      this.showToast('Identitas tidak ditemukan');
+      return false;
+    }
+
+    const providerName = String(target.provider || 'identitas');
+    const ok = await this.openConfirmDialog({
+      title: `Putuskan tautan ${providerName}?`,
+      message: `Setelah diputuskan, Anda tidak dapat masuk ke akun ini menggunakan ${providerName} kecuali ditautkan kembali nanti.`,
+      confirmLabel: 'Putuskan Tautan',
+      dangerous: true
+    });
+    if (!ok) return false;
+
+    if (!this.supabase || !this.supabase.auth || typeof this.supabase.auth.unlinkIdentity !== 'function') {
+      this.showToast('Layanan identitas tidak mendukung pelepasan tautan');
+      return false;
+    }
+
+    try {
+      const { error } = await this.supabase.auth.unlinkIdentity(target);
+      if (error) {
+        this.showToast('Gagal memutuskan tautan identitas di server');
+        return false;
+      }
+      await this.logSecurityEvent('identity_unlinked', 'success', { provider: providerName });
+      this.showToast(`Tautan ${providerName} berhasil diputuskan`);
+      await this.loadLinkedIdentities();
+      await this.loadAuditLogs();
+      return true;
+    } catch (_err) {
+      this.showToast('Terjadi kesalahan saat memutuskan tautan identitas');
+      return false;
+    }
+  },
+
+  async loadAuditLogs() {
+    this.state.auditLogsLoading = true;
+    this.state.auditLogsError = '';
+    this.state.auditBackendMissing = false;
+    this.renderAuditLog();
+
+    if (!this.supabase || !this.isAuthenticated()) {
+      this.state.auditLogsLoading = false;
+      this.state.auditLogs = [];
+      this.renderAuditLog();
+      return [];
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .from('security_audit_logs')
+        .select('id, event_type, status, metadata, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        if (this.isMissingP1BackendError(error)) {
+          this.state.auditBackendMissing = true;
+          this.state.auditLogsError = 'Tabel security_audit_logs belum tersedia. Jalankan migrasi P1 di Supabase SQL Editor.';
+        } else {
+          this.state.auditLogsError = 'Gagal memuat log aktivitas keamanan.';
+        }
+        this.state.auditLogs = [];
+      } else {
+        this.state.auditLogs = Array.isArray(data) ? data : [];
+      }
+    } catch (_err) {
+      this.state.auditLogs = [];
+      this.state.auditLogsError = 'Tidak dapat terhubung ke server untuk memuat log.';
+    } finally {
+      this.state.auditLogsLoading = false;
+      this.renderAuditLog();
+    }
+    return this.state.auditLogs;
+  },
+
+  formatAuditEventLabel(eventType) {
+    const labels = {
+      login_success: 'Masuk ke Akun',
+      signup_completed: 'Pendaftaran Akun Selesai',
+      logout_local: 'Keluar dari Perangkat',
+      password_changed: 'Kata Sandi Diperbarui',
+      password_updated: 'Pemulihan Kata Sandi Selesai',
+      password_change_reauth_failed: 'Verifikasi Ubah Kata Sandi Gagal',
+      session_revoked: 'Sesi Perangkat Lain Dicabut',
+      sessions_revoked_others: 'Semua Perangkat Lain Dikeluarkan',
+      role_mode_changed: 'Mode Peran Diubah',
+      role_mode_blocked: 'Akses Peran Terkunci Diblokir',
+      role_mode_rejected: 'Perubahan Peran Ditolak Server',
+      identity_link_initiated: 'Penautan Identitas Dimulai',
+      identity_link_conflict: 'Konflik Penautan Identitas Diblokir',
+      identity_unlinked: 'Tautan Identitas Diputuskan',
+      remembered_account_added: 'Akun Disimpan di Perangkat',
+      remembered_account_removed: 'Akun Dihapus dari Perangkat',
+      remembered_accounts_cleared: 'Daftar Akun Perangkat Dibersihkan'
+    };
+    return labels[eventType] || String(eventType || 'Aktivitas Keamanan');
+  },
+
+  renderAuditLog() {
+    const container = document.getElementById('profile-audit-list');
+    if (!container) return;
+
+    if (!this.isAuthenticated()) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Masuk ke akun untuk melihat log aktivitas keamanan.</p>';
+      return;
+    }
+    if (this.state.auditLogsLoading) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Memuat riwayat keamanan...</p>';
+      return;
+    }
+    if (this.state.auditLogsError) {
+      container.innerHTML = `<div class="sp-auth-alert sp-auth-alert-${this.state.auditBackendMissing ? 'info' : 'error'}">${this.escapeHtml(this.state.auditLogsError)}</div>`;
+      return;
+    }
+
+    const logs = this.state.auditLogs || [];
+    if (logs.length === 0) {
+      container.innerHTML = '<p class="font-mono text-[11px] m-0" style="color: var(--text-secondary);">Belum ada aktivitas keamanan yang tercatat untuk akun ini.</p>';
+      return;
+    }
+
+    container.innerHTML = logs.map(entry => {
+      const label = this.formatAuditEventLabel(entry.event_type);
+      const status = String(entry.status || 'success').toLowerCase();
+      const statusBadgeClass = status === 'success'
+        ? 'sp-badge sp-badge-primary'
+        : 'sp-badge sp-badge-danger';
+      const statusText = status === 'success' ? 'Berhasil' : (status === 'blocked' ? 'Diblokir' : 'Gagal');
+      const timeLabel = this.formatLastUsedLabel(entry.created_at);
+      const metaObj = (entry.metadata && typeof entry.metadata === 'object') ? entry.metadata : {};
+      const metaSummary = Object.keys(metaObj)
+        .filter(k => metaObj[k] !== undefined && metaObj[k] !== null && metaObj[k] !== '')
+        .slice(0, 3)
+        .map(k => `${k}: ${metaObj[k]}`)
+        .join(' | ');
+
+      return `
+        <div class="sp-audit-row">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-sans text-xs font-bold" style="color: var(--text-primary);">${this.escapeHtml(label)}</span>
+              <span class="${statusBadgeClass}">${this.escapeHtml(statusText)}</span>
+            </div>
+            <div class="font-mono text-[11px] mt-1" style="color: var(--text-secondary);">
+              ${this.escapeHtml(timeLabel)}${metaSummary ? ` | ${this.escapeHtml(metaSummary)}` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
   /* ============================================================
