@@ -30,7 +30,7 @@ Object.entries(dotEnv).forEach(([k, v]) => {
 });
 
 const apiConfigHandler = require('./api/config');
-const { handleAdminRequest } = require('./api/admin');
+const { handleAdminRequest } = require('./api/admin-console');
 
 const PORT = Number(getEnv('PORT', '3000')) || 3000;
 const ROOT_DIR = path.resolve(__dirname);
@@ -145,7 +145,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (reqPath === '/api/admin') {
+  if (reqPath === '/api/admin-console') {
     try {
       if (req.method === 'POST') {
         req.body = await readRequestBody(req);

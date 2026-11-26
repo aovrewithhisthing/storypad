@@ -3,11 +3,11 @@
 ## 1. Arsitektur & Komponen
 
 - **Route UI:** `/admin` (`admin.html` + `admin.js`, styling `app.css`)
-- **Trusted Server API:** `/api/admin` (`api/admin.js`, berjalan sebagai Vercel Serverless Function dan melalui `server.js` saat development lokal)
+- **Trusted Server API:** `/api/admin-console` (`api/admin-console.js`, berjalan sebagai Vercel Serverless Function dan melalui `server.js` saat development lokal)
 - **Database & RBAC:** `supabase/migrations/20261126000004_admin_console_rbac_invitations_audit.sql`
 - **Verifikasi Non-Destruktif:** `supabase/verify_admin_console.sql`
 
-Seluruh operasi administratif memverifikasi token JWT Supabase pengguna pada `/api/admin` (`GET /auth/v1/user`), lalu memanggil RPC Postgres `SECURITY DEFINER` (`SET search_path = ''`) menggunakan JWT pengguna tersebut sehingga pemeriksaan aktor, permission, dan cakupan proyek (`production_admin`) dijalankan oleh database tanpa pernah mengirim `SUPABASE_SERVICE_ROLE_KEY` ke browser.
+Seluruh operasi administratif memverifikasi token JWT Supabase pengguna pada `/api/admin-console` (`GET /auth/v1/user`), lalu memanggil RPC Postgres `SECURITY DEFINER` (`SET search_path = ''`) menggunakan JWT pengguna tersebut sehingga pemeriksaan aktor, permission, dan cakupan proyek (`production_admin`) dijalankan oleh database tanpa pernah mengirim `SUPABASE_SERVICE_ROLE_KEY` ke browser.
 
 ---
 

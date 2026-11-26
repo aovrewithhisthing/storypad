@@ -239,7 +239,7 @@ const StoryPadAdmin = {
       fetchOpts.body = JSON.stringify(options.body || {});
     }
 
-    const resp = await fetch(`/api/admin?${qs.toString()}`, fetchOpts);
+    const resp = await fetch(`/api/admin-console?${qs.toString()}`, fetchOpts);
     let data = {};
     try {
       data = await resp.json();

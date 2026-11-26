@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-const adminApi = require('./api/admin');
+const adminApi = require('./api/admin-console');
 
 console.log('=== STARTING STORYPAD ADMIN CONSOLE SECURITY & NEGATIVE TESTS ===\n');
 
@@ -167,17 +167,17 @@ async function runAdminTests() {
   // 1. Anonymous user blocked (401)
   {
     const res = createMockRes();
-    await adminApi.handleAdminRequest({ method: 'GET', url: '/api/admin?action=overview', headers: {} }, res, { env, fetch: mockFetch });
+    await adminApi.handleAdminRequest({ method: 'GET', url: '/api/admin-console?action=overview', headers: {} }, res, { env, fetch: mockFetch });
     assert.strictEqual(res.statusCode, 401);
     assert.strictEqual(res.body.ok, false);
-    console.log('1. [PASS] Anonymous requests to /api/admin are rejected with HTTP 401');
+    console.log('1. [PASS] Anonymous requests to /api/admin-console are rejected with HTTP 401');
   }
 
   // 2. Invalid/tampered JWT rejected (401)
   {
     const res = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=overview', headers: { authorization: 'Bearer forged-jwt' } },
+      { method: 'GET', url: '/api/admin-console?action=overview', headers: { authorization: 'Bearer forged-jwt' } },
       res,
       { env, fetch: mockFetch }
     );
@@ -191,7 +191,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=update_account_status',
+        url: '/api/admin-console?action=update_account_status',
         headers: { host: 'storypad-nu.vercel.app', origin: 'https://evil.example', authorization: 'Bearer jwt-owner' },
         body: { user_id: UID_CREW, status: 'suspended' }
       },
@@ -207,7 +207,7 @@ async function runAdminTests() {
   {
     const accessRes = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=my_access', headers: { authorization: 'Bearer jwt-crew' } },
+      { method: 'GET', url: '/api/admin-console?action=my_access', headers: { authorization: 'Bearer jwt-crew' } },
       accessRes,
       { env, fetch: mockFetch }
     );
@@ -216,7 +216,7 @@ async function runAdminTests() {
 
     const ovRes = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=overview', headers: { authorization: 'Bearer jwt-crew' } },
+      { method: 'GET', url: '/api/admin-console?action=overview', headers: { authorization: 'Bearer jwt-crew' } },
       ovRes,
       { env, fetch: mockFetch }
     );
@@ -226,7 +226,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=assign_system_role',
+        url: '/api/admin-console?action=assign_system_role',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-crew' },
         body: { user_id: UID_CREW, system_role: 'system_owner', reason: 'self escalate' }
       },
@@ -243,7 +243,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=upsert_membership',
+        url: '/api/admin-console?action=upsert_membership',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-prod-admin' },
         body: { project_id: 'proj-a', user_id: UID_CREW, member_role: 'editor', production_role: 'First AC', reason: 'assign' }
       },
@@ -256,7 +256,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=upsert_membership',
+        url: '/api/admin-console?action=upsert_membership',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-prod-admin' },
         body: { project_id: 'proj-b', user_id: UID_CREW, member_role: 'editor', production_role: 'Camera', reason: 'idor' }
       },
@@ -269,7 +269,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=revoke_session',
+        url: '/api/admin-console?action=revoke_session',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-prod-admin' },
         body: { session_id: SESS_OTHER, reason: 'unauthorized' }
       },
@@ -282,7 +282,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=update_account_status',
+        url: '/api/admin-console?action=update_account_status',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-prod-admin' },
         body: { user_id: UID_CREW, status: 'suspended', reason: 'unauthorized' }
       },
@@ -299,7 +299,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=assign_system_role',
+        url: '/api/admin-console?action=assign_system_role',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-admin' },
         body: { user_id: UID_CREW, system_role: 'system_owner', reason: 'bypass' }
       },
@@ -312,7 +312,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=update_security_settings',
+        url: '/api/admin-console?action=update_security_settings',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-admin' },
         body: { invitation_expiry_hours: 24, min_password_length: 12, session_idle_minutes: 30, require_reauth_role_change: true, allow_crew_self_signup: true }
       },
@@ -323,7 +323,7 @@ async function runAdminTests() {
 
     const postureRes = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=security_posture', headers: { authorization: 'Bearer jwt-prod-admin' } },
+      { method: 'GET', url: '/api/admin-console?action=security_posture', headers: { authorization: 'Bearer jwt-prod-admin' } },
       postureRes,
       { env, fetch: mockFetch }
     );
@@ -337,7 +337,7 @@ async function runAdminTests() {
     await adminApi.handleAdminRequest(
       {
         method: 'POST',
-        url: '/api/admin?action=update_security_settings',
+        url: '/api/admin-console?action=update_security_settings',
         headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-owner' },
         body: { invitation_expiry_hours: 48, min_password_length: 14, session_idle_minutes: 30, require_reauth_role_change: true, allow_crew_self_signup: true, reason: 'Tighten policy' }
       },
@@ -349,7 +349,7 @@ async function runAdminTests() {
 
     const postureOk = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=security_posture', headers: { authorization: 'Bearer jwt-owner' } },
+      { method: 'GET', url: '/api/admin-console?action=security_posture', headers: { authorization: 'Bearer jwt-owner' } },
       postureOk,
       { env: { ...env, SUPABASE_SERVICE_ROLE_KEY: 'super-secret-do-not-leak' }, fetch: mockFetch }
     );
@@ -363,7 +363,7 @@ async function runAdminTests() {
   {
     const badUuid = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=account_detail&user_id=not-a-uuid', headers: { authorization: 'Bearer jwt-owner' } },
+      { method: 'GET', url: '/api/admin-console?action=account_detail&user_id=not-a-uuid', headers: { authorization: 'Bearer jwt-owner' } },
       badUuid,
       { env, fetch: mockFetch }
     );
@@ -377,7 +377,7 @@ async function runAdminTests() {
     };
     const migRes = createMockRes();
     await adminApi.handleAdminRequest(
-      { method: 'GET', url: '/api/admin?action=my_access', headers: { authorization: 'Bearer jwt-owner' } },
+      { method: 'GET', url: '/api/admin-console?action=my_access', headers: { authorization: 'Bearer jwt-owner' } },
       migRes,
       { env, fetch: migFetch }
     );
@@ -395,7 +395,7 @@ async function runAdminTests() {
       await adminApi.handleAdminRequest(
         {
           method: 'POST',
-          url: '/api/admin?action=upsert_membership',
+          url: '/api/admin-console?action=upsert_membership',
           headers: { host: 'localhost:3000', origin: 'http://localhost:3000', authorization: 'Bearer jwt-owner' },
           body: { project_id: 'proj-a', user_id: UID_CREW, member_role: 'editor', production_role: 'Crew', reason: 'burst' }
         },
@@ -428,7 +428,7 @@ async function runAdminTests() {
     const allFiles = [
       'admin.html',
       'admin.js',
-      'api/admin.js',
+      'api/admin-console.js',
       'server.js',
       'vercel.json',
       'app.css',

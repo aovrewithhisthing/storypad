@@ -59,7 +59,7 @@
       ]
     },
     {
-      "source": "/api/admin",
+      "source": "/api/admin-console",
       "headers": [
         {
           "key": "Cache-Control",
