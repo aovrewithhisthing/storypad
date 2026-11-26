@@ -132,7 +132,7 @@ $nextThemeLabel = $themeMode === 'daylight' ? 'Mode Slate Gelap' : 'Mode Kertas 
         </div>
 
         <div class="pt-4 border-t flex items-center justify-between gap-2 text-xs" style="border-color: var(--border-flat); color: var(--text-muted);">
-          <span class="font-mono"><?= e($config['studio_name'] ?? 'Kelompok 10') ?></span>
+          <span class="font-mono"><?= e($config['studio_name'] ?? 'StoryPad Studio') ?></span>
           <span class="font-mono">Build <?= e($config['app_version'] ?? '4.0.0-php') ?></span>
         </div>
       </section>
@@ -175,7 +175,7 @@ $nextThemeLabel = $themeMode === 'daylight' ? 'Mode Slate Gelap' : 'Mode Kertas 
                 name="email"
                 value="<?= e($submittedEmail) ?>"
                 class="sp-input"
-                placeholder="admin@kelompok10.local"
+                placeholder="admin@storypad.local"
                 autocomplete="username"
                 required
               >

@@ -36,7 +36,11 @@ const forbiddenDummyStrings = [
   'Rama Satria',
   'JanganPergi',
   'TidakPunyaWaktu',
-  'MatikanSenter'
+  'MatikanSenter',
+  'Kelompok 10',
+  'kelompok10.local',
+  'K10-01',
+  'K10-101'
 ];
 
 const sourceFilesToAudit = [

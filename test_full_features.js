@@ -181,7 +181,7 @@ async function runTests() {
   StoryPad.closeScriptImportModal();
 
   StoryPad.loginQuickSession();
-  assert.strictEqual(StoryPad.state.currentUser.studio, 'Kelompok 10');
+  assert.strictEqual(StoryPad.state.currentUser.studio, 'StoryPad Studio');
   StoryPad.setTheme('slate');
   assert.strictEqual(StoryPad.state.theme, 'slate');
   StoryPad.setTheme('daylight');

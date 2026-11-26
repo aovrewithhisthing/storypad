@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $navUserName = $session['user']['name'] ?? 'Kru Produksi';
-$navProdName = $session['user']['prodName'] ?? 'JADI?';
+$navProdName = $session['user']['prodName'] ?? '-';
 $navHiddenClass = ($initialScreen ?? 'login') === 'login' ? ' hidden' : '';
 $navThemeLabel = ($activeTheme ?? 'daylight') === 'slate' ? 'Mode Kertas Editorial' : 'Mode Slate Gelap';
 ?>
@@ -20,7 +20,7 @@ $navThemeLabel = ($activeTheme ?? 'daylight') === 'slate' ? 'Mode Kertas Editori
         </div>
         <div class="app-nav-brand-sub min-w-0">
           <p class="font-sans text-sm font-bold text-[#F3F4F6] leading-tight truncate">StoryPad</p>
-          <p class="font-mono text-[11px] text-[#A1A9B8] truncate"><?= e($config['studio_name'] ?? 'Kelompok 10') ?></p>
+          <p class="font-mono text-[11px] text-[#A1A9B8] truncate" id="nav-studio-name"><?= e($config['studio_name'] ?? 'StoryPad Studio') ?></p>
         </div>
       </div>
 

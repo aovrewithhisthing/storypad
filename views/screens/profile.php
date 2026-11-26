@@ -6,8 +6,8 @@ $u = $session['user'] ?? [];
 $uName = $u['name'] ?? 'Kru Produksi';
 $uInit = $u['initials'] ?? 'KP';
 $uRole = $u['roleTitle'] ?? 'Script Supervisor & Continuity';
-$uBadge = ($u['idBadge'] ?? 'K10-01') . ' | ' . ($u['studio'] ?? ($config['studio_name'] ?? 'Kelompok 10'));
-$uProd = $u['prodName'] ?? 'JADI?';
+$uBadge = ($u['idBadge'] ?? 'SP-01') . ' | ' . ($u['studio'] ?? ($config['studio_name'] ?? 'StoryPad Studio'));
+$uProd = $u['prodName'] ?? '-';
 ?>
           <!-- ========================================== -->
           <!-- LAYAR 6: PROFIL KRU & PENGATURAN -->

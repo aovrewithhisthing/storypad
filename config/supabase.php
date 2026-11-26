@@ -38,7 +38,7 @@ $env = static function (string $key, string $default = ''): string {
 return [
     'app_name' => 'StoryPad',
     'app_version' => '4.0.0-php',
-    'studio_name' => $env('STORYPAD_STUDIO_NAME', 'Kelompok 10'),
+    'studio_name' => $env('STORYPAD_STUDIO_NAME', 'StoryPad Studio'),
     'supabase' => [
         'url' => $env('SUPABASE_URL', ''),
         'anon_key' => $env('SUPABASE_ANON_KEY', ''),

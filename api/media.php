@@ -179,7 +179,7 @@ try {
 
     $upsertRow = [
         'dialogue_id' => $dialogueId,
-        'project_id' => $projectId !== '' ? $projectId : 'proj-jadi',
+        'project_id' => $projectId !== '' ? $projectId : 'proj-default',
         'take_number' => $takeNumber,
         'label' => trim((string) ($payload['label'] ?? ('Take ' . str_pad((string) $takeNumber, 2, '0', STR_PAD_LEFT) . ' | CAM-A / BOOM'))),
         'tc' => trim((string) ($payload['tc'] ?? '00:00 SMPTE')),

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 $loginHidden = ($initialScreen ?? 'login') === 'login' ? '' : ' hidden';
 $loginThemeLabel = ($activeTheme ?? 'daylight') === 'slate' ? 'Mode Kertas Editorial' : 'Mode Slate Gelap';
-$studioLabel = $config['studio_name'] ?? 'Kelompok 10';
+$studioLabel = $config['studio_name'] ?? 'StoryPad Studio';
 ?>
           <!-- ========================================== -->
           <!-- LAYAR 1: SIGN-IN KRU PRODUKSI -->
@@ -76,7 +76,7 @@ $studioLabel = $config['studio_name'] ?? 'Kelompok 10';
                     Masuk ke Sesi Produksi
                   </h2>
                   <p class="font-sans text-xs mb-4" style="color: var(--text-secondary);">
-                    Masuk menggunakan akun kru yang terdaftar di Supabase atau mulai sesi kerja lapangan untuk mengelola naskah dan take.
+                    Pilih akun kru yang terdaftar di database produksi atau daftarkan akun kru baru untuk mulai mengelola naskah dan take.
                   </p>
 
                   <!-- Dynamic Registered Crew List (Empty State if 0 crew in Supabase) -->
@@ -90,11 +90,6 @@ $studioLabel = $config['studio_name'] ?? 'Kelompok 10';
                     <button class="sp-btn sp-btn-primary w-full btn-press" id="btn-login-email" onclick="StoryPad.openLoginAccounts()" type="button">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">person_add</span>
                       <span>Daftar atau Masuk Akun Kru</span>
-                    </button>
-
-                    <button class="sp-btn sp-btn-secondary w-full btn-press" id="btn-login-google" onclick="StoryPad.loginQuickSession()" type="button">
-                      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">movie_edit</span>
-                      <span>Masuk Sesi Lapangan (<?= e($studioLabel) ?>)</span>
                     </button>
                   </div>
                 </div>

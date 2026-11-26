@@ -89,8 +89,8 @@ if ($action === 'save_crew') {
     $fullName = trim((string) ($payload['full_name'] ?? ''));
     $email = trim((string) ($payload['email'] ?? ''));
     $roleTitle = trim((string) ($payload['role_title'] ?? 'Script Supervisor & Continuity'));
-    $studio = trim((string) ($payload['studio'] ?? ($config['studio_name'] ?? 'Kelompok 10')));
-    $prodName = trim((string) ($payload['prod_name'] ?? 'JADI?'));
+    $studio = trim((string) ($payload['studio'] ?? ($config['studio_name'] ?? 'StoryPad Studio')));
+    $prodName = trim((string) ($payload['prod_name'] ?? '-'));
     $idBadge = trim((string) ($payload['id_badge'] ?? ''));
     $personaKey = trim((string) ($payload['persona_key'] ?? ''));
 
@@ -106,7 +106,7 @@ if ($action === 'save_crew') {
     }
 
     if ($idBadge === '') {
-        $idBadge = 'K10-' . random_int(100, 999);
+        $idBadge = 'SP-' . random_int(100, 999);
     }
 
     $words = preg_split('/\s+/', $fullName) ?: [];

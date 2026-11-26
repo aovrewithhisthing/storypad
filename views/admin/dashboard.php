@@ -318,7 +318,7 @@ $notifCount = count($initialData['notifications'] ?? []);
           </div>
           <div class="flex flex-col gap-1">
             <label for="crew-email" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">Email Kru</label>
-            <input type="email" id="crew-email" class="sp-input" placeholder="kru@kelompok10.local" required>
+            <input type="email" id="crew-email" class="sp-input" placeholder="kru@storypad.local" required>
           </div>
         </div>
 
@@ -329,18 +329,18 @@ $notifCount = count($initialData['notifications'] ?? []);
           </div>
           <div class="flex flex-col gap-1">
             <label for="crew-id-badge" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">ID Badge</label>
-            <input type="text" id="crew-id-badge" class="sp-input font-mono" placeholder="K10-101">
+            <input type="text" id="crew-id-badge" class="sp-input font-mono" placeholder="SP-101">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <label for="crew-studio" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">Studio / Unit</label>
-            <input type="text" id="crew-studio" class="sp-input" value="<?= e($config['studio_name'] ?? 'Kelompok 10') ?>">
+            <input type="text" id="crew-studio" class="sp-input" value="<?= e($config['studio_name'] ?? 'StoryPad Studio') ?>">
           </div>
           <div class="flex flex-col gap-1">
             <label for="crew-prod-name" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">Proyek Utama</label>
-            <input type="text" id="crew-prod-name" class="sp-input" value="JADI?">
+            <input type="text" id="crew-prod-name" class="sp-input" value="-" placeholder="Judul proyek produksi">
           </div>
         </div>
 
@@ -383,7 +383,7 @@ $notifCount = count($initialData['notifications'] ?? []);
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="flex flex-col gap-1">
             <label for="proj-code" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">Kode Proyek</label>
-            <input type="text" id="proj-code" class="sp-input font-mono" placeholder="JADI-02" required>
+            <input type="text" id="proj-code" class="sp-input font-mono" placeholder="PRJ-01" required>
           </div>
           <div class="sm:col-span-2 flex flex-col gap-1">
             <label for="proj-title" class="font-sans text-xs font-semibold" style="color: var(--text-secondary);">Judul Produksi</label>
@@ -742,8 +742,8 @@ $notifCount = count($initialData['notifications'] ?? []);
           el('crew-email').value = '';
           el('crew-role-title').value = 'Script Supervisor & Continuity';
           el('crew-id-badge').value = '';
-          el('crew-studio').value = boot.studioName || 'Kelompok 10';
-          el('crew-prod-name').value = (state.data.projects && state.data.projects[0]) ? state.data.projects[0].title : 'JADI?';
+          el('crew-studio').value = boot.studioName || 'StoryPad Studio';
+          el('crew-prod-name').value = (state.data.projects && state.data.projects[0]) ? state.data.projects[0].title : '-';
           el('role-cb-script').checked = true;
           el('role-cb-editor').checked = false;
           el('role-cb-sound').checked = false;

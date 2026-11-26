@@ -32,15 +32,15 @@ const StoryPad = {
     supabaseConnected: false,
     supabaseLoading: true,
     supabaseUser: null,
-    studioName: 'Kelompok 10',
+    studioName: 'StoryPad Studio',
 
     // Active Crew Session (neutral until crew logs in)
     currentUser: {
       name: 'Kru Produksi',
       initials: 'KP',
       roleTitle: 'Script Supervisor & Continuity',
-      idBadge: 'K10-01',
-      studio: 'Kelompok 10',
+      idBadge: 'SP-01',
+      studio: 'StoryPad Studio',
       prodName: '-',
       email: ''
     },
@@ -150,6 +150,12 @@ const StoryPad = {
     if (boot.studioName) {
       this.state.studioName = boot.studioName;
       this.state.currentUser.studio = boot.studioName;
+      if (typeof document !== 'undefined') {
+        const loginStudioEl = document.getElementById('login-studio-name');
+        const navStudioEl = document.getElementById('nav-studio-name');
+        if (loginStudioEl) loginStudioEl.textContent = boot.studioName;
+        if (navStudioEl) navStudioEl.textContent = boot.studioName;
+      }
     }
     if (boot.supabase) {
       this.supabaseConfig = {
@@ -585,7 +591,13 @@ const StoryPad = {
         if (savedUser) {
           const parsedUser = JSON.parse(savedUser);
           const legacyEmails = ['aulia@lifelikepictures.com', 'dimas.edit@lifelikepictures.com', 'sound.rama@lifelikepictures.com'];
-          if (parsedUser && legacyEmails.includes(String(parsedUser.email || '').toLowerCase())) {
+          const hasLegacyDemo = parsedUser && (
+            legacyEmails.includes(String(parsedUser.email || '').toLowerCase()) ||
+            /kelompok/i.test(String(parsedUser.studio || '')) ||
+            /kelompok/i.test(String(parsedUser.name || '')) ||
+            /^K10-/i.test(String(parsedUser.idBadge || ''))
+          );
+          if (hasLegacyDemo) {
             localStorage.removeItem('storypad_user');
             localStorage.removeItem('storypad_persona_key');
           } else if (parsedUser && typeof parsedUser === 'object') {
@@ -4135,9 +4147,9 @@ const StoryPad = {
     this.state.activePersonaKey = '';
     this.state.currentUser = {
       name: `Kru ${this.state.studioName}`,
-      initials: 'K10',
+      initials: 'SP',
       roleTitle: 'Script Supervisor & Continuity',
-      idBadge: 'K10-01',
+      idBadge: 'SP-01',
       studio: this.state.studioName,
       prodName: activeProj ? activeProj.title : '-',
       email: ''
@@ -4246,7 +4258,7 @@ const StoryPad = {
 
     try {
       const activeProj = this.db.projects.find(p => p.id === this.state.activeProjectId) || this.db.projects[0];
-      const prodTitle = activeProj ? activeProj.title : 'JADI?';
+      const prodTitle = activeProj ? activeProj.title : '-';
 
       if (mode === 'signup') {
         const rawName = nameEl && nameEl.value.trim() ? nameEl.value.trim() : email.split('@')[0];
@@ -4260,7 +4272,7 @@ const StoryPad = {
         const roleTitle = roleMap[roleKey] || 'Script Supervisor & Continuity';
         const initials = rawName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || 'KP';
         const personaKey = 'crew_' + email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        const idBadge = 'K10-' + String(Math.floor(100 + (Date.now() % 900)));
+        const idBadge = 'SP-' + String(Math.floor(100 + (Date.now() % 900)));
         const rolesObj = {
           scriptSupervisor: roleKey === 'scriptSupervisor',
           videoEditor: roleKey === 'videoEditor',

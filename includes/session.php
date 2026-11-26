@@ -50,15 +50,15 @@ function storypad_default_session(): array
         'logged_in' => false,
         'screen' => 'login',
         'persona_key' => '',
-        'active_project_id' => 'proj-jadi',
+        'active_project_id' => '',
         'theme' => 'daylight',
         'user' => [
             'name' => 'Kru Produksi',
             'initials' => 'KP',
             'roleTitle' => 'Script Supervisor & Continuity',
-            'idBadge' => 'K10-01',
-            'studio' => 'Kelompok 10',
-            'prodName' => 'JADI?',
+            'idBadge' => 'SP-01',
+            'studio' => 'StoryPad Studio',
+            'prodName' => '-',
             'email' => '',
         ],
     ];
@@ -76,12 +76,22 @@ function storypad_get_session(): array
         $_SESSION['storypad']['user'] = $defaults['user'];
     }
 
-    // Bersihkan residu sesi dummy lama apabila tersimpan di cookie sesi lama
+    // Bersihkan residu sesi dummy atau demo lama apabila tersimpan di cookie sesi lama
     $legacyEmails = ['aulia@lifelikepictures.com', 'dimas.edit@lifelikepictures.com', 'sound.rama@lifelikepictures.com'];
     $curEmail = strtolower((string) ($_SESSION['storypad']['user']['email'] ?? ''));
-    if (in_array($curEmail, $legacyEmails, true) || ($_SESSION['storypad']['active_project_id'] ?? '') === 'proj-1') {
-        $_SESSION['storypad']['active_project_id'] = 'proj-jadi';
-        if (in_array($curEmail, $legacyEmails, true)) {
+    $curStudio = (string) ($_SESSION['storypad']['user']['studio'] ?? '');
+    $curBadge = (string) ($_SESSION['storypad']['user']['idBadge'] ?? '');
+    if (
+        in_array($curEmail, $legacyEmails, true)
+        || ($_SESSION['storypad']['active_project_id'] ?? '') === 'proj-1'
+        || ($_SESSION['storypad']['active_project_id'] ?? '') === 'proj-jadi'
+        || stripos($curStudio, 'Kelompok') !== false
+        || str_starts_with($curBadge, 'K10-')
+    ) {
+        if (in_array($_SESSION['storypad']['active_project_id'] ?? '', ['proj-1', 'proj-jadi'], true)) {
+            $_SESSION['storypad']['active_project_id'] = '';
+        }
+        if (in_array($curEmail, $legacyEmails, true) || stripos($curStudio, 'Kelompok') !== false || str_starts_with($curBadge, 'K10-')) {
             $_SESSION['storypad']['user'] = $defaults['user'];
             $_SESSION['storypad']['persona_key'] = '';
         }

@@ -210,7 +210,7 @@ declare(strict_types=1);
           </div>
           <div class="flex flex-col gap-1">
             <label for="import-proj-code" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Kode Proyek</label>
-            <input type="text" id="import-proj-code" class="sp-input font-mono" placeholder="Otomatis (mis. JADI-01)">
+            <input type="text" id="import-proj-code" class="sp-input font-mono" placeholder="Otomatis (mis. PRJ-01)">
           </div>
         </div>
 
@@ -221,7 +221,7 @@ declare(strict_types=1);
           </div>
           <div class="flex flex-col gap-1">
             <label for="import-proj-location" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Lokasi Utama</label>
-            <input type="text" id="import-proj-location" class="sp-input" placeholder="Mis. Technopark">
+            <input type="text" id="import-proj-location" class="sp-input" placeholder="Mis. Studio Utama">
           </div>
           <div class="flex flex-col gap-1">
             <label for="import-proj-fps" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Frame Rate</label>
@@ -299,7 +299,7 @@ declare(strict_types=1);
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div class="flex flex-col gap-1">
               <label for="addline-character" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nama Pemeran</label>
-              <input type="text" id="addline-character" class="sp-input font-mono uppercase" placeholder="Mis. KHOIRUL">
+              <input type="text" id="addline-character" class="sp-input font-mono uppercase" placeholder="Mis. RAKA">
             </div>
             <div class="flex flex-col gap-1">
               <label for="addline-shot" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Nomor Shot</label>
@@ -318,7 +318,7 @@ declare(strict_types=1);
 
         <div id="addline-action-fields" class="hidden flex flex-col gap-1">
           <label for="addline-action-content" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Deskripsi Aksi / Arahan Kamera</label>
-          <textarea id="addline-action-content" rows="3" class="sp-textarea font-mono" placeholder="Mis. [SHOT: Wide shot semua anggota berkumpul di Technopark]"></textarea>
+          <textarea id="addline-action-content" rows="3" class="sp-textarea font-mono" placeholder="Mis. [SHOT: Wide shot interior lokasi utama]"></textarea>
         </div>
 
         <p id="addline-feedback" class="hidden font-sans text-xs font-medium m-0" role="alert"></p>

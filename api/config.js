@@ -7,7 +7,7 @@ module.exports = (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.status(200).json({
     ok: true,
-    studioName: process.env.STORYPAD_STUDIO_NAME || 'Kelompok 10',
+    studioName: process.env.STORYPAD_STUDIO_NAME || 'StoryPad Studio',
     supabase: {
       url: process.env.SUPABASE_URL || '',
       anonKey: process.env.SUPABASE_ANON_KEY || '',

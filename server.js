@@ -40,7 +40,7 @@ const MIME_TYPES = {
 function buildBootScript() {
   const boot = {
     phpEnabled: false,
-    studioName: getEnv('STORYPAD_STUDIO_NAME', 'Kelompok 10'),
+    studioName: getEnv('STORYPAD_STUDIO_NAME', 'StoryPad Studio'),
     supabase: {
       url: getEnv('SUPABASE_URL', ''),
       anonKey: getEnv('SUPABASE_ANON_KEY', ''),

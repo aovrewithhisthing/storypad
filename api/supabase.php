@@ -17,7 +17,7 @@ $action = isset($_GET['action']) && is_string($_GET['action']) ? trim($_GET['act
 if ($action === 'client_config') {
     echo json_encode([
         'ok' => true,
-        'studioName' => $config['studio_name'] ?? 'Kelompok 10',
+        'studioName' => $config['studio_name'] ?? 'StoryPad Studio',
         'supabase' => [
             'url' => $config['supabase']['url'],
             'anonKey' => $config['supabase']['anon_key'],

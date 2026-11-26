@@ -55,7 +55,7 @@
         </div>
         <div class="app-nav-brand-sub min-w-0">
           <p class="font-sans text-sm font-bold text-[#F3F4F6] leading-tight truncate">StoryPad</p>
-          <p class="font-mono text-[11px] text-[#A1A9B8] truncate">Kelompok 10</p>
+          <p class="font-mono text-[11px] text-[#A1A9B8] truncate" id="nav-studio-name">StoryPad Studio</p>
         </div>
       </div>
 
@@ -137,7 +137,7 @@
                     <dl class="grid grid-cols-3 gap-3 text-left">
                       <div>
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Unit Produksi</dt>
-                        <dd class="font-sans text-xs font-semibold mt-0.5" id="login-studio-name" style="color: var(--text-primary);">Kelompok 10</dd>
+                        <dd class="font-sans text-xs font-semibold mt-0.5" id="login-studio-name" style="color: var(--text-primary);">StoryPad Studio</dd>
                       </div>
                       <div>
                         <dt class="font-sans text-[11px]" style="color: var(--text-muted);">Naskah Aktif</dt>
@@ -169,7 +169,7 @@
                     Masuk ke Sesi Produksi
                   </h2>
                   <p class="font-sans text-xs mb-4" style="color: var(--text-secondary);">
-                    Masuk menggunakan akun kru yang terdaftar di Supabase atau mulai sesi kerja lapangan untuk mengelola naskah dan take.
+                    Pilih akun kru yang terdaftar di database produksi atau daftarkan akun kru baru untuk mulai mengelola naskah dan take.
                   </p>
 
                   <div class="flex flex-col gap-2.5 mb-4" id="login-crew-quicklist" role="region" aria-label="Daftar akun kru terdaftar">
@@ -182,11 +182,6 @@
                     <button class="sp-btn sp-btn-primary w-full btn-press" id="btn-login-email" onclick="StoryPad.openLoginAccounts()" type="button">
                       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">person_add</span>
                       <span>Daftar atau Masuk Akun Kru</span>
-                    </button>
-
-                    <button class="sp-btn sp-btn-secondary w-full btn-press" id="btn-login-google" onclick="StoryPad.loginQuickSession()" type="button">
-                      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">movie_edit</span>
-                      <span>Masuk Sesi Lapangan (Kelompok 10)</span>
                     </button>
                   </div>
                 </div>
@@ -533,7 +528,7 @@
                       <div class="min-w-0">
                         <h2 class="font-sans text-base font-bold truncate m-0" id="profile-user-name" style="color: var(--text-primary);">Kru Produksi</h2>
                         <p class="font-sans text-xs font-semibold truncate m-0 mt-0.5" id="profile-user-role" style="color: var(--primary-text);">Script Supervisor &amp; Continuity</p>
-                        <p class="font-mono text-xs mt-0.5 truncate m-0" id="profile-user-badge" style="color: var(--text-secondary);">K10-01 | Kelompok 10</p>
+                        <p class="font-mono text-xs mt-0.5 truncate m-0" id="profile-user-badge" style="color: var(--text-secondary);">SP-01 | StoryPad Studio</p>
                       </div>
                     </div>
 
@@ -1032,7 +1027,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <label for="import-proj-location" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Lokasi</label>
-            <input type="text" id="import-proj-location" class="sp-input" placeholder="Technopark">
+            <input type="text" id="import-proj-location" class="sp-input" placeholder="Studio Utama">
           </div>
           <div class="flex flex-col gap-1">
             <label for="import-proj-fps" class="font-sans text-[11px] font-semibold" style="color: var(--text-secondary);">Frame Rate</label>
