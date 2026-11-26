@@ -27,12 +27,26 @@ BEGIN
   PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_crew_a::text, 'role', 'authenticated')::text, true);
 
-  INSERT INTO public.projects (id, code, title, category, owner_id, is_archived)
-  VALUES (v_proj_id, 'RLS-01', 'Proyek Uji RLS', 'Film Pendek', v_crew_a, false)
+  INSERT INTO public.projects (
+    id, code, title, category, subtitle, tag, day, fps, sync_status, draft,
+    scene_number, shot_number, slug_number, scene_title, scene_timecode, take_info,
+    owner_id, is_archived
+  )
+  VALUES (
+    v_proj_id, 'RLS-01', 'Proyek Uji RLS', 'Film Pendek', 'Uji RLS', '1 Scene', 'Day 01', '24 fps', 'Ready', 'Draft v1.0',
+    '01', '01', 'SCENE 01', 'SCENE 01', '00:00:00:00', '0 TAKE',
+    v_crew_a, false
+  )
   ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
 
-  INSERT INTO public.script_lines (id, project_id, line_type, sort_order, scene_number, scene_title, content, is_archived)
-  VALUES (v_proj_id || '-s01-a01', v_proj_id, 'action', 10, '01', 'SCENE 01', 'Uji aksi', false)
+  INSERT INTO public.script_lines (
+    id, project_id, line_type, sort_order, scene_number, scene_title,
+    content, parenthetical, continuity_note, is_archived
+  )
+  VALUES (
+    v_proj_id || '-s01-a01', v_proj_id, 'action', 10, '01', 'SCENE 01',
+    'Uji aksi', '', '', false
+  )
   ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content;
 
   SELECT count(*) INTO v_cnt FROM public.projects WHERE id = v_proj_id;
@@ -42,9 +56,18 @@ BEGIN
 
   -- 2. Verify crew_member B cannot hijack or overwrite crew_member A project via upsert
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_crew_b::text, 'role', 'authenticated')::text, true);
+  v_blocked := false;
   BEGIN
-    INSERT INTO public.projects (id, code, title, category, owner_id, is_archived)
-    VALUES (v_proj_id, 'RLS-99', 'Pembajakan', 'Film Pendek', v_crew_b, false)
+    INSERT INTO public.projects (
+      id, code, title, category, subtitle, tag, day, fps, sync_status, draft,
+      scene_number, shot_number, slug_number, scene_title, scene_timecode, take_info,
+      owner_id, is_archived
+    )
+    VALUES (
+      v_proj_id, 'RLS-99', 'Pembajakan', 'Film Pendek', 'Hijack', '1 Scene', 'Day 01', '24 fps', 'Ready', 'Draft v1.0',
+      '01', '01', 'SCENE 01', 'SCENE 01', '00:00:00:00', '0 TAKE',
+      v_crew_b, false
+    )
     ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title;
     v_blocked := false;
   EXCEPTION WHEN SQLSTATE '42501' THEN
@@ -56,9 +79,18 @@ BEGIN
 
   -- 3. Verify suspended account cannot insert a project
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_suspended::text, 'role', 'authenticated')::text, true);
+  v_blocked := false;
   BEGIN
-    INSERT INTO public.projects (id, code, title, category, owner_id, is_archived)
-    VALUES ('proj-verify-susp', 'SUSP-01', 'Proyek Suspended', 'Film Pendek', v_suspended, false);
+    INSERT INTO public.projects (
+      id, code, title, category, subtitle, tag, day, fps, sync_status, draft,
+      scene_number, shot_number, slug_number, scene_title, scene_timecode, take_info,
+      owner_id, is_archived
+    )
+    VALUES (
+      'proj-verify-susp', 'SUSP-01', 'Proyek Suspended', 'Film Pendek', 'Suspended', '1 Scene', 'Day 01', '24 fps', 'Ready', 'Draft v1.0',
+      '01', '01', 'SCENE 01', 'SCENE 01', '00:00:00:00', '0 TAKE',
+      v_suspended, false
+    );
     v_blocked := false;
   EXCEPTION WHEN SQLSTATE '42501' THEN
     v_blocked := true;
