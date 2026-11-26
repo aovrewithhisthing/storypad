@@ -75,6 +75,10 @@ $uProd = $u['prodName'] ?? '-';
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">switch_account</span>
                         <span>Kelola / Ganti Akun Kru</span>
                       </button>
+                      <a href="/admin" id="profile-admin-console-link" class="hidden sp-btn sp-btn-secondary w-full no-underline">
+                        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">admin_panel_settings</span>
+                        <span>Buka Admin Console</span>
+                      </a>
                       <a href="<?= !empty($isAdminLoggedIn) ? 'admin.php' : 'admin-login.php' ?>" class="sp-btn sp-btn-secondary w-full no-underline">
                         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">admin_panel_settings</span>
                         <span><?= !empty($isAdminLoggedIn) ? 'Buka Panel Admin Produksi' : 'Portal Admin Produksi' ?></span>

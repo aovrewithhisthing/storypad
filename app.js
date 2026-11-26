@@ -51,6 +51,8 @@ const StoryPad = {
     auditLogsLoading: false,
     auditLogsError: '',
     auditBackendMissing: false,
+    adminAccess: null,
+    pendingInviteToken: '',
     studioName: 'StoryPad Studio',
 
     // Active Crew Session (neutral until crew logs in)
@@ -141,6 +143,7 @@ const StoryPad = {
 
   init() {
     this.hydratePhpBoot();
+    this.capturePendingInvitationToken();
     this.loadPersistedSettings();
     this.loadRememberedAccounts();
     this.applyTheme(this.state.theme);
@@ -215,6 +218,8 @@ const StoryPad = {
     this.state.auditLogsLoading = false;
     this.state.auditLogsError = '';
     this.state.auditBackendMissing = false;
+    this.state.adminAccess = null;
+    this.updateAdminConsoleLinks();
     this.db.crewProfiles = [];
     this.db.projects = [];
     this.db.scriptDataProjects = {};
@@ -347,7 +352,9 @@ const StoryPad = {
           this.state.supabaseSession = data.session;
           this.applyAuthenticatedSupabaseUser(data.session.user);
           await this.syncPhpSession({ action: 'sync_auth' });
+          await this.processPendingInvitation();
           await this.syncFromSupabase();
+          this.refreshAdminConsoleVisibility();
           this.subscribeRealtime();
           if (this.state.currentScreen === 'login' && this.state.authView !== 'recovery') {
             const nextScreen = (this.phpBoot && this.phpBoot.initialScreen && this.phpBoot.initialScreen !== 'login')
@@ -377,7 +384,8 @@ const StoryPad = {
           this.state.supabaseSession = session;
           this.applyAuthenticatedSupabaseUser(session.user);
           if (prevUid !== session.user.id) {
-            this.syncFromSupabase();
+            this.processPendingInvitation().then(() => this.syncFromSupabase());
+            this.refreshAdminConsoleVisibility();
             this.subscribeRealtime();
           }
         } else {
@@ -5928,6 +5936,72 @@ const StoryPad = {
       startY = 0;
       currentY = 0;
     }, { passive: true });
+  },
+
+  capturePendingInvitationToken() {
+    if (typeof window === 'undefined' || !window.location) return;
+    try {
+      const search = window.location.search || '';
+      if (!search) return;
+      const params = new URLSearchParams(search);
+      const token = (params.get('invite') || '').trim();
+      if (token && /^[a-f0-9]{32,128}$/i.test(token)) {
+        this.state.pendingInviteToken = token;
+        params.delete('invite');
+        const nextQs = params.toString();
+        const nextUrl = window.location.pathname + (nextQs ? `?${nextQs}` : '') + (window.location.hash || '');
+        if (window.history && typeof window.history.replaceState === 'function') {
+          window.history.replaceState({}, '', nextUrl);
+        }
+      }
+    } catch (_e) {}
+  },
+
+  async processPendingInvitation() {
+    const token = this.state.pendingInviteToken;
+    if (!token || !this.supabase || typeof this.supabase.rpc !== 'function' || !this.isAuthenticated()) return false;
+    this.state.pendingInviteToken = '';
+    try {
+      const { data, error } = await this.supabase.rpc('accept_project_invitation', { p_token: token });
+      if (error || !data || !data.ok) {
+        this.showToast((error && error.message) ? error.message : 'Undangan tidak valid atau sudah kedaluwarsa');
+        return false;
+      }
+      this.showToast('Undangan proyek diterima. Akses proyek ditambahkan ke akun Anda.');
+      return true;
+    } catch (_e) {
+      this.showToast('Gagal memproses tautan undangan');
+      return false;
+    }
+  },
+
+  updateAdminConsoleLinks() {
+    if (typeof document === 'undefined') return;
+    const canAccess = Boolean(this.state.adminAccess && this.state.adminAccess.can_access_console);
+    ['nav-admin-console-link', 'profile-admin-console-link'].forEach((id) => {
+      const link = document.getElementById(id);
+      if (link) link.classList.toggle('hidden', !canAccess);
+    });
+  },
+
+  async refreshAdminConsoleVisibility() {
+    if (!this.supabase || typeof this.supabase.rpc !== 'function' || !this.isAuthenticated()) {
+      this.state.adminAccess = null;
+      this.updateAdminConsoleLinks();
+      return null;
+    }
+    try {
+      const { data, error } = await this.supabase.rpc('admin_get_my_access');
+      if (!error && data && typeof data === 'object') {
+        this.state.adminAccess = data;
+      } else {
+        this.state.adminAccess = null;
+      }
+    } catch (_e) {
+      this.state.adminAccess = null;
+    }
+    this.updateAdminConsoleLinks();
+    return this.state.adminAccess;
   }
 };
 

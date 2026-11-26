@@ -25,9 +25,16 @@ function loadDotEnv(envPath) {
 
 const dotEnv = loadDotEnv(path.join(__dirname, '.env'));
 const getEnv = (key, fallback = '') => process.env[key] || dotEnv[key] || fallback;
+Object.entries(dotEnv).forEach(([k, v]) => {
+  if (!process.env[k]) process.env[k] = v;
+});
+
+const apiConfigHandler = require('./api/config');
+const { handleAdminRequest } = require('./api/admin');
 
 const PORT = Number(getEnv('PORT', '3000')) || 3000;
 const ROOT_DIR = path.resolve(__dirname);
+const MAX_JSON_BODY_BYTES = 256 * 1024;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -80,7 +87,50 @@ function buildBootScript() {
   return `<script>window.STORYPAD_PHP_BOOT = Object.assign(${safeJson}, window.STORYPAD_PHP_BOOT || {});</script>`;
 }
 
-const server = http.createServer((req, res) => {
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > MAX_JSON_BODY_BYTES) {
+        reject(new Error('PAYLOAD_TOO_LARGE'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => {
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+    req.on('error', reject);
+  });
+}
+
+function wrapVercelResponse(res) {
+  const headersToApply = { ...SECURITY_HEADERS };
+  return {
+    setHeader(k, v) {
+      headersToApply[k] = v;
+    },
+    status(code) {
+      return {
+        json(payload) {
+          res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', ...headersToApply });
+          res.end(JSON.stringify(payload));
+        }
+      };
+    },
+    writeHead(code, hdrs) {
+      res.writeHead(code, { ...SECURITY_HEADERS, ...hdrs });
+    },
+    end(body) {
+      res.end(body);
+    }
+  };
+}
+
+const server = http.createServer(async (req, res) => {
   let reqPath;
   try {
     reqPath = decodeURIComponent((req.url || '/').split('?')[0]);
@@ -90,7 +140,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (reqPath === '/api/config') {
+    apiConfigHandler(req, wrapVercelResponse(res));
+    return;
+  }
+
+  if (reqPath === '/api/admin') {
+    try {
+      if (req.method === 'POST') {
+        req.body = await readRequestBody(req);
+      }
+      await handleAdminRequest(req, wrapVercelResponse(res), { env: process.env });
+    } catch (err) {
+      const code = err && err.message === 'PAYLOAD_TOO_LARGE' ? 413 : 500;
+      res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', ...SECURITY_HEADERS });
+      res.end(JSON.stringify({ ok: false, error: code === 413 ? 'Payload terlalu besar' : 'Internal Server Error' }));
+    }
+    return;
+  }
+
   if (reqPath === '/') reqPath = '/index.html';
+  if (reqPath === '/admin' || reqPath === '/admin/') reqPath = '/admin.html';
   const lowerPath = reqPath.toLowerCase();
 
   if (BLOCKED_PATH_PREFIXES.some(prefix => lowerPath.startsWith(prefix)) || lowerPath.includes('..')) {
@@ -132,7 +202,7 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    if (reqPath === '/index.html') {
+    if (reqPath === '/index.html' || reqPath === '/admin.html') {
       const html = content.toString('utf8').replace('</head>', `  ${buildBootScript()}\n</head>`);
       res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
       res.end(html, 'utf8');

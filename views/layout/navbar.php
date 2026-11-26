@@ -59,7 +59,11 @@ $navThemeLabel = ($activeTheme ?? 'daylight') === 'slate' ? 'Mode Kertas Editori
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">contrast</span>
           <span class="app-nav-brand-sub theme-label-text"><?= e($navThemeLabel) ?></span>
         </button>
-        <a href="<?= !empty($isAdminLoggedIn) ? 'admin.php' : 'admin-login.php' ?>" class="sp-btn sp-btn-monitor sp-btn-compact w-full no-underline" aria-label="Buka Portal Admin Produksi">
+        <a href="/admin" id="nav-admin-console-link" class="hidden sp-btn sp-btn-monitor sp-btn-compact w-full no-underline" aria-label="Buka StoryPad Admin Console">
+          <span class="material-symbols-outlined text-[16px] text-[#FBBF24]" aria-hidden="true">admin_panel_settings</span>
+          <span class="app-nav-brand-sub">Admin Console</span>
+        </a>
+        <a href="<?= !empty($isAdminLoggedIn) ? 'admin.php' : 'admin-login.php' ?>" class="sp-btn sp-btn-monitor sp-btn-compact w-full no-underline" aria-label="Buka Portal Admin PHP">
           <span class="material-symbols-outlined text-[16px] text-[#FBBF24]" aria-hidden="true">admin_panel_settings</span>
           <span class="app-nav-brand-sub"><?= !empty($isAdminLoggedIn) ? 'Panel Admin' : 'Portal Admin' ?></span>
         </a>

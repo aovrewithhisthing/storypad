@@ -261,7 +261,10 @@ $nextThemeLabel = $themeMode === 'daylight' ? 'Mode Slate Gelap' : 'Mode Kertas 
         try { localStorage.setItem('storypad_theme', next); } catch (e) {}
         fetch('api/session.php', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': <?= json_encode($csrfToken) ?>
+          },
           body: JSON.stringify({ theme: next })
         }).catch(() => {});
       }

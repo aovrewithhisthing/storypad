@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="slate">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>StoryPad Admin Console | Identitas, Akses, dan Keamanan Studio</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.min.js" defer></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#2563EB",
+            "secondary": "#047857",
+            "tertiary": "#D97706",
+            "error": "#DC2626"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body class="min-h-screen" style="background-color: var(--app-bg); color: var(--text-primary);">
+  <a href="#admin-main" class="skip-link">Lewati ke konten Admin Console</a>
+
+  <!-- ========================================================= -->
+  <!-- VIEW A: AUTH GATE (SAAT BELUM TERAUTENTIKASI)             -->
+  <!-- ========================================================= -->
+  <section id="admin-auth-gate" class="min-h-screen flex flex-col">
+    <header class="sp-topbar">
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="index.html" class="flex items-center gap-2.5 no-underline min-w-0">
+          <span class="w-8 h-8 rounded bg-[#0F1115] border border-[#373C4A] flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-[#60A5FA]" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <rect x="6" y="16" width="36" height="26" rx="3" fill="#161920" stroke="#60A5FA" stroke-width="2.5"></rect>
+              <path d="M6 18L13 6H42L36 18H6Z" fill="#1E222B" stroke="#60A5FA" stroke-width="2.5" stroke-linejoin="round"></path>
+              <path d="M17 6L14 18M27 6L24 18M37 6L34 18" stroke="#34D399" stroke-width="2.5" stroke-linecap="round"></path>
+            </svg>
+          </span>
+          <span class="font-sans text-sm font-bold truncate" style="color: var(--text-primary);">StoryPad</span>
+        </a>
+        <span class="sp-badge sp-badge-amber font-mono">ADMIN CONSOLE</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" id="gate-theme-btn" class="sp-btn sp-btn-secondary sp-btn-compact" aria-label="Ganti Tema Tampilan">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">contrast</span>
+          <span class="hidden sm:inline admin-theme-label">Mode Kertas Editorial</span>
+        </button>
+        <a href="index.html" class="sp-btn sp-btn-secondary sp-btn-compact no-underline">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_back</span>
+          <span>Workspace Kru</span>
+        </a>
+      </div>
+    </header>
+
+    <main id="admin-gate-main" class="flex-1 flex items-center justify-center p-4 md:p-8">
+      <div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+        <article class="md:col-span-6 sp-panel p-6 md:p-8 flex flex-col justify-between gap-6">
+          <div>
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-11 h-11 rounded bg-[#0F1115] border border-[#373C4A] flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[24px] text-[#FBBF24]" aria-hidden="true">admin_panel_settings</span>
+              </div>
+              <div>
+                <h1 class="font-sans text-xl md:text-2xl font-bold tracking-tight m-0" style="color: var(--text-primary);">
+                  StoryPad Admin Console
+                </h1>
+                <p class="font-sans text-xs md:text-sm m-0 mt-0.5" style="color: var(--text-secondary);">
+                  Pusat Identitas, Role Sistem, Keanggotaan Proyek, Sesi, dan Audit
+                </p>
+              </div>
+            </div>
+
+            <p class="font-sans text-sm leading-relaxed mb-5" style="color: var(--text-secondary);">
+              Masuk menggunakan akun Supabase terverifikasi yang memiliki izin System Owner, System Admin, atau Production Admin. Hak akses diverifikasi langsung di server database.
+            </p>
+
+            <div class="sp-panel-muted p-4 flex flex-col gap-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="font-sans text-xs font-bold uppercase tracking-wide m-0" style="color: var(--text-secondary);">Model Akses Terpisah</h2>
+                <span id="gate-supabase-badge" class="sp-badge sp-badge-neutral font-mono">Memeriksa...</span>
+              </div>
+              <p class="font-sans text-xs m-0 leading-relaxed" style="color: var(--text-secondary);">
+                Jabatan produksi seperti Director atau Script Supervisor tidak otomatis memberi hak administrator sistem. Seluruh operasi konsol diaudit di server.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t flex items-center justify-between gap-2 text-xs" style="border-color: var(--border-flat); color: var(--text-muted);">
+            <span class="font-mono" id="gate-studio-name">StoryPad Studio</span>
+            <span class="font-mono">Server-Verified RBAC</span>
+          </div>
+        </article>
+
+        <article class="md:col-span-6 sp-panel p-6 md:p-8 flex flex-col justify-between gap-5">
+          <div>
+            <h2 class="font-sans text-lg font-bold m-0 mb-1" style="color: var(--text-primary);">Masuk ke Admin Console</h2>
+            <p class="font-sans text-xs m-0 mb-5" style="color: var(--text-secondary);">
+              Autentikasi menggunakan email dan kata sandi akun Anda. Kredensial tidak pernah disimpan di browser.
+            </p>
+
+            <div id="gate-auth-feedback" class="hidden mb-4 p-3 rounded border text-xs font-medium" role="alert"></div>
+
+            <form id="admin-gate-form" class="flex flex-col gap-4" novalidate>
+              <div class="flex flex-col gap-1.5">
+                <label for="gate-email" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Email Akun</label>
+                <input type="email" id="gate-email" class="sp-input" placeholder="nama@studio.id" autocomplete="email" required>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label for="gate-password" class="font-sans text-xs font-semibold" style="color: var(--text-primary);">Kata Sandi</label>
+                <div class="sp-password-wrap">
+                  <input type="password" id="gate-password" class="sp-input pr-12" placeholder="Masukkan kata sandi akun" autocomplete="current-password" required>
+                  <button type="button" id="gate-toggle-pw" class="sp-password-toggle" aria-label="Tampilkan kata sandi" aria-pressed="false">
+                    <span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" id="gate-submit-btn" class="sp-btn sp-btn-primary w-full btn-press">
+                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">lock_open</span>
+                <span>Verifikasi &amp; Buka Konsol</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="pt-4 border-t flex items-center justify-between gap-2 text-xs" style="border-color: var(--border-flat);">
+            <a href="index.html" class="font-sans font-semibold no-underline hover:underline" style="color: var(--primary-text);">Kembali ke Login Kru</a>
+            <span class="font-mono" style="color: var(--text-muted);">No Impersonation</span>
+          </div>
+        </article>
+      </div>
+    </main>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- VIEW B: PERMISSION DENIED / LOADING ACCESS                -->
+  <!-- ========================================================= -->
+  <section id="admin-access-denied" class="hidden min-h-screen flex items-center justify-center p-4 md:p-8">
+    <article class="sp-panel p-6 md:p-8 w-full max-w-lg flex flex-col gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded flex items-center justify-center border shrink-0" style="background-color: var(--red-tint); border-color: var(--red-tint-border); color: var(--red-text);">
+          <span class="material-symbols-outlined text-[22px]" aria-hidden="true">gpp_bad</span>
+        </div>
+        <div>
+          <h1 id="denied-title" class="font-sans text-lg font-bold m-0" style="color: var(--text-primary);">Akses Admin Console Ditolak</h1>
+          <p id="denied-subtitle" class="font-mono text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Verifikasi otorisasi server</p>
+        </div>
+      </div>
+
+      <p id="denied-message" class="font-sans text-sm leading-relaxed m-0" style="color: var(--text-secondary);">
+        Akun yang sedang masuk tidak memiliki System Role atau cakupan Production Admin untuk membuka konsol ini.
+      </p>
+
+      <div id="denied-migration-guide" class="hidden sp-panel-muted p-3.5 text-xs flex flex-col gap-2">
+        <p class="font-sans font-bold m-0" style="color: var(--text-primary);">Langkah Bootstrap Pertama (Operasi SQL Tepercaya)</p>
+        <p class="font-sans m-0 leading-relaxed" style="color: var(--text-secondary);">
+          Jika ini instalasi baru, pastikan migrasi <code class="font-mono">000001</code> sampai <code class="font-mono">000004</code> sudah dijalankan di Supabase SQL Editor, lalu tetapkan System Owner pertama melalui <code class="font-mono">SELECT private.bootstrap_first_system_owner('email-pemilik@domain');</code>.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t" style="border-color: var(--border-flat);">
+        <a href="index.html" class="sp-btn sp-btn-primary sp-btn-compact no-underline">Kembali ke Workspace Kru</a>
+        <div class="flex items-center gap-2">
+          <button type="button" id="denied-retry-btn" class="sp-btn sp-btn-secondary sp-btn-compact">Periksa Ulang</button>
+          <button type="button" id="denied-logout-btn" class="sp-btn sp-btn-danger sp-btn-compact">Keluar Akun</button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- VIEW C: ADMIN CONSOLE SHELL                               -->
+  <!-- ========================================================= -->
+  <div id="admin-console-shell" class="hidden admin-shell">
+    <!-- Desktop Sidebar -->
+    <aside id="admin-sidebar" class="admin-sidebar" aria-label="Navigasi Admin Console">
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2 px-1.5 pb-3 border-b" style="border-color: var(--monitor-border);">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded bg-[#161920] border border-[#373C4A] flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[18px] text-[#FBBF24]" aria-hidden="true">admin_panel_settings</span>
+            </div>
+            <div class="admin-brand-meta min-w-0">
+              <p class="font-sans text-sm font-bold text-[#F3F4F6] m-0 leading-tight truncate">StoryPad</p>
+              <p class="font-mono text-[11px] text-[#A1A9B8] m-0 truncate">Admin Console</p>
+            </div>
+          </div>
+          <button type="button" id="btn-toggle-sidebar" class="sp-icon-btn sp-icon-btn-monitor" aria-expanded="true" aria-controls="admin-sidebar" aria-label="Ciutkan atau lebarkan sidebar">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">dock_to_left</span>
+          </button>
+        </div>
+
+        <nav class="flex flex-col gap-0.5 mt-1" aria-label="Menu Konsol">
+          <div class="admin-nav-group-label">Ringkasan</div>
+          <button type="button" class="admin-nav-item is-active" data-section="overview" title="Overview">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">dashboard</span>
+            <span class="admin-nav-text">Overview</span>
+          </button>
+
+          <div class="admin-nav-group-label">Identitas &amp; Akses</div>
+          <button type="button" class="admin-nav-item" data-section="accounts" title="Accounts">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">group</span>
+            <span class="admin-nav-text">Accounts</span>
+          </button>
+          <button type="button" class="admin-nav-item" data-section="roles" title="Roles &amp; Permissions">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">shield_person</span>
+            <span class="admin-nav-text">Roles &amp; Permissions</span>
+          </button>
+          <button type="button" class="admin-nav-item" data-section="projects" title="Projects &amp; Memberships">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">movie_filter</span>
+            <span class="admin-nav-text">Projects / Memberships</span>
+          </button>
+          <button type="button" class="admin-nav-item" data-section="invitations" title="Invitations">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">mail</span>
+            <span class="admin-nav-text">Invitations</span>
+          </button>
+
+          <div class="admin-nav-group-label">Keamanan</div>
+          <button type="button" class="admin-nav-item" data-section="sessions" title="Sessions &amp; Devices">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">devices</span>
+            <span class="admin-nav-text">Sessions &amp; Devices</span>
+          </button>
+          <button type="button" class="admin-nav-item" data-section="audit" title="Audit Logs">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">history</span>
+            <span class="admin-nav-text">Audit Logs</span>
+          </button>
+          <button type="button" class="admin-nav-item" data-section="security" title="Security">
+            <span class="material-symbols-outlined text-[19px] shrink-0" aria-hidden="true">verified_user</span>
+            <span class="admin-nav-text">Security</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="pt-3 border-t flex flex-col gap-2" style="border-color: var(--monitor-border);">
+        <div class="admin-sidebar-footer-meta px-2 py-2 rounded bg-[#161920] border border-[#2A2E39]">
+          <p class="font-sans text-xs font-semibold text-[#F3F4F6] m-0 truncate" id="sidebar-actor-name">-</p>
+          <p class="font-mono text-[11px] text-[#60A5FA] m-0 truncate" id="sidebar-actor-role">-</p>
+        </div>
+        <a href="index.html" class="sp-btn sp-btn-monitor sp-btn-compact w-full no-underline" title="Kembali ke Workspace Kru">
+          <span class="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">movie</span>
+          <span class="admin-nav-text">Workspace Kru</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="admin-mobile-drawer" class="admin-mobile-drawer" role="dialog" aria-modal="true" aria-label="Menu Navigasi Admin Console">
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2 pb-3 border-b" style="border-color: var(--monitor-border);">
+          <span class="font-sans text-sm font-bold text-[#F3F4F6]">StoryPad Admin Console</span>
+          <button type="button" id="btn-close-mobile-menu" class="sp-icon-btn sp-icon-btn-monitor" aria-label="Tutup menu navigasi">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+          </button>
+        </div>
+        <nav class="flex flex-col gap-1 mt-1" id="mobile-nav-list" aria-label="Menu Mobile Konsol">
+          <button type="button" class="admin-nav-item is-active" data-section="overview">Overview</button>
+          <button type="button" class="admin-nav-item" data-section="accounts">Accounts</button>
+          <button type="button" class="admin-nav-item" data-section="roles">Roles &amp; Permissions</button>
+          <button type="button" class="admin-nav-item" data-section="projects">Projects / Memberships</button>
+          <button type="button" class="admin-nav-item" data-section="invitations">Invitations</button>
+          <button type="button" class="admin-nav-item" data-section="sessions">Sessions &amp; Devices</button>
+          <button type="button" class="admin-nav-item" data-section="audit">Audit Logs</button>
+          <button type="button" class="admin-nav-item" data-section="security">Security</button>
+        </nav>
+      </div>
+      <div class="pt-3 border-t flex flex-col gap-2" style="border-color: var(--monitor-border);">
+        <a href="index.html" class="sp-btn sp-btn-monitor w-full no-underline">Workspace Kru</a>
+      </div>
+    </div>
+
+    <!-- Main Content Column -->
+    <div class="admin-main-wrap">
+      <header class="sp-topbar">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button type="button" id="btn-open-mobile-menu" class="sp-btn sp-btn-secondary sp-btn-compact lg:hidden" aria-expanded="false" aria-controls="admin-mobile-drawer">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">menu</span>
+            <span>Menu</span>
+          </button>
+          <div class="min-w-0">
+            <h1 id="admin-active-heading" class="font-sans text-base md:text-lg font-bold tracking-tight truncate m-0" style="color: var(--text-primary);">
+              Overview
+            </h1>
+            <p class="font-mono text-[11px] truncate m-0" id="admin-actor-subtitle" style="color: var(--text-secondary);">
+              Memuat identitas admin...
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="admin-role-badge" class="sp-badge sp-badge-blue font-mono hidden sm:inline-flex">-</span>
+          <button type="button" id="btn-admin-refresh" class="sp-icon-btn" aria-label="Muat ulang bagian aktif" title="Muat ulang data">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">refresh</span>
+          </button>
+          <button type="button" id="btn-admin-theme" class="sp-icon-btn" aria-label="Ganti Tema Tampilan" title="Ganti tema">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">contrast</span>
+          </button>
+          <button type="button" id="btn-admin-logout" class="sp-btn sp-btn-danger sp-btn-compact">
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">logout</span>
+            <span class="hidden sm:inline">Keluar</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="admin-main" tabindex="-1" class="admin-workspace-container">
+        <!-- Global API Error / Migration Notice Banner -->
+        <div id="admin-global-banner" class="hidden sp-panel p-4 flex flex-wrap items-center justify-between gap-3" role="alert" style="background-color: var(--red-tint); border-color: var(--red-tint-border); color: var(--red-text);">
+          <div class="flex items-start gap-2 text-xs font-medium min-w-0">
+            <span class="material-symbols-outlined text-[18px] shrink-0" aria-hidden="true">warning</span>
+            <span id="admin-global-banner-text">-</span>
+          </div>
+          <button type="button" id="btn-banner-retry" class="sp-btn sp-btn-secondary sp-btn-compact shrink-0">Coba Lagi</button>
+        </div>
+
+        <!-- 1. OVERVIEW SECTION -->
+        <section id="sec-overview" class="admin-section flex flex-col gap-4" aria-labelledby="admin-active-heading">
+          <div class="admin-kpi-strip">
+            <article class="sp-panel p-4 flex flex-col gap-1">
+              <span class="font-sans text-xs font-medium" style="color: var(--text-secondary);">Total Akun Terjangkau</span>
+              <span id="ov-total-accounts" class="font-mono text-2xl font-bold tabular-nums" style="color: var(--text-primary);">--</span>
+              <span id="ov-accounts-sub" class="font-mono text-[11px]" style="color: var(--text-muted);">Memuat...</span>
+            </article>
+            <article class="sp-panel p-4 flex flex-col gap-1">
+              <span class="font-sans text-xs font-medium" style="color: var(--text-secondary);">Belum Verifikasi / Nonaktif</span>
+              <span id="ov-attention-accounts" class="font-mono text-2xl font-bold tabular-nums" style="color: var(--amber-text);">--</span>
+              <span id="ov-attention-sub" class="font-mono text-[11px]" style="color: var(--text-muted);">Memuat...</span>
+            </article>
+            <article class="sp-panel p-4 flex flex-col gap-1">
+              <span class="font-sans text-xs font-medium" style="color: var(--text-secondary);">Sesi Aktif Provider</span>
+              <span id="ov-active-sessions" class="font-mono text-2xl font-bold tabular-nums" style="color: var(--primary-text);">--</span>
+              <span class="font-mono text-[11px]" style="color: var(--text-muted);">auth.sessions</span>
+            </article>
+            <article class="sp-panel p-4 flex flex-col gap-1">
+              <span class="font-sans text-xs font-medium" style="color: var(--text-secondary);">Undangan Pending</span>
+              <span id="ov-pending-invites" class="font-mono text-2xl font-bold tabular-nums" style="color: var(--good-text);">--</span>
+              <span id="ov-invites-sub" class="font-mono text-[11px]" style="color: var(--text-muted);">Memuat...</span>
+            </article>
+          </div>
+
+          <div class="admin-overview-grid">
+            <article class="sp-panel p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
+                <div>
+                  <h2 class="sp-section-heading">Peringatan Keamanan &amp; Tindakan</h2>
+                  <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Event diblokir, kegagalan otorisasi, dan perubahan hak akses terbaru.</p>
+                </div>
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" data-jump-section="audit">Lihat Audit</button>
+              </div>
+              <div id="ov-alerts-list" class="flex flex-col gap-2">
+                <p class="font-mono text-xs m-0" style="color: var(--text-secondary);">Memuat peringatan keamanan...</p>
+              </div>
+            </article>
+
+            <article class="sp-panel p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
+                <div>
+                  <h2 class="sp-section-heading">Aktivitas Administratif Terbaru</h2>
+                  <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Riwayat perubahan dari tabel security_audit_logs.</p>
+                </div>
+                <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" data-jump-section="accounts">Kelola Akun</button>
+              </div>
+              <div id="ov-recent-audits" class="flex flex-col gap-2">
+                <p class="font-mono text-xs m-0" style="color: var(--text-secondary);">Memuat aktivitas terbaru...</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 2. ACCOUNTS SECTION -->
+        <section id="sec-accounts" class="hidden admin-section sp-panel p-4 md:p-5 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="sp-section-heading">Daftar Akun &amp; Identitas</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Klik baris atau tombol Detail untuk memeriksa profil, keanggotaan proyek, identitas tertaut, dan sesi.</p>
+            </div>
+            <button type="button" id="btn-accounts-invite" class="sp-btn sp-btn-primary sp-btn-compact">
+              <span class="material-symbols-outlined text-[17px]" aria-hidden="true">person_add</span>
+              <span>Undang Anggota</span>
+            </button>
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-field">
+              <label for="acc-search" class="sp-label">Cari Akun</label>
+              <input type="text" id="acc-search" class="sp-input" placeholder="Nama, email, atau badge...">
+            </div>
+            <div class="admin-filter-field" style="max-width: 200px;">
+              <label for="acc-filter-status" class="sp-label">Status Akun</label>
+              <select id="acc-filter-status" class="sp-input">
+                <option value="all">Semua Status</option>
+                <option value="active">Aktif</option>
+                <option value="suspended">Suspended</option>
+                <option value="deactivated">Nonaktif</option>
+                <option value="unverified">Email Belum Verifikasi</option>
+              </select>
+            </div>
+            <div class="admin-filter-field" style="max-width: 210px;">
+              <label for="acc-filter-role" class="sp-label">System Role</label>
+              <select id="acc-filter-role" class="sp-input">
+                <option value="all">Semua System Role</option>
+                <option value="system_owner">System Owner</option>
+                <option value="system_admin">System Admin</option>
+                <option value="production_admin">Production Admin</option>
+                <option value="crew_member">Crew Member</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+            <button type="button" id="btn-acc-apply-filter" class="sp-btn sp-btn-secondary sp-btn-compact">Terapkan</button>
+          </div>
+
+          <div id="acc-state-box" class="hidden sp-panel-muted p-5 text-center text-xs"></div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table w-full text-left border-collapse">
+              <thead>
+                <tr style="background-color: var(--panel-lowest); border-bottom: 1px solid var(--border-flat);">
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Akun</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">System Role</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Status &amp; Verifikasi</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Proyek</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Masuk Terakhir</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold text-right" style="color: var(--text-secondary);">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="acc-tbody" class="divide-y" style="border-color: var(--border-flat);"></tbody>
+            </table>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span id="acc-page-info" class="font-mono" style="color: var(--text-secondary);">0 akun</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="acc-prev-btn" class="sp-btn sp-btn-secondary sp-btn-compact" disabled>Sebelumnya</button>
+              <button type="button" id="acc-next-btn" class="sp-btn sp-btn-secondary sp-btn-compact" disabled>Berikutnya</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. ROLES & PERMISSIONS SECTION -->
+        <section id="sec-roles" class="hidden admin-section flex flex-col gap-4">
+          <div class="sp-panel p-4 md:p-5 flex flex-col gap-3">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="sp-section-heading">Pemisahan Jabatan Produksi &amp; System Role</h2>
+                <p class="font-sans text-xs m-0 mt-1 leading-relaxed" style="color: var(--text-secondary);">
+                  Jabatan produksi (Director, Producer, Script Supervisor, Editor, Sound) dikelola per proyek pada tab Projects / Memberships. System Role menentukan izin administratif di aplikasi dan tidak boleh diturunkan atau dinaikkan oleh pengguna biasa.
+                </p>
+              </div>
+              <span class="sp-badge sp-badge-blue font-mono">Least Privilege</span>
+            </div>
+            <div id="roles-matrix-state" class="hidden sp-panel-muted p-4 text-xs"></div>
+            <div class="admin-table-wrap">
+              <table class="admin-matrix-table w-full text-left border-collapse">
+                <thead>
+                  <tr style="background-color: var(--panel-lowest);">
+                    <th style="color: var(--text-secondary);">Permission</th>
+                    <th style="color: var(--text-secondary);">System Owner</th>
+                    <th style="color: var(--text-secondary);">System Admin</th>
+                    <th style="color: var(--text-secondary);">Production Admin</th>
+                    <th style="color: var(--text-secondary);">Crew Member</th>
+                    <th style="color: var(--text-secondary);">Viewer</th>
+                  </tr>
+                </thead>
+                <tbody id="roles-matrix-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <article id="roles-assign-card" class="sp-panel p-4 md:p-5 flex flex-col gap-4">
+            <div>
+              <h2 class="sp-section-heading">Ubah System Role Akun</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                Admin tidak dapat mengubah role dirinya sendiri atau mencabut System Owner terakhir. Perubahan dicatat ke Audit Log.
+              </p>
+            </div>
+
+            <form id="form-assign-role" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div class="flex flex-col gap-1">
+                <label for="role-target-user" class="sp-label">Pilih Akun</label>
+                <select id="role-target-user" class="sp-input" required></select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label for="role-target-value" class="sp-label">System Role Baru</label>
+                <select id="role-target-value" class="sp-input" required>
+                  <option value="crew_member">Crew Member</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="production_admin">Production Admin</option>
+                  <option value="system_admin">System Admin</option>
+                  <option value="system_owner">System Owner</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-1">
+                <label for="role-change-reason" class="sp-label">Alasan Perubahan</label>
+                <input type="text" id="role-change-reason" class="sp-input" placeholder="Alasan administratif" required>
+              </div>
+              <button type="submit" id="btn-submit-role-change" class="sp-btn sp-btn-primary">Tinjau &amp; Simpan Role</button>
+            </form>
+
+            <div id="role-impact-preview" class="sp-panel-muted p-3 text-xs" style="color: var(--text-secondary);">
+              Pilih akun dan role tujuan untuk melihat ringkasan dampak izin sebelum konfirmasi.
+            </div>
+          </article>
+        </section>
+
+        <!-- 4. PROJECTS / MEMBERSHIPS SECTION -->
+        <section id="sec-projects" class="hidden admin-section sp-panel p-4 md:p-5 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="sp-section-heading">Keanggotaan Proyek &amp; Jabatan Produksi</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                Production Admin hanya melihat dan mengelola proyek yang berada di bawah cakupannya. Pencabutan keanggotaan tidak menghapus data naskah atau take proyek.
+              </p>
+            </div>
+            <button type="button" id="btn-open-add-membership" class="sp-btn sp-btn-primary sp-btn-compact">
+              <span class="material-symbols-outlined text-[17px]" aria-hidden="true">group_add</span>
+              <span>Tambah / Ubah Anggota</span>
+            </button>
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-field" style="max-width: 280px;">
+              <label for="proj-filter-select" class="sp-label">Proyek</label>
+              <select id="proj-filter-select" class="sp-input">
+                <option value="">Semua Proyek Terjangkau</option>
+              </select>
+            </div>
+            <div class="admin-filter-field">
+              <label for="proj-member-search" class="sp-label">Cari Anggota atau Jabatan</label>
+              <input type="text" id="proj-member-search" class="sp-input" placeholder="Email, nama, atau jabatan produksi...">
+            </div>
+            <button type="button" id="btn-proj-filter" class="sp-btn sp-btn-secondary sp-btn-compact">Muat</button>
+          </div>
+
+          <div id="proj-state-box" class="hidden sp-panel-muted p-5 text-center text-xs"></div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table w-full text-left border-collapse">
+              <thead>
+                <tr style="background-color: var(--panel-lowest); border-bottom: 1px solid var(--border-flat);">
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Proyek</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Anggota</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Jabatan Produksi</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Akses Proyek</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold text-right" style="color: var(--text-secondary);">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="proj-members-tbody" class="divide-y" style="border-color: var(--border-flat);"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 5. SESSIONS & DEVICES SECTION -->
+        <section id="sec-sessions" class="hidden admin-section sp-panel p-4 md:p-5 flex flex-col gap-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="sp-section-heading">Sesi &amp; Perangkat Aktif (Supabase Auth)</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                Data diambil langsung dari <code class="font-mono">auth.sessions</code>. IP disamarkan (/24), dan User-Agent atau IP tidak pernah dipakai untuk menggabungkan akun.
+              </p>
+            </div>
+            <button type="button" id="btn-sessions-reload" class="sp-btn sp-btn-secondary sp-btn-compact">Muat Ulang Sesi</button>
+          </div>
+
+          <div class="sp-panel-muted p-3 text-xs leading-relaxed" style="color: var(--text-secondary);">
+            <strong style="color: var(--text-primary);">Batas Provider:</strong> Pencabutan sesi menghapus baris sesi refresh di <code class="font-mono">auth.sessions</code> dan mencegah refresh token baru. Access token JWT yang masih berlaku tetap aktif hingga masa kedaluwarsa JWT selesai kecuali pengguna keluar di klien.
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-field" style="max-width: 320px;">
+              <label for="sess-filter-user" class="sp-label">Filter Akun</label>
+              <select id="sess-filter-user" class="sp-input">
+                <option value="">Semua Akun Terjangkau</option>
+              </select>
+            </div>
+            <button type="button" id="btn-sess-revoke-user" class="hidden sp-btn sp-btn-danger sp-btn-compact">Cabut Semua Sesi Akun Ini</button>
+          </div>
+
+          <div id="sess-state-box" class="hidden sp-panel-muted p-5 text-center text-xs"></div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table w-full text-left border-collapse">
+              <thead>
+                <tr style="background-color: var(--panel-lowest); border-bottom: 1px solid var(--border-flat);">
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Akun</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Perangkat &amp; IP (/24)</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Aktivitas</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">AAL</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold text-right" style="color: var(--text-secondary);">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="sess-tbody" class="divide-y" style="border-color: var(--border-flat);"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 6. INVITATIONS SECTION -->
+        <section id="sec-invitations" class="hidden admin-section sp-panel p-4 md:p-5 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="sp-section-heading">Undangan Anggota Proyek &amp; Sistem</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                Token undangan di-hash (SHA-256) di server, sekali pakai, memiliki masa kedaluwarsa, dan mengunci proyek serta peran tujuan di database.
+              </p>
+            </div>
+            <button type="button" id="btn-open-create-invite" class="sp-btn sp-btn-primary sp-btn-compact">
+              <span class="material-symbols-outlined text-[17px]" aria-hidden="true">send</span>
+              <span>Buat Undangan</span>
+            </button>
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-field" style="max-width: 210px;">
+              <label for="inv-filter-status" class="sp-label">Status Undangan</label>
+              <select id="inv-filter-status" class="sp-input">
+                <option value="all">Semua Status</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Diterima</option>
+                <option value="expired">Kedaluwarsa</option>
+                <option value="revoked">Dicabut</option>
+              </select>
+            </div>
+            <button type="button" id="btn-inv-reload" class="sp-btn sp-btn-secondary sp-btn-compact">Muat Ulang</button>
+          </div>
+
+          <div id="inv-state-box" class="hidden sp-panel-muted p-5 text-center text-xs"></div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table w-full text-left border-collapse">
+              <thead>
+                <tr style="background-color: var(--panel-lowest); border-bottom: 1px solid var(--border-flat);">
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Email Tujuan</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Proyek &amp; Jabatan</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Status &amp; Masa Berlaku</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold text-right" style="color: var(--text-secondary);">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="inv-tbody" class="divide-y" style="border-color: var(--border-flat);"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 7. AUDIT LOGS SECTION -->
+        <section id="sec-audit" class="hidden admin-section sp-panel p-4 md:p-5 flex flex-col gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="sp-section-heading">Audit Logs Keamanan &amp; Administrasi</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">
+                Catatan bersifat append-only dari jalur backend tepercaya. Pengguna dan admin tidak dapat mengubah atau menghapus log melalui konsol.
+              </p>
+            </div>
+            <span class="sp-badge sp-badge-neutral font-mono">Immutable Log</span>
+          </div>
+
+          <div class="admin-filter-bar">
+            <div class="admin-filter-field">
+              <label for="audit-search" class="sp-label">Cari Event / Aktor / Alasan</label>
+              <input type="text" id="audit-search" class="sp-input" placeholder="Email, event_type, target_id...">
+            </div>
+            <div class="admin-filter-field" style="max-width: 170px;">
+              <label for="audit-filter-status" class="sp-label">Hasil</label>
+              <select id="audit-filter-status" class="sp-input">
+                <option value="all">Semua</option>
+                <option value="success">Success</option>
+                <option value="blocked">Blocked</option>
+                <option value="failure">Failure</option>
+              </select>
+            </div>
+            <div class="admin-filter-field" style="max-width: 190px;">
+              <label for="audit-filter-target" class="sp-label">Tipe Target</label>
+              <select id="audit-filter-target" class="sp-input">
+                <option value="all">Semua Target</option>
+                <option value="account">Account</option>
+                <option value="project_membership">Membership</option>
+                <option value="session">Session</option>
+                <option value="invitation">Invitation</option>
+                <option value="security">Security</option>
+              </select>
+            </div>
+            <button type="button" id="btn-audit-apply" class="sp-btn sp-btn-secondary sp-btn-compact">Filter</button>
+          </div>
+
+          <div id="audit-state-box" class="hidden sp-panel-muted p-5 text-center text-xs"></div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table w-full text-left border-collapse">
+              <thead>
+                <tr style="background-color: var(--panel-lowest); border-bottom: 1px solid var(--border-flat);">
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Waktu</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Event</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Aktor &amp; Target</th>
+                  <th class="py-2.5 px-3 font-sans text-xs font-semibold" style="color: var(--text-secondary);">Hasil &amp; Alasan</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody" class="divide-y" style="border-color: var(--border-flat);"></tbody>
+            </table>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span id="audit-page-info" class="font-mono" style="color: var(--text-secondary);">0 log</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="audit-prev-btn" class="sp-btn sp-btn-secondary sp-btn-compact" disabled>Sebelumnya</button>
+              <button type="button" id="audit-next-btn" class="sp-btn sp-btn-secondary sp-btn-compact" disabled>Berikutnya</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. SECURITY SETTINGS SECTION -->
+        <section id="sec-security" class="hidden admin-section grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <article class="lg:col-span-7 sp-panel p-5 flex flex-col gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b" style="border-color: var(--border-flat);">
+              <div>
+                <h2 class="sp-section-heading">Kebijakan Keamanan Aplikasi</h2>
+                <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Hanya System Owner yang dapat mengubah parameter kebijakan yang dikelola tabel aplikasi.</p>
+              </div>
+              <span id="sec-edit-badge" class="sp-badge sp-badge-neutral font-mono">Read-Only</span>
+            </div>
+
+            <form id="form-security-settings" class="flex flex-col gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                  <label for="sec-invite-hours" class="sp-label">Masa Berlaku Undangan (jam)</label>
+                  <input type="number" id="sec-invite-hours" class="sp-input font-mono" min="1" max="720" value="72" required>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label for="sec-min-pw" class="sp-label">Panjang Minimum Password (karakter)</label>
+                  <input type="number" id="sec-min-pw" class="sp-input font-mono" min="12" max="64" value="12" required>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="sec-idle-mins" class="sp-label">Idle Timeout Sesi Server (menit)</label>
+                <input type="number" id="sec-idle-mins" class="sp-input font-mono" min="5" max="480" value="30" required>
+              </div>
+
+              <label class="sp-checkbox-row">
+                <input type="checkbox" id="sec-reauth-role" class="w-4 h-4 rounded" checked>
+                <span class="font-sans text-xs" style="color: var(--text-primary);">Wajibkan verifikasi ulang kata sandi saat mengubah System Role atau kebijakan keamanan</span>
+              </label>
+
+              <label class="sp-checkbox-row">
+                <input type="checkbox" id="sec-self-signup" class="w-4 h-4 rounded" checked>
+                <span class="font-sans text-xs" style="color: var(--text-primary);">Izinkan pendaftaran mandiri kru di layar login</span>
+              </label>
+
+              <div class="flex flex-col gap-1">
+                <label for="sec-reason" class="sp-label">Catatan Perubahan Kebijakan</label>
+                <input type="text" id="sec-reason" class="sp-input" placeholder="Alasan perubahan kebijakan">
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
+                <span id="sec-updated-meta" class="font-mono text-[11px]" style="color: var(--text-muted);">-</span>
+                <button type="submit" id="btn-save-security" class="sp-btn sp-btn-primary sp-btn-compact">Simpan Kebijakan</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="lg:col-span-5 sp-panel p-5 flex flex-col gap-3">
+            <div class="pb-2 border-b" style="border-color: var(--border-flat);">
+              <h2 class="sp-section-heading">Postur Deployment &amp; Provider</h2>
+              <p class="font-sans text-xs m-0 mt-0.5" style="color: var(--text-secondary);">Ringkasan keamanan runtime. Secret tidak pernah dikirim ke browser.</p>
+            </div>
+            <div id="sec-posture-box" class="flex flex-col gap-2 text-xs">
+              <p class="font-mono m-0" style="color: var(--text-secondary);">Memuat postur keamanan...</p>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Backdrop Overlay -->
+  <div id="admin-overlay" class="bottom-sheet-overlay"></div>
+
+  <!-- ACCOUNT DETAIL SLIDE-OVER DRAWER -->
+  <aside id="drawer-account-detail" class="admin-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-acc-title">
+    <div class="sp-topbar">
+      <div class="min-w-0">
+        <h2 id="drawer-acc-title" class="font-sans text-sm font-bold truncate m-0" style="color: var(--text-primary);">Detail Akun</h2>
+        <p id="drawer-acc-email" class="font-mono text-[11px] truncate m-0" style="color: var(--text-secondary);">-</p>
+      </div>
+      <button type="button" class="sp-icon-btn" data-close-admin-modal aria-label="Tutup detail akun">
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+      </button>
+    </div>
+    <div id="drawer-acc-body" class="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-4">
+      <p class="font-mono text-xs" style="color: var(--text-secondary);">Memuat detail akun...</p>
+    </div>
+  </aside>
+
+  <!-- MODAL: EDIT PROFILE -->
+  <div id="modal-edit-profile" class="bottom-sheet-drawer modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-edit-prof-title">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+      <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
+        <h2 id="modal-edit-prof-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Edit Profil Akun</h2>
+        <button type="button" class="sp-icon-btn" data-close-admin-modal aria-label="Tutup formulir edit profil">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <form id="form-edit-profile" class="flex flex-col gap-3">
+        <input type="hidden" id="ep-user-id">
+        <div class="flex flex-col gap-1">
+          <label for="ep-full-name" class="sp-label">Nama Lengkap</label>
+          <input type="text" id="ep-full-name" class="sp-input" required>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ep-role-title" class="sp-label">Jabatan Default</label>
+            <input type="text" id="ep-role-title" class="sp-input">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ep-id-badge" class="sp-label">ID Badge</label>
+            <input type="text" id="ep-id-badge" class="sp-input font-mono">
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="ep-studio" class="sp-label">Studio</label>
+          <input type="text" id="ep-studio" class="sp-input">
+        </div>
+        <fieldset class="sp-panel-muted p-3 flex flex-col gap-2">
+          <legend class="font-sans text-xs font-bold px-1" style="color: var(--text-primary);">Kapabilitas Workspace Kru (grantedRoles)</legend>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2"><input type="checkbox" id="ep-gr-script"> <span>Script Supervisor</span></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="ep-gr-editor"> <span>Video Editor</span></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="ep-gr-sound"> <span>Sound Recordist</span></label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="ep-gr-director"> <span>Director View</span></label>
+          </div>
+        </fieldset>
+        <div class="flex flex-col gap-1">
+          <label for="ep-reason" class="sp-label">Alasan Perubahan</label>
+          <input type="text" id="ep-reason" class="sp-input" placeholder="Catatan perubahan untuk audit log">
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
+          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" data-close-admin-modal>Batal</button>
+          <button type="submit" id="btn-save-profile" class="sp-btn sp-btn-primary sp-btn-compact">Simpan Profil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: UPSERT PROJECT MEMBERSHIP -->
+  <div id="modal-upsert-member" class="bottom-sheet-drawer modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-member-title">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+      <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
+        <h2 id="modal-member-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Atur Keanggotaan Proyek</h2>
+        <button type="button" class="sp-icon-btn" data-close-admin-modal aria-label="Tutup formulir keanggotaan">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <form id="form-upsert-member" class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1">
+          <label for="um-project" class="sp-label">Proyek Produksi</label>
+          <select id="um-project" class="sp-input" required></select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="um-user" class="sp-label">Akun Pengguna</label>
+          <select id="um-user" class="sp-input" required></select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="um-prod-role" class="sp-label">Jabatan Produksi</label>
+            <input type="text" id="um-prod-role" class="sp-input" placeholder="Director, Producer, Script Supervisor..." value="Script Supervisor" required>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="um-member-role" class="sp-label">Level Akses Proyek</label>
+            <select id="um-member-role" class="sp-input" required>
+              <option value="editor">Editor (Baca &amp; Catat Take)</option>
+              <option value="viewer">Viewer (Baca Saja)</option>
+              <option value="production_admin">Production Admin (Kelola Anggota Proyek)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="um-reason" class="sp-label">Alasan</label>
+          <input type="text" id="um-reason" class="sp-input" placeholder="Catatan penugasan kru">
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
+          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" data-close-admin-modal>Batal</button>
+          <button type="submit" id="btn-save-member" class="sp-btn sp-btn-primary sp-btn-compact">Simpan Keanggotaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE INVITATION -->
+  <div id="modal-create-invite" class="bottom-sheet-drawer modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-invite-title">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+      <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
+        <h2 id="modal-invite-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Buat Undangan Anggota</h2>
+        <button type="button" class="sp-icon-btn" data-close-admin-modal aria-label="Tutup formulir undangan">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <form id="form-create-invite" class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1">
+          <label for="ci-email" class="sp-label">Email Tujuan</label>
+          <input type="email" id="ci-email" class="sp-input" placeholder="kru@domain.id" required>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ci-project" class="sp-label">Proyek Tujuan</label>
+            <select id="ci-project" class="sp-input"></select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ci-prod-role" class="sp-label">Jabatan Produksi</label>
+            <input type="text" id="ci-prod-role" class="sp-input" value="Script Supervisor" required>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ci-member-role" class="sp-label">Level Akses Proyek</label>
+            <select id="ci-member-role" class="sp-input">
+              <option value="editor">Editor</option>
+              <option value="viewer">Viewer</option>
+              <option value="production_admin">Production Admin</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ci-sys-role" class="sp-label">Target System Role</label>
+            <select id="ci-sys-role" class="sp-input">
+              <option value="crew_member">Crew Member</option>
+              <option value="viewer">Viewer</option>
+              <option value="production_admin">Production Admin</option>
+              <option value="system_admin">System Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ci-expiry" class="sp-label">Masa Berlaku (jam)</label>
+            <input type="number" id="ci-expiry" class="sp-input font-mono" min="1" max="720" value="72">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ci-note" class="sp-label">Catatan</label>
+            <input type="text" id="ci-note" class="sp-input" placeholder="Catatan undangan">
+          </div>
+        </div>
+        <div id="ci-token-box" class="hidden sp-panel-muted p-3 flex flex-col gap-2">
+          <p class="font-sans text-xs font-bold m-0" style="color: var(--good-text);">Tautan Undangan Sekali Pakai (Hanya Ditampilkan Sekali)</p>
+          <input type="text" id="ci-token-url" class="sp-input font-mono text-xs" readonly aria-label="Tautan undangan sekali pakai">
+          <button type="button" id="btn-copy-invite-url" class="sp-btn sp-btn-secondary sp-btn-compact self-start">Salin Tautan Undangan</button>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
+          <button type="button" class="sp-btn sp-btn-secondary sp-btn-compact" data-close-admin-modal>Tutup</button>
+          <button type="submit" id="btn-submit-invite" class="sp-btn sp-btn-primary sp-btn-compact">Buat Token Undangan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMATION / REASON / RE-AUTH -->
+  <div id="admin-confirm-modal" class="bottom-sheet-drawer modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ac-title">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-content">
+      <div class="flex items-center justify-between pb-2 border-b" style="border-color: var(--border-flat);">
+        <h2 id="ac-title" class="font-sans text-sm font-bold m-0" style="color: var(--text-primary);">Konfirmasi Tindakan</h2>
+        <button type="button" class="sp-icon-btn" id="ac-cancel-x" aria-label="Batalkan tindakan">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <p id="ac-message" class="font-sans text-xs leading-relaxed m-0" style="color: var(--text-secondary);">-</p>
+      <div id="ac-reason-wrap" class="hidden flex flex-col gap-1">
+        <label for="ac-reason-input" class="sp-label">Alasan (dicatat ke Audit Log)</label>
+        <input type="text" id="ac-reason-input" class="sp-input" placeholder="Masukkan alasan tindakan ini">
+      </div>
+      <div id="ac-reauth-wrap" class="hidden flex flex-col gap-1">
+        <label for="ac-reauth-pw" class="sp-label">Verifikasi Ulang Kata Sandi Anda</label>
+        <input type="password" id="ac-reauth-pw" class="sp-input" autocomplete="current-password" placeholder="Masukkan kata sandi akun Anda">
+      </div>
+      <p id="ac-error" class="hidden font-sans text-xs font-medium m-0" role="alert" style="color: var(--red-text);"></p>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t" style="border-color: var(--border-flat);">
+        <button type="button" id="ac-cancel-btn" class="sp-btn sp-btn-secondary sp-btn-compact">Batal</button>
+        <button type="button" id="ac-confirm-btn" class="sp-btn sp-btn-primary sp-btn-compact">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="admin-toast" class="toast-snackbar" role="status" aria-live="polite" aria-atomic="true">
+    <span class="material-symbols-outlined text-[16px] text-[#34D399]" aria-hidden="true">check_circle</span>
+    <span id="admin-toast-msg">Tersimpan</span>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
